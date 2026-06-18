@@ -11,8 +11,12 @@ Generate one of each type. Named evals are easier to track than "eval-0".
 | `edge_case` | Unusual but valid — starts mid-workflow or uses minimal input | `"I already adapted the skill, just run the checklist"` |
 | `negative` | Should NOT trigger this skill | `"describe how skill-adapt works"` (explain, not invoke) |
 | `semantic` | Synonym variation of the action verb | `"measure" / "benchmark" / "test"` for "evaluate" |
+| `project-native` | Uses project-specific terminology, stack, and artifact paths | `"evaluate skill-adapt for our Next.js/GSD project — outputs go in .planning/"` |
+| `project-workflow` | Tests skill within the context of the project's installed skill ecosystem | `"After running skill-audit, now evaluate skill-adapt"` |
 
-Run each scenario 3 times. A stable skill triggers consistently across all 3 reps; a flaky one triggers 1–2 out of 3.
+The first 5 types are always generated. `project-native` and `project-workflow` require `--context evals/project-context.json`.
+
+Run each scenario 3 times. A stable skill triggers consistently; a flaky one triggers 1–2 out of 3.
 
 ---
 
@@ -75,9 +79,16 @@ Compare actual output against the `assertions` array in the eval:
 - Key elements missing → 4–6
 - Wrong output → 0–3
 
-**Scenario score = (Trigger × 0.4) + (Checklist × 0.3) + (Output × 0.3)**
+### Dimension 4: Project Fit (0–10) — project-native and project-workflow scenarios only
+- Output uses project-specific terminology correctly → 4 pts
+- Output references the correct project artifact paths → 3 pts
+- Output aligns with the project's installed skill ecosystem (no conflicts, correct handoffs) → 3 pts
 
-Trigger accuracy is weighted highest — a skill nobody triggers correctly has no value regardless of execution quality.
+**Base scenario score = (Trigger × 0.4) + (Checklist × 0.3) + (Output × 0.3)**  
+**Project scenario score = (Trigger × 0.35) + (Checklist × 0.25) + (Output × 0.25) + (ProjectFit × 0.15)**  
+**Project Fit Score** = average of Dimension 4 scores across project-native + project-workflow scenarios.
+
+Trigger accuracy is weighted highest — a skill nobody triggers correctly has no value regardless of execution quality. Project Fit Score below 7 means skill-adapt should be re-run with richer project context before proceeding.
 
 ---
 
@@ -85,10 +96,13 @@ Trigger accuracy is weighted highest — a skill nobody triggers correctly has n
 
 After grading all runs, check for:
 
-- [ ] **Non-discriminating assertions** — scenarios that pass both with-skill and without-skill (the skill adds no measurable value for these)
+- [ ] **Non-discriminating assertions** — scenarios that pass both with-skill and without-skill (skill adds no value here)
 - [ ] **Flaky triggers** — scenarios that triggered in 1 or 2 out of 3 reps (description is unstable)
-- [ ] **Baseline delta** — is the with-skill output meaningfully better than no-skill? If not, the skill may be redundant for that scenario
+- [ ] **Baseline delta** — is the with-skill output meaningfully better than no-skill? If not, the skill may be redundant
 - [ ] **Token cost vs. benefit** — high context footprint skills should show proportionally larger baseline delta
+- [ ] **Project terminology mismatch** — project-native scenario triggered but output used generic language instead of project terms
+- [ ] **Ecosystem conflict** — project-workflow scenario shows skill duplicating or contradicting output from a sibling skill
+- [ ] **Missing artifact references** — output doesn't reference project paths (`.planning/`, `CLAUDE.md`, etc.) that it should know about
 
 ---
 
@@ -108,6 +122,7 @@ After grading all runs, check for:
 | Eval Pass Rate | XX% | ≥ 80% | PASS / FAIL |
 | Trigger Accuracy | XX% | ≥ 85% | PASS / FAIL |
 | Context Footprint | XX lines / ~XX tokens | — | OK / HIGH |
+| Project Fit Score | X/10 | ≥ 7 | PASS / FAIL / N/A |
 
 ## Scenario Results
 
@@ -121,6 +136,8 @@ After grading all runs, check for:
 - Non-discriminating: (list any)
 - Flaky triggers: (list any)
 - Baseline delta summary: (one sentence)
+- Project terminology mismatch: (list any)
+- Ecosystem conflicts: (list any)
 
 ## Issues Found
 
