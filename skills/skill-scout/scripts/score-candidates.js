@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-// score-candidates.js
+// score-candidates.js <candidates.json>
 // Scores skill candidates against project needs.
-// Input (stdin or file): JSON array of candidates
-// Output: sorted JSON array with scores
+// Input: path to a JSON file containing an array of candidate objects.
+// Output: sorted JSON array with scores and STRONG/GOOD/MARGINAL/SKIP recommendation.
 
 // Candidate schema:
 // {
@@ -10,105 +10,152 @@
 //   source_url: string,
 //   commit_hash: string,
 //   description: string,
+//   skill_md_content?: string,           // full SKILL.md text — used for body matching
 //   skill_md_lines: number,
 //   has_scripts: boolean,
 //   has_reference: boolean,
 //   repo_age_days: number,
 //   repo_stars: number,
-//   trigger_keywords: string[],    // user-supplied: words describing what they need
-//   installed_skill_descriptions: string[]  // descriptions of currently installed skills
+//   trigger_keywords: string[],          // user-supplied: words describing the needed capability
+//   installed_skill_descriptions: string[] // descriptions of currently installed skills
 // }
 
-const input = process.argv[2] ? require('fs').readFileSync(process.argv[2], 'utf8') : '';
-let candidates;
-try {
-  candidates = JSON.parse(input);
-} catch {
-  console.error('Pass a JSON file path as argument. File must contain an array of candidate objects.');
+const fs = require('fs');
+
+const filePath = process.argv[2];
+if (!filePath) {
+  console.error('Usage: node score-candidates.js <candidates.json>');
   process.exit(1);
 }
 
+let candidates;
+try {
+  candidates = JSON.parse(fs.readFileSync(filePath, 'utf8'));
+} catch (e) {
+  console.error(`Failed to parse input: ${e.message}`);
+  process.exit(1);
+}
+
+// Orgs with established track records in the Claude Code skills ecosystem.
+const TRUSTED_ORGS = new Set([
+  'anthropics', 'anthropic',
+  'vercel-labs', 'vercel',
+  'microsoft', 'google',
+  'multica-ai',
+  'composiohq',
+]);
+
 function scoreTriggerPrecision(desc) {
   if (!desc) return 0;
-  const hasUseWhen = /use when/i.test(desc);
-  const hasSpecificTriggers = desc.split(/[,;]/).length >= 2;
-  const hasTriggerWords = /when (user|asked|request)/i.test(desc);
   let score = 0;
-  if (hasUseWhen) score += 5;
-  if (hasSpecificTriggers) score += 3;
-  if (hasTriggerWords) score += 2;
+  if (/use when/i.test(desc)) score += 5;
+  if (desc.split(/[,;]/).length >= 2) score += 3;
+  if (/when (user|asked|request)/i.test(desc)) score += 2;
   return Math.min(score, 10);
 }
 
+// Scripts presence is neutral — they add power but also attack surface.
+// has_reference is the primary structural quality signal.
 function scoreClarity(candidate) {
   let score = 0;
-  if (candidate.has_reference) score += 3;
-  if (candidate.has_scripts) score += 2;
-  // Estimate from line count — more lines usually means more detail (up to a point)
+  if (candidate.has_reference) score += 4;
   if (candidate.skill_md_lines >= 20) score += 3;
-  if (candidate.skill_md_lines >= 40) score += 2;
+  if (candidate.skill_md_lines >= 40) score += 3;
   return Math.min(score, 10);
 }
 
 function scoreContextFootprint(lines) {
-  if (lines <= 50) return 10;
+  if (lines <= 50)  return 10;
   if (lines <= 100) return 7;
   if (lines <= 150) return 5;
   if (lines <= 200) return 3;
   return 1;
 }
 
+// Match against both the description field and the full SKILL.md body when available.
 function scoreProjectFit(candidate) {
   if (!candidate.trigger_keywords || candidate.trigger_keywords.length === 0) return 5;
-  const desc = (candidate.description || '').toLowerCase();
-  const hits = candidate.trigger_keywords.filter(kw => desc.includes(kw.toLowerCase()));
+  const searchText = [
+    candidate.description || '',
+    candidate.skill_md_content || '',
+  ].join(' ').toLowerCase();
+  const hits = candidate.trigger_keywords.filter(kw => searchText.includes(kw.toLowerCase()));
   return Math.round((hits.length / candidate.trigger_keywords.length) * 10);
 }
 
+// Repo age and stars as a combined maturity signal.
+function scoreProvenance(candidate) {
+  let score = 5;
+  const stars = candidate.repo_stars || 0;
+  const age   = candidate.repo_age_days || 0;
+  if (stars >= 1000)     score += 3;
+  else if (stars >= 100) score += 2;
+  else if (stars >= 10)  score += 1;
+  if (age < 7)           score -= 4;
+  else if (age < 30)     score -= 2;
+  else if (age >= 180)   score += 2;
+  return Math.max(0, Math.min(score, 10));
+}
+
+// Source org trust level derived from URL.
+function scoreSourceReputation(candidate) {
+  if (!candidate.source_url) return 5;
+  const match = candidate.source_url.match(/github\.com\/([^/]+)\//i);
+  const org = match ? match[1].toLowerCase() : '';
+  if (TRUSTED_ORGS.has(org))                                                return 10;
+  if ((candidate.repo_stars || 0) >= 500)                                   return 7;
+  if ((candidate.repo_stars || 0) >= 100)                                   return 5;
+  if ((candidate.repo_stars || 0) === 0 && (candidate.repo_age_days || 0) < 30) return 1;
+  return 4;
+}
+
 function scoreConflictRisk(candidate) {
-  if (!candidate.installed_skill_descriptions || candidate.installed_skill_descriptions.length === 0) return 10;
-  const desc = (candidate.description || '').toLowerCase();
-  const words = desc.split(/\W+/).filter(w => w.length > 4);
+  if (!candidate.installed_skill_descriptions?.length) return 10;
+  const words = (candidate.description || '').toLowerCase().split(/\W+/).filter(w => w.length > 4);
   let maxOverlap = 0;
   for (const installed of candidate.installed_skill_descriptions) {
-    const installedWords = installed.toLowerCase().split(/\W+/).filter(w => w.length > 4);
-    const overlap = words.filter(w => installedWords.includes(w)).length;
-    const ratio = overlap / Math.max(words.length, 1);
-    maxOverlap = Math.max(maxOverlap, ratio);
+    const iWords = installed.toLowerCase().split(/\W+/).filter(w => w.length > 4);
+    const overlap = words.filter(w => iWords.includes(w)).length;
+    maxOverlap = Math.max(maxOverlap, overlap / Math.max(words.length, 1));
   }
-  // High overlap = low score
   return Math.round((1 - maxOverlap) * 10);
 }
 
 const WEIGHTS = {
-  trigger_precision: 0.30,
-  clarity: 0.25,
-  context_footprint: 0.20,
-  project_fit: 0.15,
-  conflict_risk: 0.10,
+  trigger_precision:  0.25,
+  clarity:            0.20,
+  context_footprint:  0.15,
+  project_fit:        0.15,
+  provenance:         0.10,
+  source_reputation:  0.10,
+  conflict_risk:      0.05,
 };
 
 const scored = candidates.map(c => {
-  const trigger_precision = scoreTriggerPrecision(c.description);
-  const clarity = scoreClarity(c);
-  const context_footprint = scoreContextFootprint(c.skill_md_lines || 0);
-  const project_fit = scoreProjectFit(c);
-  const conflict_risk = scoreConflictRisk(c);
+  const trigger_precision  = scoreTriggerPrecision(c.description);
+  const clarity            = scoreClarity(c);
+  const context_footprint  = scoreContextFootprint(c.skill_md_lines || 0);
+  const project_fit        = scoreProjectFit(c);
+  const provenance         = scoreProvenance(c);
+  const source_reputation  = scoreSourceReputation(c);
+  const conflict_risk      = scoreConflictRisk(c);
 
   const total = Math.round(
-    trigger_precision * WEIGHTS.trigger_precision +
-    clarity * WEIGHTS.clarity +
-    context_footprint * WEIGHTS.context_footprint +
-    project_fit * WEIGHTS.project_fit +
-    conflict_risk * WEIGHTS.conflict_risk
+    trigger_precision  * WEIGHTS.trigger_precision  +
+    clarity            * WEIGHTS.clarity            +
+    context_footprint  * WEIGHTS.context_footprint  +
+    project_fit        * WEIGHTS.project_fit        +
+    provenance         * WEIGHTS.provenance         +
+    source_reputation  * WEIGHTS.source_reputation  +
+    conflict_risk      * WEIGHTS.conflict_risk,
   );
 
   return {
-    name: c.name,
-    source_url: c.source_url,
-    commit_hash: c.commit_hash,
-    total_score: total,
-    breakdown: { trigger_precision, clarity, context_footprint, project_fit, conflict_risk },
+    name:          c.name,
+    source_url:    c.source_url,
+    commit_hash:   c.commit_hash,
+    total_score:   total,
+    breakdown:     { trigger_precision, clarity, context_footprint, project_fit, provenance, source_reputation, conflict_risk },
     recommendation: total >= 8 ? 'STRONG' : total >= 6 ? 'GOOD' : total >= 4 ? 'MARGINAL' : 'SKIP',
   };
 });
