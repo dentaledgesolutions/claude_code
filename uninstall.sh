@@ -22,7 +22,6 @@ fi
 TARGET="$(cd "${TARGET}" && pwd)"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GLOBAL_SKILLS="${HOME}/.claude/skills"
-GLOBAL_AGENTS="${HOME}/.claude/agents"
 
 # ── Discover skills from repo (same source as install.sh) ────────────────────
 SKILL_NAMES=()
@@ -40,7 +39,6 @@ echo "  Will remove:"
 echo "    • ${TARGET}/skills/"
 echo "    • ${GLOBAL_SKILLS}/{${SKILL_NAMES[*]}}"
 echo "    • ${TARGET}/.claude/agents/skill-guardian.md"
-echo "    • ${GLOBAL_AGENTS}/skill-guardian.md"
 echo ""
 
 read -r -p "Proceed? [y/N] " confirm
@@ -70,7 +68,7 @@ for skill in "${SKILL_NAMES[@]}"; do
 done
 echo ""
 
-# ── 3. Agents ────────────────────────────────────────────────────────────────
+# ── 3. Agent (project-scoped only) ───────────────────────────────────────────
 echo "→ [3/4] Removing skill-guardian agent"
 project_agent="${TARGET}/.claude/agents/skill-guardian.md"
 if [ -f "${project_agent}" ]; then
@@ -78,14 +76,6 @@ if [ -f "${project_agent}" ]; then
     ok "removed  ${project_agent}"
 else
     skip "project agent not found"
-fi
-
-global_agent="${GLOBAL_AGENTS}/skill-guardian.md"
-if [ -f "${global_agent}" ]; then
-    rm -f "${global_agent}"
-    ok "removed  ${global_agent}"
-else
-    skip "runtime agent not found"
 fi
 echo ""
 

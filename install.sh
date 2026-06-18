@@ -23,7 +23,6 @@ fi
 TARGET="$(cd "${TARGET}" && pwd)"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GLOBAL_SKILLS="${HOME}/.claude/skills"
-GLOBAL_AGENTS="${HOME}/.claude/agents"
 
 echo "════════════════════════════════════════════"
 echo "║   Skill Builder — Install                ║"
@@ -74,14 +73,11 @@ for skill in "${SKILL_NAMES[@]}"; do
 done
 echo ""
 
-# ── 3. Skill-guardian agent ──────────────────────────────────────────────────
+# ── 3. Skill-guardian agent (project-scoped only) ────────────────────────────
 echo "→ [3/4] Installing skill-guardian agent"
 mkdir -p "${TARGET}/.claude/agents"
 cp "${REPO_DIR}/.claude/agents/skill-guardian.md" "${TARGET}/.claude/agents/skill-guardian.md"
 ok "project  →  ${TARGET}/.claude/agents/skill-guardian.md"
-mkdir -p "${GLOBAL_AGENTS}"
-cp "${REPO_DIR}/.claude/agents/skill-guardian.md" "${GLOBAL_AGENTS}/skill-guardian.md"
-ok "runtime  →  ${GLOBAL_AGENTS}/skill-guardian.md"
 echo ""
 
 # ── 4. Evals workspace + .gitignore ─────────────────────────────────────────
