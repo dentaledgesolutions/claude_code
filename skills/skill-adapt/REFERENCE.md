@@ -53,7 +53,10 @@ source_url: https://github.com/<org>/<repo>/blob/<commit>/<path>/SKILL.md
 source_commit: <40-char commit hash>
 adapted_for: <project name>
 adapted_date: YYYY-MM-DD
+project_context_source: evals/project-context.json
 ```
+
+`project_context_source` is the structured context file that shaped this adaptation. skill-eval reads the same file when generating `project-native` and `project-workflow` scenarios — this is what closes the adapt → eval loop. If the file doesn't exist yet when adapting, generate it with `node skills/skill-eval/scripts/extract-project-context.js` first.
 
 For multi-source adaptations, add an `additional_sources` block:
 

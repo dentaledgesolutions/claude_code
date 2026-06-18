@@ -23,15 +23,15 @@ Rewrite a sourced skill so it fits your project like a native skill — not a tr
 
    Choose one as the primary source (highest combined fit). Extract specific steps or patterns from secondary sources to fill its gaps. Record which source each element came from — this goes into the provenance record in step 7.
 
-3. **Read project context** — check in this order:
-   - `CLAUDE.md` in project root
-   - `.planning/PLAN.md` or `.planning/REQUIREMENTS.md`
-   - `.planning/intel/CONTEXT.md` or `CONTEXT.md`
-   - `.planning/codebase/PATTERNS.md`
-   - `README.md` (project description and stack overview)
-   - `package.json` / `pyproject.toml` (technology stack)
+3. **Load project context** — check if `evals/project-context.json` already exists. If it does, read it directly — this is the canonical structured context for this project and ensures skill-eval tests against the same data this adaptation used.
 
-   Extract: stack, conventions, workflow step names, terminology, list of installed skills.
+   If it doesn't exist, generate it first:
+   ```bash
+   node skills/skill-eval/scripts/extract-project-context.js
+   ```
+   Then read `evals/project-context.json`. Supplement with a quick scan of the raw source files if anything looks missing (the script may miss hand-written conventions in `CLAUDE.md` or `.planning/` that require reading in full).
+
+   From `project-context.json`, extract: `stack`, `workflow_terms`, `key_phrases`, `artifact_paths`, `installed_skills`. These are the exact fields skill-eval will later test against — adapting from this data closes the loop.
 
 4. **Snapshot existing skill** — if a skill with this name is already installed, back it up before touching anything:
    ```bash
@@ -52,8 +52,9 @@ Rewrite a sourced skill so it fits your project like a native skill — not a tr
    source_commit: <40-char commit hash>
    adapted_for: <project name>
    adapted_date: YYYY-MM-DD
+   project_context_source: evals/project-context.json
    ```
-   For multi-source adaptations, include all sources. See REFERENCE.md for the full template.
+   `project_context_source` pins which context file shaped this adaptation — skill-eval reads it from there. For multi-source adaptations, include all sources. See REFERENCE.md for the full template.
 
 8. **Write the adapted skill** — write to `skills/<skill-name>/SKILL.md`. Adapt REFERENCE.md and scripts/ only if they need project-specific examples or paths; never change their core logic.
 
