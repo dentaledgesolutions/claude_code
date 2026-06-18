@@ -5,57 +5,61 @@ description: Auto-improves a Claude Code skill using Karpathy's autoresearch loo
 
 # Skill Refine
 
-Apply Karpathy's autoresearch loop to measurably improve a skill. No guessing — mutate, measure, keep if better.
+Apply Karpathy's autoresearch loop to measurably improve a skill. Diagnose → targeted fix → verified improvement. No guessing, no rewrites.
 
 ## Prerequisite
 
-Run `skill-eval` first. You need a baseline eval pass rate. If none exists, run it now.
+`skill-eval` must have run first. You need a baseline and a `refine-input.json`. If neither exists, run `skill-eval` now.
 
 ## The Loop
 
 ```
-METRIC:  eval_pass_rate + trigger_accuracy + context_footprint
-LEVER:   One SKILL.md section per iteration
-RULE:    Score ↑ → keep. Score ↓ → revert. Repeat until target or budget.
+RULE:    One lever per iteration. Score ↑ (>+2%) → keep. Score ↓ (>−5%) → revert. Repeat.
+TARGET:  eval_pass_rate ≥ 80%  AND  trigger_accuracy ≥ 85%
+BUDGET:  default 10 iterations, stop early at 95%+ for 3 consecutive
 ```
-
-**Default target:** eval_pass_rate ≥ 80%, trigger_accuracy ≥ 85%  
-**Default budget:** 5 iterations (increase if user requests deeper refinement)
 
 ## Workflow
 
-1. **Load baseline** — read `~/.claude/skills/<skill-name>/SKILL-EVAL.md`. Note baseline scores.
+1. **Gather inputs** — load `skills/<skill-name>/SKILL-EVAL.md` and `evals/<skill-name>/refine-input.json` (the structured handoff from skill-eval). Confirm budget and runs-per-experiment with the user (default: 10 iterations, 3 reps each).
 
-2. **Identify worst-scoring scenarios** — pick the 1-2 scenarios with the lowest scores from SKILL-EVAL.md. These drive the hypothesis.
+2. **Back up and validate baseline** — copy the current skill before touching anything:
+   ```bash
+   cp skills/<skill-name>/SKILL.md skills/<skill-name>/SKILL.md.baseline
+   ```
+   Re-run the failing scenarios from `refine-input.json` (3 reps each) to confirm the baseline is reproducible. If baseline is already ≥ 90%, ask the user whether to continue.
 
-3. **Hypothesize** — propose ONE change from the lever space:
-   - **Lever A** — description wording (trigger precision)
-   - **Lever B** — checklist step (completeness or ordering)
-   - **Lever C** — example addition or replacement (clarity)
-   - **Lever D** — REFERENCE.md content (depth for edge cases)
-   - **Lever E** — script logic (if a script is generating wrong output)
+3. **Route by failing metric** — the correct lever depends on *which* metric is failing:
+   - **Project Fit Score < 7** → do not refine. Exit and re-run `skill-adapt` with a richer `evals/project-context.json`. Refining won't fix a mis-adapted skill.
+   - **Trigger Accuracy < 85%** → work Lever A (description) only this session. Don't touch B–E until triggers are stable.
+   - **Eval Pass Rate < 80%** (triggers fine) → work Levers B–E.
+   - **Both failing** → fix Lever A first; pass rate issues are often downstream of trigger instability.
 
-4. **Make surgical edit** — edit exactly the targeted section. No other changes. (Karpathy: orthogonal edits only.)
+4. **Train/test split** — treat the failing scenarios from `refine-input.json` as the *training set* (mutate against these). Hold the `project-native` and `project-workflow` scenarios as the *validation set* (run only on final validation, not during iterations). This prevents overfitting the skill to its own eval suite.
 
-5. **Re-run eval** — run `skill-eval` on the modified skill. Compare scores against baseline.
+5. **Hypothesis** — pick ONE change from the lever space. Consult the failure mode → lever table in REFERENCE.md. Track which levers have been tried this session (coverage) — in early iterations, vary lever types; in later iterations, exploit the best-performing lever.
 
-6. **Keep or revert**:
-   - Score improved → update SKILL-REFINE-LOG.md with: iteration, hypothesis, change, delta
-   - Score same or dropped → revert the edit; log the failed hypothesis
+6. **Mutate** — make exactly the targeted edit. No other changes.
 
-7. **Repeat** — generate next hypothesis from remaining low-scoring scenarios. Stop when:
-   - Target scores reached, OR
-   - Budget exhausted, OR
-   - No untested hypotheses remain
+7. **Re-eval (training set only)** — re-run the failing scenarios (3 reps each). Also run 1 rep of each previously-passing scenario as a regression check.
 
-8. **Write final report** — update SKILL-REFINE-LOG.md with summary and final scores.
+8. **Keep or revert** (see thresholds in REFERENCE.md):
+   - Improved → **KEEP**. Sync to runtime: `cp -r skills/<skill-name> ~/.claude/skills/`
+   - Regressed or neutral → **REVERT** to prior content exactly.
+   - Log the iteration either way — failed hypotheses are data.
+
+9. **Repeat** steps 5–8 until any convergence criterion is met (see REFERENCE.md).
+
+10. **Final validation** — run the full eval (all 7 scenarios including the held-out validation set) to verify the improved skill hasn't overfit and project fit is intact.
+
+11. **Write report** — save `skills/<skill-name>/SKILL-REFINE-LOG.md` using the template in REFERENCE.md. If claude-mem is installed, persist a summary there too.
 
 ## Rules
 
 - **One lever per iteration** — never change description AND checklist in the same iteration.
-- **Revert faithfully** — if a change hurts the score, restore the exact prior content.
+- **Revert faithfully** — restore the exact prior content, not a rewrite of it.
 - **Log every iteration** — including failed hypotheses. They're data.
-- **Don't rewrite the skill** — refine is not rewrite. If pass rate < 40% after 5 iterations, recommend `write-a-skill` instead.
-- **Store results in claude-mem** — use the observation system to persist refinement history across sessions.
+- **Don't rewrite** — if pass rate < 40% after 5 iterations, recommend `write-a-skill` instead.
+- **Never skip the baseline backup** — `SKILL.md.baseline` must exist before the first mutation.
 
-See [REFERENCE.md](REFERENCE.md) for the refinement log template and hypothesis generation guide.
+See [REFERENCE.md](REFERENCE.md) for lever definitions, keep/revert thresholds, hypothesis guide, good/bad mutations, convergence criteria, and log template.

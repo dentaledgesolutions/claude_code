@@ -1,75 +1,88 @@
 # Skill Refine Reference
 
-## SKILL-REFINE-LOG.md Template
+## Routing Guide — Which Metric → Which Lever
 
-```markdown
-# Skill Refinement Log: <skill-name>
-**Started:** YYYY-MM-DD  
-**Baseline eval:** pass_rate=XX%, trigger_accuracy=XX%, context_footprint=XXL/~XXXt  
-**Target:** pass_rate≥80%, trigger_accuracy≥85%
+| Failing metric | Root cause | Action |
+|----------------|-----------|--------|
+| Project Fit Score < 7 | Skill wasn't adapted to project context | **Exit: re-run skill-adapt** with richer project-context.json |
+| Trigger Accuracy < 85% | Description doesn't match how users phrase requests | **Lever A only** — don't touch B–E until triggers are stable |
+| Eval Pass Rate < 80%, triggers fine | Skill fires but executes incorrectly | **Levers B–E** |
+| Both trigger + pass rate failing | Trigger instability cascades to execution failures | **Lever A first**, then B–E |
 
-## Iterations
+---
 
-### Iteration 1
-- **Hypothesis:** Changing [section] will improve [scenario #N] because [reason]
-- **Lever:** A/B/C/D/E — [description wording / checklist step / example / reference / script]
-- **Change:** [one-line summary of what changed]
-- **Before:** pass_rate=XX%, trigger_accuracy=XX%
-- **After:** pass_rate=XX%, trigger_accuracy=XX%
-- **Decision:** KEPT / REVERTED
-- **Note:** [why it worked or didn't]
+## Keep / Revert Thresholds
 
-### Iteration 2
-(repeat structure)
+| Outcome | Condition | Decision |
+|---------|-----------|----------|
+| **KEEP** | pass_rate > baseline + 2% | This is the new baseline |
+| **REVERT** | pass_rate < baseline − 5% | Restore exact prior content |
+| **NEUTRAL → KEEP** | Within ±2–5% | Keep — slight preference for new; simpler isn't worse |
 
-## Final Results
-| Metric | Baseline | Final | Delta |
-|--------|----------|-------|-------|
-| Eval Pass Rate | XX% | XX% | +/-XX% |
-| Trigger Accuracy | XX% | XX% | +/-XX% |
-| Context Footprint | XXL | XXL | +/-XXL |
+A neutral result that makes the skill *shorter* is a win. Simplification that maintains the score reduces context footprint.
 
-**Recommendation:** DONE / NEEDS-REWRITE / CONTINUE
-```
+---
+
+## Lever Space
+
+**Lever A — Description wording** (trigger precision)
+The `description:` frontmatter. Changes what prompts activate the skill.
+- Constraint: keep "Use when [X]" format, ≤ 200 chars
+- High-impact: one word change can shift trigger accuracy by 20%+
+
+**Lever B — Checklist step** (completeness / ordering)
+Any numbered step in `## Workflow`. Changes what Claude does when active.
+- Constraint: one step at a time, never reorder all steps at once
+
+**Lever C — Examples** (clarity for ambiguous input)
+Content under `## Quick start` or inline examples.
+- Constraint: examples must reflect real usage, not idealized scenarios
+
+**Lever D — Reference content** (depth for edge cases)
+Content in REFERENCE.md. Changes lookup information depth.
+- Constraint: don't move core workflow into REFERENCE.md
+
+**Lever E — Script logic** (deterministic behavior)
+Code in `scripts/`. Changes deterministic output.
+- Constraint: run `static-scan.js` after any script edit
+
+---
+
+## Good vs Bad Mutations
+
+**Good mutations:**
+- Add a specific instruction addressing the most common failure pattern
+- Reword an ambiguous instruction to be more explicit
+- Add an anti-pattern ("Do NOT do X") for a recurring mistake
+- Move a buried instruction higher (priority = position in file)
+- Add or improve an example showing the correct behavior
+- Remove an instruction causing over-optimization for one thing at the expense of others
+- Add a trigger synonym the description was missing
+
+**Bad mutations:**
+- Rewriting the entire skill from scratch
+- Adding multiple rules in one iteration
+- Making the skill longer without a specific reason
+- Adding vague instructions like "be more careful" or "do better"
+- Changing both description and a workflow step in the same iteration
 
 ---
 
 ## Hypothesis Generation Guide
 
-When a scenario fails, generate hypotheses by asking:
+When a scenario fails, map the failure to a lever:
 
-| Failure mode | Likely lever | Example hypothesis |
-|-------------|-------------|-------------------|
-| Skill didn't trigger | A (description) | "Add 'search for skill' to trigger list" |
-| Skill triggered incorrectly | A (description) | "Narrow description: replace 'skill' with 'installed skill'" |
-| Step was skipped | B (checklist) | "Add explicit output requirement to step N" |
-| Output was incomplete | C (example) | "Add example showing complete output format" |
-| Edge case not handled | D (reference) | "Add edge case section to REFERENCE.md" |
-| Script returned wrong format | E (script) | "Fix JSON schema in script output" |
+| Failure mode | Lever | Example hypothesis |
+|-------------|-------|--------------------|
+| Skill didn't trigger | A | Add "search for skill" to trigger list |
+| Triggered on a negative | A | Narrow description: add "installed skill" qualifier |
+| Step was skipped | B | Add explicit output requirement to step N |
+| Output was incomplete | C | Add example showing complete output format |
+| Edge case not handled | D | Add edge case section to REFERENCE.md |
+| Script returned wrong format | E | Fix JSON schema in script output |
+| Project terminology missing from output | A or B | Add project terms to description or step instructions |
 
----
-
-## Lever Space (What Can Be Changed)
-
-**Lever A — Description wording:**  
-The `description:` frontmatter field. Changes trigger activation. High-impact lever.  
-Constraint: must include "Use when [specific triggers]". Max 200 chars.
-
-**Lever B — Checklist step:**  
-Any numbered step in the `## Workflow` section. Changes what Claude does when skill is active.  
-Constraint: surgical — edit one step at a time. Never reorder all steps.
-
-**Lever C — Examples:**  
-Content under `## Quick start` or inline examples. Changes how Claude interprets ambiguous input.  
-Constraint: examples must reflect real usage, not idealized scenarios.
-
-**Lever D — Reference content:**  
-Content in REFERENCE.md. Changes depth and accuracy of lookup information.  
-Constraint: don't move core workflow into REFERENCE.md; keep it in SKILL.md.
-
-**Lever E — Script logic:**  
-Code in `scripts/`. Changes deterministic behavior.  
-Constraint: run static-scan.js after any script edit to verify no new threats.
+**Coverage tracking** — note which lever type was used each iteration. In early iterations, vary lever types (explore). Once a lever shows consistent improvement, focus on it (exploit).
 
 ---
 
@@ -77,25 +90,70 @@ Constraint: run static-scan.js after any script edit to verify no new threats.
 
 Stop the loop when ANY of:
 
-1. `eval_pass_rate ≥ 80%` AND `trigger_accuracy ≥ 85%`
-2. 5 iterations completed with no improvement in last 2
-3. All generated hypotheses have been tested
-4. `eval_pass_rate < 40%` after 5 iterations → recommend rewrite, not refine
+1. `eval_pass_rate ≥ 80%` AND `trigger_accuracy ≥ 85%` → **DONE**
+2. `pass_rate ≥ 95%` for 3 consecutive experiments → **DONE** (diminishing returns)
+3. Budget exhausted with no improvement in last 2 iterations → **DONE**
+4. All generated hypotheses have been tested → **DONE**
+5. `eval_pass_rate < 40%` after 5 iterations → **REWRITE** — recommend `write-a-skill`
+6. Project Fit Score < 7 at routing step → **RE-ADAPT** — do not enter refinement loop
 
 ---
 
-## Persisting to claude-mem
+## SKILL-REFINE-LOG.md Template
 
-After each refinement session, record to claude-mem:
+Save to `skills/<skill-name>/SKILL-REFINE-LOG.md`.
+
+```markdown
+# Skill Refinement Log: <skill-name>
+**Started:** YYYY-MM-DD  
+**Baseline:** pass_rate=XX%, trigger_accuracy=XX%, project_fit=X/10  
+**Target:** pass_rate ≥ 80%, trigger_accuracy ≥ 85%  
+**Training set:** <N> failing scenarios from refine-input.json  
+**Held-out set:** project-native, project-workflow scenarios  
+
+## Iterations
+
+### Iteration 1
+- **Hypothesis:** Changing [section] will improve [scenario name] because [reason]
+- **Lever:** A/B/C/D/E — [what type of change]
+- **Change:** [one-line summary]
+- **Before:** pass_rate=XX%, trigger_accuracy=XX%
+- **After:** pass_rate=XX%, trigger_accuracy=XX%
+- **Decision:** KEPT / REVERTED / NEUTRAL-KEPT
+- **Note:** [why it worked or didn't]
+
+## Final Results
+
+| Metric | Baseline | Final | Delta |
+|--------|----------|-------|-------|
+| Eval Pass Rate | XX% | XX% | +/-XX% |
+| Trigger Accuracy | XX% | XX% | +/-XX% |
+| Project Fit Score | X/10 | X/10 | +/-X |
+| Context Footprint | XXL | XXL | +/-XXL |
+| Iterations run | — | N | — |
+| Keep rate | — | X/N | — |
+
+**Levers used:** A(N), B(N), C(N), D(N), E(N)  
+**Most effective lever:** [letter] — [what worked]  
+**Failed hypotheses:** [list — data for future sessions]  
+
+**Recommendation:** DONE / NEEDS-REWRITE / CONTINUE / RE-ADAPT
+```
+
+---
+
+## Cross-Session Persistence
+
+After each refinement session, record a summary. Use claude-mem if installed:
 
 ```
 Skill: <skill-name>
 Date: YYYY-MM-DD
-Iterations: N
-Baseline: pass_rate=XX%, trigger_accuracy=XX%
-Final: pass_rate=XX%, trigger_accuracy=XX%
-Effective levers: A, B (description and checklist step 3)
-Failed hypotheses: C (example didn't change trigger behavior)
+Iterations: N (kept: X, reverted: Y)
+Baseline → Final: pass_rate XX%→XX%, trigger_accuracy XX%→XX%
+Effective levers: [list]
+Failed hypotheses: [list]
+Untested hypotheses remaining: [list — pick up here next session]
 ```
 
-This lets future sessions pick up where refinement left off without re-running baseline evals.
+If claude-mem is not installed, `SKILL-REFINE-LOG.md` is the persistent record — future sessions start by reading it.
