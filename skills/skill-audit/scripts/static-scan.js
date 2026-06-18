@@ -30,6 +30,12 @@ function stripCodeBlocks(text) {
   return s;
 }
 
+function stripRegexLiterals(text) {
+  // Strip JS regex literals (e.g. /pattern/flags) so that pattern definitions
+  // inside scanner source files don't self-trigger during scanning.
+  return text.replace(/(?<=[=\[,(:!])\s*\/(?:[^/\\\n]|\\.)+\/[gimsuy]*/g, ' [REGEX]');
+}
+
 // ─── Markdown: Prompt Injection ────────────────────────────────────────────
 const MD_INJECTION = [
   { re: /ignore\s+(previous|prior|all)\s+instructions/i,              name: 'instruction-override',  sev: 'BLOCK' },
@@ -127,14 +133,15 @@ function scanMarkdown(filePath, content) {
 
 function scanScript(filePath, content, ext) {
   let patterns = [];
-  if (JS_EXTS.has(ext)) patterns = JS_PATTERNS;
+  let scanContent = content;
+  if (JS_EXTS.has(ext)) { patterns = JS_PATTERNS; scanContent = stripRegexLiterals(content); }
   if (PY_EXTS.has(ext)) patterns = PY_PATTERNS;
   if (SH_EXTS.has(ext)) patterns = SH_PATTERNS;
   if (patterns.length === 0) return;
 
   for (const { re, name, sev } of patterns) {
-    if (re.test(content)) {
-      const m = content.match(re);
+    if (re.test(scanContent)) {
+      const m = scanContent.match(re);
       flag(filePath, name, sev, `"${m[0].slice(0, 80)}"`);
     }
   }

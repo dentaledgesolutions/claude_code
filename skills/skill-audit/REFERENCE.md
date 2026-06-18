@@ -55,7 +55,7 @@
 | `you are now` | FLAG | Persona hijack |
 | `from now on you must/will` | FLAG | Behavior override |
 | `act as` + assistant/ai/agent/claude | FLAG | Persona override |
-| `system prompt` reference | FLAG | System prompt manipulation |
+| `system prompt` reference | FLAG | `System prompt manipulation` |
 | Base64 blobs (80+ char) | FLAG | Encoded payload |
 | HTML comments `<!-- -->` | FLAG | Hidden instructions |
 

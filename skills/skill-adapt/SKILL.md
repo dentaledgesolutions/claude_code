@@ -38,7 +38,7 @@ Rewrite a sourced skill so it fits your project like a native skill — not a tr
    cp -r skills/<skill-name> skills/<skill-name>-backup-$(date +%Y%m%d)
    ```
 
-5. **Adapt the description** — rewrite the `description:` frontmatter using project-specific terminology and "pushy" trigger phrases: include the exact words a user would say to activate this skill. Keep "Use when [X]" format. Target ≤ 200 chars.
+5. **Adapt the description** — rewrite the `description:` frontmatter using project-specific terminology and "pushy" trigger phrases: include the exact words a user would say to activate this skill. Keep "Use when [X]" format. Target ≤ 400 chars.
 
 6. **Adapt workflow steps** — align steps with project conventions:
    - GSD projects: map to GSD phase gates (discuss → plan → execute → verify)
