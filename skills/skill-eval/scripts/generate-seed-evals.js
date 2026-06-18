@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-// generate-seed-evals.js <skill-or-uat-file>
-// Extracts test scenarios from a SKILL.md or UAT.md file.
-// Outputs JSON array of test case objects.
+// generate-seed-evals.js <SKILL.md or UAT.md>
+// Extracts test scenarios from a skill or acceptance-criteria file.
+// Outputs evals.json to evals/<skill-name>/evals.json (and stdout).
 
-const fs = require('fs');
+const fs   = require('fs');
 const path = require('path');
 
 const inputFile = process.argv[2];
@@ -12,126 +12,153 @@ if (!inputFile || !fs.existsSync(inputFile)) {
   process.exit(1);
 }
 
-const content = fs.readFileSync(inputFile, 'utf8');
+const content  = fs.readFileSync(inputFile, 'utf8');
 const fileName = path.basename(inputFile).toLowerCase();
+const skillDir = path.dirname(inputFile);
+const skillName = path.basename(skillDir);
 const scenarios = [];
+let id = 1;
 
-// --- Parse SKILL.md ---
+// ── Synonyms for common action verbs ────────────────────────────────────────
+const VERB_SYNONYMS = {
+  evaluate: ['assess', 'measure', 'benchmark', 'test', 'check'],
+  find:     ['search for', 'locate', 'look for', 'discover'],
+  audit:    ['review', 'inspect', 'scan', 'check'],
+  adapt:    ['customize', 'modify', 'adjust', 'tailor'],
+  refine:   ['improve', 'optimize', 'enhance', 'tune'],
+  create:   ['build', 'write', 'generate', 'make'],
+  install:  ['add', 'set up', 'deploy'],
+  run:      ['execute', 'launch', 'trigger'],
+};
+
+function synonymOf(phrase) {
+  const lower = phrase.toLowerCase();
+  for (const [verb, syns] of Object.entries(VERB_SYNONYMS)) {
+    if (lower.includes(verb)) {
+      const replacement = syns[Math.floor(Math.random() * syns.length)];
+      return lower.replace(verb, replacement);
+    }
+  }
+  return null;
+}
+
+// ── Paraphrase by restructuring (not just synonym swap) ──────────────────────
+function paraphraseOf(phrase) {
+  const lower = phrase.toLowerCase().trim().replace(/^(please\s+|can you\s+)/i, '');
+  return `I need to ${lower}`;
+}
+
+// ── Negative (should NOT trigger): turn a task into an inquiry ───────────────
+function negativeOf(phrase) {
+  const lower = phrase.toLowerCase().trim();
+  // Turn imperatives into "explain/describe/tell me about" questions
+  return `Can you explain how to ${lower} without actually doing it?`;
+}
+
+// ── Parse SKILL.md ───────────────────────────────────────────────────────────
 if (fileName === 'skill.md') {
-  // Extract trigger phrases from description frontmatter
   const descMatch = content.match(/^description:\s*(.+)/m);
   const description = descMatch ? descMatch[1].trim() : '';
 
-  // Extract "Use when" triggers
   const useWhenMatch = description.match(/[Uu]se when\s+(.+)/);
-  const triggerText = useWhenMatch ? useWhenMatch[1] : description;
-  const triggers = triggerText.split(/[,;]/).map(t => t.trim()).filter(Boolean);
+  const triggerText  = useWhenMatch ? useWhenMatch[1] : description;
+  const triggers     = triggerText.split(/[,;]/).map(t => t.trim()).filter(Boolean);
+  const primaryTrigger = triggers[0] || 'invoke this skill';
 
   // Extract numbered workflow steps
   const steps = [];
-  const stepMatches = content.matchAll(/^\d+\.\s+\*\*(.+?)\*\*/gm);
-  for (const m of stepMatches) steps.push(m[1]);
+  for (const m of content.matchAll(/^\d+\.\s+\*\*(.+?)\*\*/gm)) steps.push(m[1]);
 
-  // Scenario 1: Golden path (primary trigger)
-  if (triggers.length > 0) {
-    scenarios.push({
-      id: 1,
-      type: 'golden-path',
-      input_prompt: triggers[0].charAt(0).toUpperCase() + triggers[0].slice(1),
-      expected: {
-        triggers: true,
-        checklist_steps: steps.slice(0, 3),
-        output_must_contain: ['SKILL.md', steps[0] || 'step 1'].filter(Boolean),
-      },
-    });
-  }
-
-  // Scenario 2: Trigger boundary (should NOT trigger)
-  if (triggers.length > 0) {
-    const antonym = triggers[0]
-      .replace(/find|search/i, 'list installed')
-      .replace(/eval|evaluat/i, 'describe')
-      .replace(/refine|improve/i, 'review');
-    scenarios.push({
-      id: 2,
-      type: 'trigger-boundary',
-      input_prompt: antonym !== triggers[0] ? antonym : 'What skills do I have installed?',
-      expected: {
-        triggers: false,
-        note: 'This prompt should NOT invoke the skill',
-      },
-    });
-  }
-
-  // Scenario 3: Complex/messy input
-  if (triggers.length > 1) {
-    scenarios.push({
-      id: 3,
-      type: 'complex-input',
-      input_prompt: `I need to ${triggers[1]} but I'm not sure where to start — the project is using GSD and there are already some related skills installed`,
-      expected: {
-        triggers: true,
-        checklist_steps: steps,
-        output_must_contain: [],
-      },
-    });
-  }
-
-  // Scenario 4: Edge case (last workflow step)
-  if (steps.length > 2) {
-    scenarios.push({
-      id: 4,
-      type: 'edge-case',
-      input_prompt: `I already did ${steps[0]} and ${steps[1]}, now I need help with ${steps[steps.length - 1]}`,
-      expected: {
-        triggers: true,
-        checklist_steps: [steps[steps.length - 1]],
-        output_must_contain: [],
-      },
-    });
-  }
-
-  // Scenario 5: Composition / handoff
+  // 1. direct — exact trigger phrase
   scenarios.push({
-    id: 5,
-    type: 'composition',
-    input_prompt: `After using ${path.dirname(inputFile).split('/').pop()}, what skill should I run next?`,
+    id: id++,
+    eval_name: 'direct-primary-trigger',
+    type: 'direct',
+    prompt: primaryTrigger.charAt(0).toUpperCase() + primaryTrigger.slice(1),
+    expected: {
+      triggers: true,
+      assertions: steps.slice(0, 3).map(s => `Executes step: ${s}`),
+    },
+  });
+
+  // 2. paraphrased — same intent, different phrasing
+  scenarios.push({
+    id: id++,
+    eval_name: 'paraphrased-reword',
+    type: 'paraphrased',
+    prompt: paraphraseOf(primaryTrigger),
+    expected: {
+      triggers: true,
+      assertions: [`Produces same outcome as direct trigger`],
+    },
+  });
+
+  // 3. edge_case — starts mid-workflow or uses minimal/ambiguous input
+  const lastStep = steps[steps.length - 1] || 'the final step';
+  const firstStep = steps[0] || 'the first step';
+  scenarios.push({
+    id: id++,
+    eval_name: 'edge-case-mid-workflow',
+    type: 'edge_case',
+    prompt: steps.length > 2
+      ? `I already finished ${firstStep}, I just need help with ${lastStep}`
+      : primaryTrigger,
+    expected: {
+      triggers: true,
+      assertions: [`Handles partial workflow entry without restarting from scratch`],
+    },
+  });
+
+  // 4. negative — adjacent but should NOT trigger
+  scenarios.push({
+    id: id++,
+    eval_name: 'negative-explain-only',
+    type: 'negative',
+    prompt: negativeOf(primaryTrigger),
     expected: {
       triggers: false,
-      note: 'Should answer conversationally, not invoke this skill again',
+      note: 'Explanation request — should answer conversationally, not invoke the workflow',
+    },
+  });
+
+  // 5. semantic — synonym variation of the primary action verb
+  const synonymPrompt = synonymOf(primaryTrigger);
+  scenarios.push({
+    id: id++,
+    eval_name: 'semantic-synonym-trigger',
+    type: 'semantic',
+    prompt: synonymPrompt
+      ? synonymPrompt.charAt(0).toUpperCase() + synonymPrompt.slice(1)
+      : `${primaryTrigger} (alternate phrasing)`,
+    expected: {
+      triggers: true,
+      assertions: [`Synonym phrasing activates skill correctly`],
     },
   });
 }
 
-// --- Parse UAT.md or acceptance criteria ---
-if (fileName === 'uat.md' || content.includes('acceptance criteria') || content.includes('## Given')) {
-  // Extract Given/When/Then blocks
-  const gwtMatches = content.matchAll(/\*\*Given\*\*:?\s*(.+)\n\*\*When\*\*:?\s*(.+)\n\*\*Then\*\*:?\s*(.+)/gi);
-  let id = scenarios.length + 1;
-  for (const m of gwtMatches) {
+// ── Parse UAT.md / acceptance criteria ───────────────────────────────────────
+if (fileName !== 'skill.md' || content.includes('acceptance criteria') || content.includes('## Given')) {
+  // Given/When/Then blocks
+  for (const m of content.matchAll(/\*\*Given\*\*:?\s*(.+)\n\*\*When\*\*:?\s*(.+)\n\*\*Then\*\*:?\s*(.+)/gi)) {
     scenarios.push({
       id: id++,
+      eval_name: `uat-gwt-${id}`,
       type: 'uat-acceptance',
-      input_prompt: `Given ${m[1].trim()}: ${m[2].trim()}`,
-      expected: {
-        triggers: true,
-        output_must_contain: [m[3].trim()],
-      },
+      prompt: `Given ${m[1].trim()}: ${m[2].trim()}`,
+      expected: { triggers: true, assertions: [m[3].trim()] },
     });
   }
 
-  // Extract checkbox items from acceptance criteria
-  const checkboxMatches = content.matchAll(/- \[[ x]\]\s+(.+)/g);
-  for (const m of checkboxMatches) {
+  // Checkbox acceptance criteria
+  for (const m of content.matchAll(/- \[[ x]\]\s+(.+)/g)) {
     if (scenarios.length >= 10) break;
     scenarios.push({
       id: id++,
+      eval_name: `uat-criteria-${id}`,
       type: 'uat-checkbox',
-      input_prompt: m[1].trim(),
-      expected: {
-        triggers: true,
-        output_must_contain: [],
-      },
+      prompt: m[1].trim(),
+      expected: { triggers: true, assertions: [] },
     });
   }
 }
@@ -141,4 +168,14 @@ if (scenarios.length === 0) {
   process.exit(1);
 }
 
-console.log(JSON.stringify({ source: inputFile, scenarios }, null, 2));
+const output = { skill_name: skillName, generated_from: inputFile, evals: scenarios };
+
+// Write to evals/<skill-name>/evals.json
+const outDir = path.join(process.cwd(), 'evals', skillName);
+fs.mkdirSync(outDir, { recursive: true });
+const outPath = path.join(outDir, 'evals.json');
+fs.writeFileSync(outPath, JSON.stringify(output, null, 2));
+console.error(`Wrote ${scenarios.length} scenarios to ${outPath}`);
+
+// Emit to stdout for piping
+console.log(JSON.stringify(output, null, 2));
