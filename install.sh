@@ -73,11 +73,14 @@ for skill in "${SKILL_NAMES[@]}"; do
 done
 echo ""
 
-# ── 3. Skill-guardian agent (project-scoped only) ────────────────────────────
-echo "→ [3/4] Installing skill-guardian agent"
+# ── 3. Agents (project-scoped only) ─────────────────────────────────────────
+echo "→ [3/4] Installing agents"
 mkdir -p "${TARGET}/.claude/agents"
-cp "${REPO_DIR}/.claude/agents/skill-guardian.md" "${TARGET}/.claude/agents/skill-guardian.md"
-ok "project  →  ${TARGET}/.claude/agents/skill-guardian.md"
+for agent_file in "${REPO_DIR}/.claude/agents/"*.md; do
+    agent_name="$(basename "${agent_file}")"
+    cp "${agent_file}" "${TARGET}/.claude/agents/${agent_name}"
+    ok "project  →  ${TARGET}/.claude/agents/${agent_name}"
+done
 echo ""
 
 # ── 4. Evals workspace + .gitignore ─────────────────────────────────────────
