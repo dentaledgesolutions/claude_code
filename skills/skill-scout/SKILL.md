@@ -45,10 +45,17 @@ User: find a skill for code review that fits our GSD workflow
       <one-line description>
       Source: github.com/<org>/<repo>@<commit-hash>  ★ <stars>
       Trade-off: <one sentence>
-      → Next: skill-audit then skill-adapt
    ```
 
-8. **Hand off to skill-audit** — once the user selects a candidate, invoke `skill-audit` before any files are written.
+   Then ask: *"Would you like to audit just the top pick, or audit the top 2–3 so skill-adapt can synthesize the best elements from each?"*
+
+8. **Hand off to skill-audit** — invoke `skill-audit` on every candidate the user selects. Run audits sequentially. Collect all results.
+
+   - Any **BLOCK** verdict: remove that candidate from the set, tell the user why.
+   - Any **FLAG** verdict: present findings and ask for explicit confirmation before keeping it in the set.
+   - Any **PASS** verdict: keep in the set.
+
+   Once all audits are complete, pass the full set of PASS candidates to `skill-adapt` together. If more than one PASS candidate exists, tell the user: *"skill-adapt will synthesize the best elements from all [N] candidates."*
 
 9. **No results fallback** — if no candidate scores > 5 and no registry match was found:
    - Tell the user no suitable skill was found.
