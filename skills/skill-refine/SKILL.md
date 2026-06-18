@@ -27,7 +27,7 @@ BUDGET:  default 10 iterations, stop early at 95%+ for 3 consecutive
    ```bash
    cp skills/<skill-name>/SKILL.md skills/<skill-name>/SKILL.md.baseline
    ```
-   Re-run the failing scenarios from `refine-input.json` (3 reps each) to confirm the baseline is reproducible. If baseline is already ≥ 90%, ask the user whether to continue.
+   Then check staleness: if `refine-input.json` was written today **and** `SKILL.md` has not been modified since — trust the baseline scores directly, no re-run needed. If the skill was changed since eval ran, re-run only the failing scenarios (3 reps, same parallel subagent pattern as skill-eval) to refresh the baseline before proceeding. If baseline is already ≥ 90%, ask the user whether to continue.
 
 3. **Route by failing metric** — the correct lever depends on *which* metric is failing:
    - **Project Fit Score < 7** → do not refine. Exit and re-run `skill-adapt` with a richer `evals/project-context.json`. Refining won't fix a mis-adapted skill.
@@ -41,7 +41,7 @@ BUDGET:  default 10 iterations, stop early at 95%+ for 3 consecutive
 
 6. **Mutate** — make exactly the targeted edit. No other changes.
 
-7. **Re-eval (training set only)** — re-run the failing scenarios (3 reps each). Also run 1 rep of each previously-passing scenario as a regression check.
+7. **Re-eval (training set only)** — re-run the failing scenarios using skill-eval's exact methodology: parallel subagents (with-skill vs baseline snapshot), 3 reps each, programmatic trigger detection first, then LLM judge scoring using the rubric in skill-eval's REFERENCE.md. Also run 1 rep of each previously-passing scenario as a regression check. Use the same scoring formula: `(Trigger × 0.4) + (Checklist × 0.3) + (Output × 0.3)`.
 
 8. **Keep or revert** (see thresholds in REFERENCE.md):
    - Improved → **KEEP**. Sync to runtime: `cp -r skills/<skill-name> ~/.claude/skills/`
@@ -50,7 +50,7 @@ BUDGET:  default 10 iterations, stop early at 95%+ for 3 consecutive
 
 9. **Repeat** steps 5–8 until any convergence criterion is met (see REFERENCE.md).
 
-10. **Final validation** — run the full eval (all 7 scenarios including the held-out validation set) to verify the improved skill hasn't overfit and project fit is intact.
+10. **Final validation** — invoke `skill-eval` on the improved skill. Do not implement a separate eval process — skill-eval IS the final validation. This produces a new `SKILL-EVAL.md` replacing the old one, giving a clean before/after comparison on identical methodology. The held-out `project-native` and `project-workflow` scenarios run here for the first time during this refinement session.
 
 11. **Write report** — save `skills/<skill-name>/SKILL-REFINE-LOG.md` using the template in REFERENCE.md. If claude-mem is installed, persist a summary there too.
 
