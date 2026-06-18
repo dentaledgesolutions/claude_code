@@ -46,38 +46,73 @@
 
 ### Prompt Injection (in .md files)
 
-| Pattern | Risk |
-|---------|------|
-| `ignore previous instructions` | Instruction override |
-| `disregard` + instructions | Instruction override |
-| `you are now` | Persona hijack |
-| `forget everything` | Memory wipe |
-| `from now on you must/will` | Behavior override |
-| Zero-width Unicode (U+200B, U+200C, U+200D, U+FEFF, U+202E) | Hidden text |
-| Base64 blobs (60+ char) | Encoded payload |
-| HTML comments `<!-- -->` | Hidden instructions |
+| Pattern | Severity | Risk |
+|---------|----------|------|
+| `ignore previous instructions` | BLOCK | Instruction override |
+| `disregard` + instructions | BLOCK | Instruction override |
+| `forget everything` | BLOCK | Memory wipe |
+| Zero-width Unicode (U+200B, U+200C, U+200D, U+FEFF, U+202E) | BLOCK | Hidden text |
+| `you are now` | FLAG | Persona hijack |
+| `from now on you must/will` | FLAG | Behavior override |
+| `act as` + assistant/ai/agent/claude | FLAG | Persona override |
+| `system prompt` reference | FLAG | System prompt manipulation |
+| Base64 blobs (80+ char) | FLAG | Encoded payload |
+| HTML comments `<!-- -->` | FLAG | Hidden instructions |
 
-### Dangerous Script Operations
+### Dangerous JS/TS Operations
 
 | Pattern | Severity |
 |---------|----------|
 | `eval()` / `new Function()` | BLOCK |
-| `child_process` / `exec()` / `spawn()` | BLOCK |
-| `fetch()` / `http.get()` / `https.get()` | FLAG |
+| `require('child_process')` | BLOCK |
+| `exec()` (child process) | BLOCK |
+| `spawn()` | FLAG |
+| `fetch()` / `require('http')` / `require('https')` | FLAG |
 | `process.env` access | FLAG |
-| `fs.writeFile()` outside skill dir | FLAG |
-| `require('http')` / `require('child_process')` | BLOCK |
+| `fs.writeFile/appendFile/unlink/rmdir/rm()` | FLAG |
+| `.innerHTML =` | FLAG (XSS) |
+| `dangerouslySetInnerHTML` | FLAG (React XSS) |
+| `crypto.createCipher/createDecipher()` | FLAG (no IV) |
+| `rejectUnauthorized: false` | FLAG (TLS disabled) |
+| `NODE_TLS_REJECT_UNAUTHORIZED = 0` | FLAG (TLS disabled) |
+
+### Dangerous Python Operations
+
+| Pattern | Severity |
+|---------|----------|
+| `pickle.loads()` / `pickle.Unpickler()` | BLOCK |
+| `cPickle/cloudpickle/dill.load()` | BLOCK |
+| `marshal.loads()` | BLOCK |
+| `joblib.load()` / `pandas.read_pickle()` | BLOCK |
+| `numpy.load(..., allow_pickle=True)` | BLOCK |
+| `os.system()` | BLOCK |
+| `subprocess.run/Popen(..., shell=True)` | BLOCK |
+| `shelve.open()` | FLAG |
+| `yaml.load()` without `Loader=yaml.SafeLoader` | FLAG |
+| `xml.etree.ElementTree.parse()` | FLAG (XXE) |
+| `verify=False` / `ssl._create_unverified_context` | FLAG (TLS) |
+| `check_hostname=False` | FLAG (TLS) |
+| hardcoded `api_key/token/password/secret =` | FLAG |
 
 ### Dangerous Bash in Markdown Instructions
 
 | Pattern | Severity |
 |---------|----------|
-| `rm -rf` | BLOCK |
-| `curl ... \| bash` | BLOCK |
-| `wget ... \| sh` | BLOCK |
+| `rm -rf /` or `rm -rf ~` | BLOCK |
+| `curl ... \| bash` / `wget ... \| sh` | BLOCK |
+| `~/.ssh/` access | BLOCK |
+| `~/.claude/settings` write | FLAG |
 | `sudo` | FLAG |
-| `chmod 777` | FLAG |
+| `chmod <mode>` | FLAG |
 | WebFetch to unknown domains | FLAG |
+
+### Dangerous Shell Script Operations
+
+| Pattern | Severity |
+|---------|----------|
+| `eval "..."` | BLOCK |
+| `curl ... \| bash` / `wget ... \| sh` | BLOCK |
+| `pip install --break-system-packages` | FLAG |
 
 ---
 
