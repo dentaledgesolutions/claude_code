@@ -1,44 +1,114 @@
 #!/usr/bin/env bash
-# Skill Builder — Uninstaller
-# Removes the 5 skills and skill-guardian agent from your global Claude Code directories.
+# Skill Builder — Uninstall
+# Mirrors install.sh exactly: removes from project AND ~/.claude/ runtime.
+#
+# Usage:
+#   ./uninstall.sh /path/to/target-project
+#   ./uninstall.sh .   (current directory)
 
 set -euo pipefail
 
-SKILLS_DST="${HOME}/.claude/skills"
-AGENTS_DST="${HOME}/.claude/agents"
+# ── Colours ──────────────────────────────────────────────────────────────────
+GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RESET='\033[0m'
+ok()   { echo -e "  ${GREEN}✓${RESET} $*"; }
+skip() { echo -e "  ${YELLOW}–${RESET} $*"; }
 
-SKILLS=(skill-audit skill-scout skill-adapt skill-eval skill-refine)
+# ── Args ─────────────────────────────────────────────────────────────────────
+TARGET="${1:-}"
+if [ -z "${TARGET}" ]; then
+    echo "Usage: ./uninstall.sh /path/to/target-project"
+    exit 1
+fi
+TARGET="$(cd "${TARGET}" && pwd)"
+REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+GLOBAL_SKILLS="${HOME}/.claude/skills"
+GLOBAL_AGENTS="${HOME}/.claude/agents"
 
-echo "════════════════════════════════════════"
-echo "║   Skill Builder — Uninstaller        ║"
-echo "════════════════════════════════════════"
+# ── Discover skills from repo (same source as install.sh) ────────────────────
+SKILL_NAMES=()
+while IFS= read -r dir; do
+    SKILL_NAMES+=("$(basename "${dir}")")
+done < <(find "${REPO_DIR}/skills" -mindepth 1 -maxdepth 1 -type d | sort)
+
+echo "════════════════════════════════════════════"
+echo "║   Skill Builder — Uninstall              ║"
+echo "════════════════════════════════════════════"
+echo "  Project : ${TARGET}"
+echo "  Runtime : ${GLOBAL_SKILLS}"
+echo ""
+echo "  Will remove:"
+echo "    • ${TARGET}/skills/"
+echo "    • ${GLOBAL_SKILLS}/{${SKILL_NAMES[*]}}"
+echo "    • ${TARGET}/.claude/agents/skill-guardian.md"
+echo "    • ${GLOBAL_AGENTS}/skill-guardian.md"
 echo ""
 
-read -r -p "Remove all Skill Builder skills and agent? [y/N] " confirm
+read -r -p "Proceed? [y/N] " confirm
 [[ "${confirm}" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
-
 echo ""
-echo "→ Removing skills..."
-for skill in "${SKILLS[@]}"; do
-    target="${SKILLS_DST}/${skill}"
-    if [ -d "${target}" ]; then
-        rm -rf "${target}"
-        echo "  ✓ removed ${skill}"
+
+# ── 1. Project skills ────────────────────────────────────────────────────────
+echo "→ [1/4] Removing project skills"
+if [ -d "${TARGET}/skills" ]; then
+    rm -rf "${TARGET}/skills"
+    ok "removed  ${TARGET}/skills/"
+else
+    skip "skills/ not found in project"
+fi
+echo ""
+
+# ── 2. Runtime skills (~/.claude/skills/) ───────────────────────────────────
+echo "→ [2/4] Removing runtime skills"
+for skill in "${SKILL_NAMES[@]}"; do
+    runtime_skill="${GLOBAL_SKILLS}/${skill}"
+    if [ -d "${runtime_skill}" ]; then
+        rm -rf "${runtime_skill}"
+        ok "removed  ${runtime_skill}"
     else
-        echo "  – ${skill} not found, skipping"
+        skip "${skill} not found in runtime"
     fi
 done
-
 echo ""
-echo "→ Removing agent..."
-agent_file="${AGENTS_DST}/skill-guardian.md"
-if [ -f "${agent_file}" ]; then
-    rm -f "${agent_file}"
-    echo "  ✓ removed skill-guardian"
+
+# ── 3. Agents ────────────────────────────────────────────────────────────────
+echo "→ [3/4] Removing skill-guardian agent"
+project_agent="${TARGET}/.claude/agents/skill-guardian.md"
+if [ -f "${project_agent}" ]; then
+    rm -f "${project_agent}"
+    ok "removed  ${project_agent}"
 else
-    echo "  – skill-guardian not found, skipping"
+    skip "project agent not found"
 fi
 
+global_agent="${GLOBAL_AGENTS}/skill-guardian.md"
+if [ -f "${global_agent}" ]; then
+    rm -f "${global_agent}"
+    ok "removed  ${global_agent}"
+else
+    skip "runtime agent not found"
+fi
 echo ""
-echo "✓ Uninstall complete."
-echo "  Note: project-level .claude/agents/skill-guardian.md copies are not removed."
+
+# ── 4. Evals workspace (optional — contains generated data) ─────────────────
+echo "→ [4/4] Evals workspace"
+if [ -d "${TARGET}/evals" ]; then
+    echo "  evals/ contains generated data: scenario runs, timing, project-context.json."
+    read -r -p "  Remove evals/ too? [y/N] " confirm_evals
+    if [[ "${confirm_evals}" =~ ^[Yy]$ ]]; then
+        rm -rf "${TARGET}/evals"
+        ok "removed  ${TARGET}/evals/"
+    else
+        skip "evals/ kept"
+    fi
+else
+    skip "evals/ not found"
+fi
+echo ""
+
+# ── Done ─────────────────────────────────────────────────────────────────────
+echo "════════════════════════════════════════════"
+echo ""
+echo -e "  ${GREEN}✓ Uninstall complete.${RESET}"
+echo ""
+echo "  Note: .gitignore entries added during install were not removed."
+echo ""
