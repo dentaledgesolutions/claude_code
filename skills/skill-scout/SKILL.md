@@ -1,6 +1,7 @@
 ---
 name: skill-scout
 description: "Use when: user wants to find, source, search for, or discover an existing skill; asks 'is there a skill for X'; wants to avoid building from scratch; or needs a ranked shortlist of candidates before running skill-audit or skill-adapt."
+compatibility: "Claude Code. Node.js ≥ 18. Requires WebSearch, WebFetch, and Agent tools."
 ---
 
 # Skill Scout

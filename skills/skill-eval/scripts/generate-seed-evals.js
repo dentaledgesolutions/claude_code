@@ -10,6 +10,25 @@ const path = require('path');
 
 // ── CLI args ─────────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
+if (args[0] === '--help' || args[0] === '-h') {
+  console.log(`Usage: node generate-seed-evals.js <SKILL.md|UAT.md> [--context <project-context.json>]
+
+Generate structured test scenarios for a skill or acceptance-criteria file.
+
+Arguments:
+  SKILL.md|UAT.md              Path to the skill or UAT file to generate evals for
+  --context <file>             Path to project-context.json (adds 2 project-specific scenarios)
+
+Output:
+  Writes evals/<skill-name>/evals.json and emits JSON to stdout.
+  Without --context: 5 scenarios (direct, paraphrased, edge_case, negative, semantic).
+  With --context:    7 scenarios (above + project-native, project-workflow).
+
+Examples:
+  node skills/skill-eval/scripts/generate-seed-evals.js skills/skill-scout/SKILL.md
+  node skills/skill-eval/scripts/generate-seed-evals.js skills/skill-scout/SKILL.md --context evals/project-context.json`);
+  process.exit(0);
+}
 const inputFile   = args.find(a => !a.startsWith('--'));
 const contextFlag = args.indexOf('--context');
 const contextFile = contextFlag !== -1 ? args[contextFlag + 1] : null;

@@ -1,6 +1,7 @@
 ---
 name: skill-adapt
 description: Adapts a security-audited skill to match a specific project's patterns, terminology, workflow gates, and installed skill ecosystem. Use when adapting a skill for a project, customizing a skill, modifying a skill to fit a project's workflow, after skill-audit returns PASS, or when synthesizing multiple candidate skills into one project-native skill.
+compatibility: "Claude Code. Node.js ≥ 18 (extract-project-context.js)."
 ---
 
 # Skill Adapt
@@ -38,7 +39,7 @@ Rewrite a sourced skill so it fits your project like a native skill — not a tr
    cp -r skills/<skill-name> skills/<skill-name>-backup-$(date +%Y%m%d)
    ```
 
-5. **Adapt the description** — rewrite the `description:` frontmatter using project-specific terminology and "pushy" trigger phrases: include the exact words a user would say to activate this skill. Keep "Use when [X]" format. Target ≤ 400 chars.
+5. **Adapt the description** — rewrite the `description:` frontmatter using project-specific terminology and "pushy" trigger phrases: include the exact words a user would say to activate this skill. Keep "Use when [X]" format. Target ≤ 1024 chars (Agent Skills spec limit).
 
 6. **Adapt workflow steps** — align steps with project conventions:
    - GSD projects: map to GSD phase gates (discuss → plan → execute → verify)

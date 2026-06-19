@@ -1,6 +1,7 @@
 ---
 name: skill-refine
 description: Auto-improves a Claude Code skill using Karpathy's autoresearch loop — baseline eval, targeted mutation, re-measure, keep or revert. Produces a delta report. Use when refining a skill, improving a skill, running autoresearch on a skill, or when skill-eval reports pass rate below threshold.
+compatibility: "Claude Code. Node.js ≥ 18. Requires Agent tool for skill-eval-agent invocation."
 ---
 
 # Skill Refine

@@ -9,6 +9,30 @@ const fs = require('fs');
 const path = require('path');
 
 const skillDir = process.argv[2];
+if (skillDir === '--help' || skillDir === '-h') {
+  console.log(`Usage: node static-scan.js <skill-dir>
+
+Deterministic security scanner for Claude Code skill directories.
+
+Arguments:
+  skill-dir   Path to the skill directory containing SKILL.md
+
+Output:
+  JSON to stdout: { verdict, findings, scanned }
+  verdict:  PASS | FLAG | BLOCK
+  findings: array of { severity, pattern, file, line, match }
+  scanned:  list of files checked
+
+Severities:
+  BLOCK   Skill must not be installed — malicious or dangerous content detected
+  FLAG    Requires explicit user confirmation before proceeding
+  PASS    No security issues found
+
+Examples:
+  node skills/skill-audit/scripts/static-scan.js skills/skill-scout
+  node skills/skill-audit/scripts/static-scan.js /tmp/candidate-skill | jq '.verdict'`);
+  process.exit(0);
+}
 if (!skillDir) {
   console.error('Usage: node static-scan.js <skill-dir>');
   process.exit(1);

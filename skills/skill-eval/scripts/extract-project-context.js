@@ -6,6 +6,28 @@
 const fs   = require('fs');
 const path = require('path');
 
+if (process.argv[2] === '--help' || process.argv[2] === '-h') {
+  console.log(`Usage: node extract-project-context.js [project-root]
+
+Extract project context for project-aware skill evaluation.
+
+Arguments:
+  project-root   Path to the project root (default: current directory)
+
+Output:
+  Writes evals/project-context.json and emits JSON to stdout.
+  Extracted fields: project_name, stack, workflow_terms, installed_skills,
+  key_phrases, artifact_paths.
+
+Sources read (if present):
+  package.json, pyproject.toml, CLAUDE.md, README.md,
+  .planning/REQUIREMENTS.md, .planning/CONTEXT.md, skills/ directory
+
+Examples:
+  node skills/skill-eval/scripts/extract-project-context.js
+  node skills/skill-eval/scripts/extract-project-context.js /path/to/project`);
+  process.exit(0);
+}
 const projectRoot = process.argv[2] || process.cwd();
 
 const context = {

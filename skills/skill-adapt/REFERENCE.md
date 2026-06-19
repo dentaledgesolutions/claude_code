@@ -14,7 +14,7 @@ Run after writing the adapted skill (step 11). All items must pass.
 **Description quality:**
 - [ ] Includes "Use when" + specific trigger phrases users would actually say
 - [ ] Covers concrete scenarios ("adapt skill after audit", "install skill for project")
-- [ ] ≤ 400 characters
+- [ ] ≤ 1024 characters (Agent Skills spec limit)
 - [ ] Not vague or generic
 
 **Content quality:**

@@ -23,6 +23,28 @@
 const fs = require('fs');
 
 const filePath = process.argv[2];
+if (filePath === '--help' || filePath === '-h') {
+  console.log(`Usage: node score-candidates.js <candidates.json>
+
+Score and rank skill candidates against project needs.
+
+Arguments:
+  candidates.json   Path to JSON array of candidate objects (see schema below)
+
+Output:
+  Sorted JSON array written to stdout. Each entry adds: total_score,
+  recommendation (STRONG|GOOD|MARGINAL|SKIP), and per-dimension scores.
+
+Candidate schema:
+  name, source_url, commit_hash, description, skill_md_content?,
+  skill_md_lines, has_scripts, has_reference, repo_age_days, repo_stars,
+  trigger_keywords[], installed_skill_descriptions[]
+
+Examples:
+  node skills/skill-scout/scripts/score-candidates.js /tmp/candidates.json
+  node skills/skill-scout/scripts/score-candidates.js candidates.json | jq '.[0]'`);
+  process.exit(0);
+}
 if (!filePath) {
   console.error('Usage: node score-candidates.js <candidates.json>');
   process.exit(1);

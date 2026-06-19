@@ -1,6 +1,7 @@
 ---
 name: skill-eval
 description: Evaluates a Claude Code skill's effectiveness using structured test scenarios and LLM-judge scoring. Produces three metrics: eval pass rate, trigger accuracy, and context footprint. Use when evaluating a skill, running skill tests, measuring skill effectiveness, checking skill quality, or before running skill-refine.
+compatibility: "Claude Code. Node.js ≥ 18. Requires Agent tool for parallel subagent execution."
 ---
 
 # Skill Eval
