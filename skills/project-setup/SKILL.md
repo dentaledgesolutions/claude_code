@@ -257,6 +257,8 @@ Construct and write `evals/project-context.json` directly:
   "stack": ["<stack_array items>"],
   "workflow_terms": ["<UPPERCASE tokens ≥3 chars from rules_raw + glossary term names>"],
   "installed_skills": ["<output of: ls skills/ 2>/dev/null, as array; or []>"],
+  "ref_skills": ["<ref_signals.ref_skills if ref_signals non-null, else []>"],
+  "ref_agents": ["<ref_signals.ref_agents if ref_signals non-null, else []>"],
   "key_phrases": ["<purpose>", "<command values joined with space>"],
   "artifact_paths": ["<directories paths normalised to ./path/ form>"]
 }
@@ -274,6 +276,12 @@ For `installed_skills`: run `ls skills/ 2>/dev/null` and parse the directory nam
     workflow_terms:  <N terms>
     key_phrases:     <N phrases>
     installed_skills:<N skills>
+
+[Show the following block only when ref_signals is non-null:]
+From references (<N> repos analysed):
+    ref_skills:  <ref_skills joined with ", ", or "none">
+    ref_agents:  <ref_agents joined with ", ", or "none">
+    Tip: 'find a skill for <first ref_skill name>' to source any of the above.
 
 Next: 'find a skill for <capability>' to start the pipeline.
   Or: run skill-needs-analysis-agent to get a prioritized skill shortlist for this project.
