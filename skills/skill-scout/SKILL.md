@@ -33,7 +33,7 @@ User: find a skill for code review that fits our GSD workflow
 
    If one query returns nothing, try alternative terms (e.g., "deploy" → "deployment", "review" → "audit").
 
-4. **Fetch candidates** — WebFetch the raw `SKILL.md` for each candidate. Collect: name, description, full body text, line count, whether it has scripts/REFERENCE.md, repo age in days, star count, source org.
+4. **Fetch candidates** — WebFetch the raw `SKILL.md` for each candidate. Collect: name, description, full body text, line count, whether it has scripts/REFERENCE.md, repo age in days, star count, source org, license (from frontmatter `license:` field if present).
 
 5. **Score candidates** — run `node skills/skill-scout/scripts/score-candidates.js <candidates.json>`. See scoring dimensions below.
 
@@ -45,6 +45,7 @@ User: find a skill for code review that fits our GSD workflow
    1. <skill-name>  (score: N/10 — STRONG | GOOD | MARGINAL)
       <one-line description>
       Source: github.com/<org>/<repo>@<commit-hash>  ★ <stars>
+      License: <license or unknown>
       Trade-off: <one sentence>
    ```
 

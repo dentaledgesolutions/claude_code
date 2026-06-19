@@ -47,13 +47,15 @@ Rewrite a sourced skill so it fits your project like a native skill — not a tr
    - Remove steps that don't apply; add project-specific steps where needed
    - See REFERENCE.md for what's allowed vs. forbidden to change
 
-7. **Add provenance record** — append to frontmatter:
+7. **Add provenance record** — add a `metadata:` block to frontmatter (Agent Skills spec standard field):
    ```yaml
-   source_url: <GitHub URL>
-   source_commit: <40-char commit hash>
-   adapted_for: <project name>
-   adapted_date: YYYY-MM-DD
-   project_context_source: evals/project-context.json
+   metadata:
+     source_url: <GitHub URL>
+     source_commit: <40-char commit hash>
+     adapted_for: <project name>
+     adapted_date: YYYY-MM-DD
+     project_context_source: evals/project-context.json
+     license: <license from source skill, or omit if unknown>
    ```
    `project_context_source` pins which context file shaped this adaptation — skill-eval reads it from there. For multi-source adaptations, include all sources. See REFERENCE.md for the full template.
 

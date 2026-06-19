@@ -27,7 +27,7 @@ A neutral result that makes the skill *shorter* is a win. Simplification that ma
 
 **Lever A — Description wording** (trigger precision)
 The `description:` frontmatter. Changes what prompts activate the skill.
-- Constraint: keep "Use when [X]" format, ≤ 200 chars
+- Constraint: keep "Use when [X]" format, ≤ 1024 chars
 - High-impact: one word change can shift trigger accuracy by 20%+
 
 **Lever B — Checklist step** (completeness / ordering)
@@ -100,6 +100,8 @@ Stop the loop when ANY of:
 ---
 
 ## SKILL-REFINE-LOG.md Template
+
+> Standalone file: `skills/skill-refine/assets/SKILL-REFINE-LOG.template.md`
 
 Save to `skills/<skill-name>/SKILL-REFINE-LOG.md`.
 

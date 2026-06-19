@@ -108,6 +108,8 @@ After grading all runs, check for:
 
 ## SKILL-EVAL.md Template
 
+> Standalone file: `skills/skill-eval/assets/SKILL-EVAL.template.md`
+
 ```markdown
 # Skill Eval: <skill-name>
 **Date:** YYYY-MM-DD  
