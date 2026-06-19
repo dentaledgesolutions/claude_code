@@ -23,11 +23,16 @@ TARGET="$(cd "${TARGET}" && pwd)"
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 GLOBAL_SKILLS="${HOME}/.claude/skills"
 
-# ── Discover skills from repo (same source as install.sh) ────────────────────
+# ── Discover skills + agents from repo (same source as install.sh) ───────────
 SKILL_NAMES=()
 while IFS= read -r dir; do
     SKILL_NAMES+=("$(basename "${dir}")")
 done < <(find "${REPO_DIR}/skills" -mindepth 1 -maxdepth 1 -type d | sort)
+
+AGENT_FILES=()
+while IFS= read -r f; do
+    AGENT_FILES+=("$(basename "${f}")")
+done < <(find "${REPO_DIR}/.claude/agents" -name "*.md" | sort)
 
 echo "════════════════════════════════════════════"
 echo "║   Skill Builder — Uninstall              ║"
@@ -38,7 +43,7 @@ echo ""
 echo "  Will remove:"
 echo "    • ${TARGET}/skills/"
 echo "    • ${GLOBAL_SKILLS}/{${SKILL_NAMES[*]}}"
-echo "    • ${TARGET}/.claude/agents/skill-guardian.md"
+echo "    • ${TARGET}/.claude/agents/{${AGENT_FILES[*]}}"
 echo ""
 
 read -r -p "Proceed? [y/N] " confirm
@@ -68,15 +73,17 @@ for skill in "${SKILL_NAMES[@]}"; do
 done
 echo ""
 
-# ── 3. Agent (project-scoped only) ───────────────────────────────────────────
-echo "→ [3/4] Removing skill-guardian agent"
-project_agent="${TARGET}/.claude/agents/skill-guardian.md"
-if [ -f "${project_agent}" ]; then
-    rm -f "${project_agent}"
-    ok "removed  ${project_agent}"
-else
-    skip "project agent not found"
-fi
+# ── 3. Agents (project-scoped only) ─────────────────────────────────────────
+echo "→ [3/4] Removing agents"
+for agent_file in "${AGENT_FILES[@]}"; do
+    project_agent="${TARGET}/.claude/agents/${agent_file}"
+    if [ -f "${project_agent}" ]; then
+        rm -f "${project_agent}"
+        ok "removed  ${project_agent}"
+    else
+        skip "${agent_file} not found in project"
+    fi
+done
 echo ""
 
 # ── 4. Evals workspace (optional — contains generated data) ─────────────────
