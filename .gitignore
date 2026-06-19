@@ -1,2 +1,5 @@
 # Claude Code local session settings (machine-specific paths and permissions)
 .claude/settings.local.json
+
+# Git worktrees
+.claude/worktrees/
