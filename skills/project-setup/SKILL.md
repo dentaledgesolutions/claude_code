@@ -18,6 +18,84 @@ User: help me configure CLAUDE.md
 
 ## Workflow
 
+### Phase 0 — Reference Projects (run before Phase 1)
+
+Ask exactly once at the start of every `/project-setup` run:
+
+> "Do you have any reference projects to draw conventions from? Paste up to 3 GitHub URLs, one per line — or press Enter to skip."
+
+**If the user presses Enter or says "no":** set `ref_signals = null` and proceed immediately to Phase 1. No further Phase 0 work.
+
+**If URLs are provided:**
+
+#### 0a. URL normalisation
+
+Accept up to 3 URLs. Silently ignore any beyond 3, with a single note:
+> "Only the first 3 URLs will be used."
+
+For each URL, extract `owner/repo` from:
+- `https://github.com/owner/repo` (any suffix after the repo name is ignored)
+- `https://github.com/owner/repo/tree/branch`
+- `owner/repo` (bare shorthand)
+
+If `owner/repo` cannot be extracted, display inline and skip:
+> "Could not parse 'xyz' as a GitHub repo — skipping."
+
+#### 0b. Fetching (for each valid `owner/repo`)
+
+Fetch the following via `raw.githubusercontent.com` using WebFetch. Any non-200 response is silently skipped. All fetching is silent — no output to the user during Phase 0.
+
+| File | URL |
+|---|---|
+| `CLAUDE.md` | `https://raw.githubusercontent.com/<owner>/<repo>/HEAD/CLAUDE.md` |
+| `README.md` | `https://raw.githubusercontent.com/<owner>/<repo>/HEAD/README.md` |
+| `package.json` | `https://raw.githubusercontent.com/<owner>/<repo>/HEAD/package.json` |
+| `pyproject.toml` | `https://raw.githubusercontent.com/<owner>/<repo>/HEAD/pyproject.toml` |
+| `Cargo.toml` | `https://raw.githubusercontent.com/<owner>/<repo>/HEAD/Cargo.toml` |
+| `go.mod` | `https://raw.githubusercontent.com/<owner>/<repo>/HEAD/go.mod` |
+
+Fetch directory listings via GitHub API. Any non-200 response is silently skipped:
+
+| Path | URL |
+|---|---|
+| `skills/` | `https://api.github.com/repos/<owner>/<repo>/contents/skills` |
+| `.claude/agents/` | `https://api.github.com/repos/<owner>/<repo>/contents/.claude/agents` |
+
+#### 0c. Signal extraction (per file, per repo)
+
+| File | Extracted signals |
+|---|---|
+| `CLAUDE.md` | Purpose: first non-heading paragraph. Stack: technology mentions. Always-rules: lines under any heading containing "always". Never-rules: lines under any heading containing "never". Directories: bulleted `path — description` pairs. Domain terms: `**term**: definition` or `**term** — definition` patterns. |
+| `README.md` | Purpose fallback: first substantive non-heading line. Stack: technology token mentions in first 30 lines. |
+| `package.json` | Stack tokens: framework names found in `dependencies` and `devDependencies` keys. Commands: values of `scripts.test`, `scripts.build`, `scripts.lint`, `scripts.deploy`. Project purpose: `description` field. |
+| `pyproject.toml` | Stack: detect FastAPI / Django / Flask / Pydantic from file content. |
+| `Cargo.toml` | Stack: add "Rust". |
+| `go.mod` | Stack: add "Go". |
+| `skills/` API listing | Skill names: each item's `name` field where `type` is `"dir"`. |
+| `.claude/agents/` API listing | Agent names: each item's `name` field with `.md` suffix stripped. |
+
+#### 0d. Merge into `ref_signals`
+
+After processing all repos, produce one merged object (all fields deduplicated):
+
+```
+ref_signals = {
+  ref_purpose:      string | null           // first purpose found across all refs
+  ref_stack:        string[]                // deduplicated union of all stack tokens
+  ref_commands:     { test, build, lint, deploy }  // first non-blank value per key
+  ref_rules_always: string[]                // all always-rules, deduplicated
+  ref_rules_never:  string[]                // all never-rules, deduplicated
+  ref_directories:  { path, description }[] // deduplicated by path
+  ref_glossary:     { term, definition }[]  // deduplicated by term
+  ref_skills:       string[]                // all skill names, deduplicated
+  ref_agents:       string[]                // all agent names, deduplicated
+}
+```
+
+If no references were provided or all fetches failed, `ref_signals = null`.
+
+---
+
 ### Phase 1 — Discovery (silent, run before speaking)
 
 1. **Scan for existing files** — attempt Read on each (silently skip if missing):
