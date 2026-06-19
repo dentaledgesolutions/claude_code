@@ -16,7 +16,19 @@ User: find a skill for code review that fits our GSD workflow
 
 ## Workflow
 
-1. **Capture the need** — ask: "What capability are you looking for?" and "What does the project use?" (GSD? custom workflow? specific stack?). One question at a time.
+0. **Pre-flight: check project context** — before asking the user anything:
+   - Check if `evals/project-context.json` exists
+   - If it exists, read it and check whether `stack`, `workflow_terms`, or `key_phrases` has at least one non-empty entry
+
+   **If context is present and non-empty:** silently pre-fill search context from it. Do not ask stack/framework questions — you already know. Jump to the capability question in step 1.
+
+   **If `evals/project-context.json` is missing or all three arrays are empty:** tell the user:
+   > "Your project context isn't configured yet — this helps me find skills that actually fit your project. Run `/project-setup` first (takes ~2 minutes), then come back.
+   > Alternatively, I can search generically right now — results won't be project-tailored."
+
+   Offer both paths and let the user choose.
+
+1. **Capture the need** — ask: "What capability are you looking for?" If project context was pre-filled from `evals/project-context.json`, skip stack/framework questions — ask only about the specific capability needed. Otherwise ask: "What does the project use?" (GSD? custom workflow? specific stack?). One question at a time.
 
 2. **Check known registries first** — before a generic search, WebFetch the index or README of these known sources and scan for a match:
    - `github.com/anthropics/claude-code-skills`
