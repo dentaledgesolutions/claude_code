@@ -61,18 +61,28 @@ Rewrite a sourced skill so it fits your project like a native skill — not a tr
 
 8. **Write the adapted skill** — write to `skills/<skill-name>/SKILL.md`. Adapt REFERENCE.md and scripts/ only if they need project-specific examples or paths; never change their core logic.
 
-9. **Sync to runtime** — copy to the global skills directory so Claude Code can use it immediately:
-   ```bash
-   cp -r skills/<skill-name> ~/.claude/skills/
-   ```
+9. **Agent dependency detection** — scan the adapted SKILL.md for agent dependencies:
+   - Search the body for tokens ending in `-agent` (e.g., `skill-eval-agent`) and phrases like `dispatch a subagent`, `invoke … agent`, `spawn … agent`
+   - For each agent name found, check whether it exists in `.claude/agents/`:
+     ```bash
+     ls .claude/agents/ 2>/dev/null
+     ```
+   - If an agent is missing, warn before proceeding:
+     > "This skill depends on `<agent-name>` which is not in `.claude/agents/`. Run `/agent-scout` to find and install it, or continue without it — the skill will fail at the step that invokes it."
+   - If all agents are present, continue silently.
 
-10. **Conflict check** — compare the new description against installed skills: `ls skills/`. If trigger overlap > 50% with an existing skill, propose a more specific description or ask the user whether to replace.
+10. **Sync to runtime** — copy to the global skills directory so Claude Code can use it immediately:
+    ```bash
+    cp -r skills/<skill-name> ~/.claude/skills/
+    ```
 
-11. **Validate** — run the checklist in REFERENCE.md. Fix any failures before proceeding.
+11. **Conflict check** — compare the new description against installed skills: `ls skills/`. If trigger overlap > 50% with an existing skill, propose a more specific description or ask the user whether to replace.
 
-12. **Test the trigger** — give 2-3 realistic user prompts that should activate this skill. Verify the description routes those prompts correctly. If not, sharpen the description and re-test.
+12. **Validate** — run the checklist in REFERENCE.md. Fix any failures before proceeding.
 
-13. **Report** — summarise: what was adapted from which source, what was removed, what was added, and why.
+13. **Test the trigger** — give 2-3 realistic user prompts that should activate this skill. Verify the description routes those prompts correctly. If not, sharpen the description and re-test.
+
+14. **Report** — summarise: what was adapted from which source, what was removed, what was added, and why.
 
 ## Adaptation rules
 
