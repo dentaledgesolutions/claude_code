@@ -117,6 +117,44 @@ try {
 
 Replace `<GRADE>` with the letter grade (A/B/C/D/F) and `<SCORE>` with the numeric score from the JSON output. If the file does not exist or Node.js is unavailable, skip this step silently — it is a convenience record, not a blocking requirement.
 
+### Step 4c — Write full audit artifact
+
+Write a dated JSON artifact so `skill-guardian` can trend security posture across runs:
+
+```bash
+node -e "
+const fs = require('fs');
+const date = new Date().toISOString().slice(0, 10);
+const outDir = 'evals';
+try { fs.mkdirSync(outDir, { recursive: true }); } catch {}
+const artifact = {
+  date,
+  grade: '<GRADE>',
+  score: <SCORE>,
+  category_scores: {
+    secrets:     <secrets_score>,
+    permissions: <permissions_score>,
+    hooks:       <hooks_score>,
+    mcp_servers: <mcp_score>,
+    agents:      <agents_score>
+  },
+  findings_summary: {
+    total:    <total>,
+    critical: <critical>,
+    high:     <high>,
+    medium:   <medium>,
+    low:      <low>,
+    info:     <info>,
+    auto_fixable: <auto_fixable>
+  }
+};
+fs.writeFileSync(outDir + '/project-audit-' + date + '.json', JSON.stringify(artifact, null, 2));
+console.log('Audit artifact written to evals/project-audit-' + date + '.json');
+"
+```
+
+If `evals/` does not exist or Node.js is unavailable, skip silently. The artifact is informational — `skill-guardian` reads the most recent one (by filename date) to compare against previous runs and report security trends.
+
 ### Step 5 — Offer auto-fix
 
 If any auto-fixable findings exist:

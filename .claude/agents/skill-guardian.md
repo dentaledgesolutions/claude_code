@@ -54,7 +54,15 @@ Check if AgentShield is runnable and `project-audit` skill is installed:
 node --version 2>/dev/null && ls ./skills/project-audit/ 2>/dev/null
 ```
 
-If both are available, run the project-level security scan:
+If both are available, first check for an existing recent audit artifact:
+
+```bash
+ls evals/project-audit-*.json 2>/dev/null | sort | tail -1
+```
+
+If a file exists dated within the last 7 days, read it as `prior_audit` (grade, score, findings_summary). This enables trend comparison and avoids an unnecessary network call to download AgentShield.
+
+Then run the project-level security scan:
 
 ```bash
 npx ecc-agentshield@latest scan --format json --path .claude 2>/dev/null
@@ -67,7 +75,12 @@ Parse the result:
   > "Project security grade is [D/F]. Critical issues found: [list]. Proceed with skill health check anyway, or address security first?"
   Respect the user's answer. Never silently skip security findings.
 
-Save the grade and critical finding count to include in the Phase 5 report.
+If `prior_audit` exists, compute the trend:
+- Grade improved (e.g. D → C): log "Security improved since last scan ([prior] → [current])"
+- Grade worsened: log "⚠ Security degraded since last scan ([prior] → [current]) — review new findings"
+- Same grade: log "Security posture unchanged"
+
+Save the grade, score, and trend for the Phase 5 report. Write `evals/project-audit-<date>.json` using the same format as `project-audit` Step 4c.
 
 ---
 
@@ -266,7 +279,7 @@ Write `PROJECT-SKILL-HEALTH.md` to the project root (or `.planning/` if that dir
 **Project:** <name>
 **Date:** YYYY-MM-DD
 **Guardian run:** #N
-**Security grade:** <A–F from project-audit> (<score>/100) — <N> critical findings
+**Security grade:** <A–F> (<score>/100) — <N> critical findings — trend: <improved|degraded|unchanged since YYYY-MM-DD>
 
 ## Summary
 
