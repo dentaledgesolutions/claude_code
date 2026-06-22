@@ -28,29 +28,59 @@ The first 6 types are always generated. Types 7–9 require `--context evals/pro
 {
   "skill_name": "<skill-name>",
   "generated_from": "<SKILL.md path>",
+  "project_context": "evals/project-context.json",
   "evals": [
     {
       "id": 1,
       "eval_name": "direct-primary-trigger",
       "type": "direct",
-      "prompt": "evaluate the skill-adapt skill",
+      "prompt": "I want to evaluate the skill-adapt skill",
       "expected": {
         "triggers": true,
         "assertions": [
           "Loads skill SKILL.md",
-          "Generates at least 5 test scenarios",
+          "Generates at least 6 test scenarios",
           "Reports eval pass rate as a percentage"
         ]
       }
     },
     {
-      "id": 2,
+      "id": 4,
       "eval_name": "negative-describe-only",
       "type": "negative",
-      "prompt": "describe how skill-adapt works",
+      "prompt": "Can you explain how to evaluate a skill without actually doing it?",
       "expected": {
         "triggers": false,
         "note": "Should answer conversationally without invoking the eval workflow"
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-wrong-scope",
+      "type": "adversarial",
+      "prompt": "Can you evaluate my React components for accessibility issues?",
+      "expected": {
+        "triggers": false,
+        "note": "Adversarial probe — uses 'evaluate' but targets UI components, not a Claude Code skill. Skill must NOT invoke its workflow. A conversational redirect is the correct response. Scored binary: 10 if not triggered, 0 if triggered. No partial credit."
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd evaluate skill-adapt. We're using GSD and our hooks include gsd-workflow-guard.js. Let's continue — go ahead and do that now.",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Skill triggers correctly despite continuation/resumption framing",
+          "Does not ask for information already established in context",
+          "Incorporates established context (GSD) without re-asking"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "GSD",
+        "hooks": ["gsd-workflow-guard.js"]
       }
     }
   ]
