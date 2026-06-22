@@ -48,29 +48,33 @@ jobs:
             exit 1
           fi
           echo "Security gate: PASSED (AgentShield)"
-      - name: Fallback — static scan .claude/agents/ when AgentShield unavailable
+      - name: Fallback — static scan .claude/ when AgentShield unavailable
         if: env.AGENTSHIELD_UNAVAILABLE == 'true'
         run: |
-          # Self-contained fallback: scan every agent file with our own scanner.
-          # Covers the most critical attack surface (agent prompt injection) without
-          # depending on the external ecc-agentshield package.
+          # Self-contained fallback using our own scanner (no external dependencies).
+          # Covers: agent prompt injection, hardcoded secrets, overly broad permissions.
+          # Not equivalent to the full 102-rule AgentShield scan — run project-audit locally for that.
           FAILED=0
           shopt -s nullglob
-          for agent_file in .claude/agents/*.md; do
-            agent=$(basename "$agent_file")
-            verdict=$(node skills/skill-audit/scripts/static-scan.js "$agent_file" 2>/dev/null | jq -r '.verdict // "ERROR"' 2>/dev/null || echo "ERROR")
-            if [ "$verdict" = "BLOCK" ]; then
-              echo "BLOCK: $agent"
-              FAILED=1
-            elif [ "$verdict" = "FLAG" ]; then
-              echo "FLAG:  $agent (review before merging)"
-            else
-              echo "PASS:  $agent"
-            fi
+
+          # Scan agent files (prompt injection, persona override, secrets)
+          for f in .claude/agents/*.md; do
+            verdict=$(node skills/skill-audit/scripts/static-scan.js "$f" 2>/dev/null | jq -r '.verdict // "ERROR"' 2>/dev/null || echo "ERROR")
+            [ "$verdict" = "BLOCK" ] && { echo "BLOCK: $(basename $f)"; FAILED=1; } || \
+            [ "$verdict" = "FLAG"  ] && echo "FLAG:  $(basename $f) (review)" || \
+            echo "PASS:  $(basename $f)"
           done
-          if [ $FAILED -eq 0 ]; then
-            echo "Static fallback scan: PASSED (AgentShield was unavailable — run project-audit locally for full 102-rule scan)"
-          fi
+
+          # Scan settings files (wildcard permissions, hardcoded keys, hook injection)
+          for f in .claude/settings.json .claude/settings.local.json; do
+            [ -f "$f" ] || continue
+            verdict=$(node skills/skill-audit/scripts/static-scan.js "$f" 2>/dev/null | jq -r '.verdict // "ERROR"' 2>/dev/null || echo "ERROR")
+            [ "$verdict" = "BLOCK" ] && { echo "BLOCK: $(basename $f)"; FAILED=1; } || \
+            [ "$verdict" = "FLAG"  ] && echo "FLAG:  $(basename $f) (review)" || \
+            echo "PASS:  $(basename $f)"
+          done
+
+          [ $FAILED -eq 0 ] && echo "Static fallback: PASSED"
           exit $FAILED
 
   static-scan-skills:
