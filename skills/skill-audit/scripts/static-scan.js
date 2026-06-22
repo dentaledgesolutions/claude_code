@@ -10,12 +10,13 @@ const path = require('path');
 
 const skillDir = process.argv[2];
 if (skillDir === '--help' || skillDir === '-h') {
-  console.log(`Usage: node static-scan.js <skill-dir>
+  console.log(`Usage: node static-scan.js <skill-dir|agent-file>
 
-Deterministic security scanner for Claude Code skill directories.
+Deterministic security scanner for Claude Code skill directories and agent files.
 
 Arguments:
-  skill-dir   Path to the skill directory containing SKILL.md
+  skill-dir    Path to a skill directory containing SKILL.md (scans all files)
+  agent-file   Path to a single agent .md file (e.g. .claude/agents/my-agent.md)
 
 Output:
   JSON to stdout: { verdict, findings, scanned }
@@ -24,21 +25,22 @@ Output:
   scanned:  list of files checked
 
 Severities:
-  BLOCK   Skill must not be installed — malicious or dangerous content detected
+  BLOCK   Must not be installed — malicious or dangerous content detected
   FLAG    Requires explicit user confirmation before proceeding
   PASS    No security issues found
 
 Examples:
   node skills/skill-audit/scripts/static-scan.js skills/skill-scout
+  node skills/skill-audit/scripts/static-scan.js .claude/agents/my-agent.md
   node skills/skill-audit/scripts/static-scan.js /tmp/candidate-skill | jq '.verdict'`);
   process.exit(0);
 }
 if (!skillDir) {
-  console.error('Usage: node static-scan.js <skill-dir>');
+  console.error('Usage: node static-scan.js <skill-dir|agent-file>');
   process.exit(1);
 }
 if (!fs.existsSync(skillDir)) {
-  console.error(`Directory not found: ${skillDir}`);
+  console.error(`Path not found: ${skillDir}`);
   process.exit(1);
 }
 
@@ -184,7 +186,17 @@ function walkDir(dir) {
   }
 }
 
-walkDir(skillDir);
+// Support single-file scanning (e.g. an agent .md file) as well as directories
+const stat = fs.statSync(skillDir);
+if (stat.isFile()) {
+  const ext = path.extname(skillDir).toLowerCase();
+  let content;
+  try { content = fs.readFileSync(skillDir, 'utf8'); } catch { content = ''; }
+  if (['.md', '.txt'].includes(ext)) scanMarkdown(skillDir, content);
+  else scanScript(skillDir, content, ext);
+} else {
+  walkDir(skillDir);
+}
 
 let verdict = 'PASS';
 if (findings.some(f => f.severity === 'BLOCK')) verdict = 'BLOCK';

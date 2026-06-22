@@ -19,6 +19,12 @@ User: check this agent definition for security issues
 
 1. **Read the agent file** — read the candidate agent `.md` in full. Extract: name, description, model, color, tools list, and body text.
 
+1b. **Static scan** — run the pattern scanner on the file (now supports single-file mode):
+    ```bash
+    node skills/skill-audit/scripts/static-scan.js <path-to-agent.md>
+    ```
+    Any BLOCK finding from the static scanner stops the audit immediately — do not proceed to manual checks. FLAG findings are noted and included in the final report.
+
 2. **Tool escalation check** — compare the tools list against the agent's stated role:
    - Does the role require network access? If not, flag `WebFetch` or `WebSearch`.
    - Does the role require file writes? If not, flag `Write`, `Edit`, or `Bash`.
