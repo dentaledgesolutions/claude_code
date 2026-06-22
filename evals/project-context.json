@@ -1,6 +1,8 @@
 {
   "project_name": "claude_code",
-  "stack": [],
+  "stack": [
+    "Node.js"
+  ],
   "workflow_terms": [
     "SKILL",
     "CLAUDE",
@@ -25,6 +27,7 @@
     "skill-scout"
   ],
   "key_phrases": [
+    "Skill and agent pipeline toolkit for Claude Code — sources, vets, adapts, evaluates, and auto-improves skills and agents for any project.",
     "Infrastructure for finding, vetting, customizing, and evaluating Claude Code skills and agents. Run `/project-setup` once to configure your project, then use the pipeline to source and install capabilities from the ecosystem rather than building from scratch."
   ],
   "artifact_paths": [

@@ -1,0 +1,16 @@
+{
+  "name": "claude_code",
+  "description": "Skill and agent pipeline toolkit for Claude Code — sources, vets, adapts, evaluates, and auto-improves skills and agents for any project.",
+  "version": "1.0.0",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "context": "node skills/skill-eval/scripts/extract-project-context.js",
+    "evals": "node skills/skill-eval/scripts/generate-seed-evals.js",
+    "audit": "node skills/skill-audit/scripts/static-scan.js",
+    "install-to": "bash install.sh"
+  },
+  "keywords": ["claude-code", "skills", "agents", "ai", "pipeline"],
+  "license": "MIT"
+}

@@ -66,6 +66,8 @@ if (pkg) {
     for (const [dep, name] of Object.entries(stackMap)) {
       if (deps.some(d => d.toLowerCase().includes(dep))) context.stack.push(name);
     }
+    // engines.node declares a Node.js runtime requirement — treat as a stack signal
+    if (p.engines && p.engines.node) context.stack.push('Node.js');
   } catch {}
 }
 
