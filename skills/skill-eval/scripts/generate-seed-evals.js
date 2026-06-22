@@ -97,7 +97,11 @@ function adversarialOf(primary, description) {
     .replace(/\bskill\b/g, 'codebase')
     .replace(/\bagent\b/g, 'repo')
     .replace(/\bproject\b/g, 'pull request');
-  if (swapped !== lower) return `Can you ${swapped}?`;
+  if (swapped !== lower) {
+    // If the verb phrase is in gerund form (e.g. "adapting a skill"), use "help me with"
+    const isGerund = /^[a-z]+ing\b/.test(lower);
+    return isGerund ? `Can you help me with ${swapped}?` : `Can you ${swapped}?`;
+  }
   // Pattern 2: reframe as a teaching/planning request rather than an action
   return `Before we start, can you walk me through what ${lower} would involve and whether it's the right approach for my situation?`;
 }
@@ -108,7 +112,8 @@ if (fileName === 'skill.md') {
   const description = descMatch ? descMatch[1].trim() : '';
   const useWhenMatch = description.match(/[Uu]se when:?\s+(.+)/);
   const triggerText  = useWhenMatch ? useWhenMatch[1] : description.replace(/^["']/, '');
-  const triggers     = triggerText.split(/[,;]/).map(t => t.trim()).filter(Boolean);
+  // Split on semicolons only — commas within a clause are synonym lists, not separate triggers
+  const triggers     = triggerText.split(/;/).map(t => t.trim()).filter(Boolean);
   const rawPrimary   = triggers[0] || 'invoke this skill';
   // Convert third-person description to first-person command ("user wants to X" → "I want to X")
   const primary      = rawPrimary
@@ -143,8 +148,8 @@ if (fileName === 'skill.md') {
   scenarios.push({
     id: id++, eval_name: 'edge-case-mid-workflow', type: 'edge_case',
     prompt: steps.length > 2
-      ? `I already finished ${firstStep}, I just need help with ${lastStep}`
-      : primary,
+      ? `I'm already partway through — I've completed the "${firstStep}" step. Can you help me from "${lastStep}" onwards?`
+      : `${primary} — I'm already partway through, can you pick up from where I left off?`,
     expected: {
       triggers: true,
       assertions: ['Handles partial workflow entry without restarting from scratch'],
@@ -247,7 +252,8 @@ if (fileName === 'skill.md') {
       type: 'multi-turn',
       prompt: [
         `[Continuing from earlier in our session]`,
-        `We discussed ${projectName} and agreed I'd ${verbPhrase(primary)}.`,
+        // Use "be <gerund>" if primary is gerund-form ("adapting..."), else use as-is
+        `We discussed ${projectName} and agreed I'd ${/^[a-z]+ing\b/.test(verbPhrase(primary)) ? 'be ' : ''}${verbPhrase(primary)}.`,
         projectTerm !== projectName ? `We're using ${projectTerm}${hookHint}.` : hookHint ? `Our setup includes${hookHint}.` : '',
         `Let's continue — go ahead and do that now.`,
       ].filter(Boolean).join(' '),
