@@ -19,25 +19,27 @@ jobs:
         run: node scripts/validate-skills.js
 
   security-scan:
-    name: Security gate (AgentShield)
+    name: Security gate (AgentShield + static fallback)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
-      - name: Scan .claude/ configuration
+      - name: Install jq
+        run: sudo apt-get install -y jq
+      - name: Scan .claude/ configuration (AgentShield 1.4.0)
         run: |
-          # Run scan in text mode — text output format is stable and documented
-          npx ecc-agentshield@latest scan --path .claude 2>/dev/null > scan-result.txt || true
+          # Pinned to 1.4.0 — update deliberately, not via @latest
+          npx ecc-agentshield@1.4.0 scan --path .claude 2>/dev/null > scan-result.txt || true
           cat scan-result.txt
-      - name: Check grade threshold
+      - name: Check AgentShield grade threshold
         run: |
-          # Extract grade letter from text output: "Grade: B (72/100)" or similar
           grade=$(grep -oP 'Grade:\s+\K[A-F]' scan-result.txt | head -1 || echo "")
           score=$(grep -oP 'Grade:\s+[A-F]\s+\(\K[0-9]+' scan-result.txt | head -1 || echo "0")
           if [ -z "$grade" ]; then
-            echo "Warning: could not parse AgentShield grade — skipping gate (network or format issue)"
+            echo "AgentShield unavailable or output unparseable — running static fallback scan."
+            echo "AGENTSHIELD_UNAVAILABLE=true" >> "$GITHUB_ENV"
             exit 0
           fi
           echo "Security grade: $grade ($score/100)"
@@ -45,7 +47,31 @@ jobs:
             echo "Security grade below threshold (C required). Address critical/high findings."
             exit 1
           fi
-          echo "Security gate: PASSED"
+          echo "Security gate: PASSED (AgentShield)"
+      - name: Fallback — static scan .claude/agents/ when AgentShield unavailable
+        if: env.AGENTSHIELD_UNAVAILABLE == 'true'
+        run: |
+          # Self-contained fallback: scan every agent file with our own scanner.
+          # Covers the most critical attack surface (agent prompt injection) without
+          # depending on the external ecc-agentshield package.
+          FAILED=0
+          shopt -s nullglob
+          for agent_file in .claude/agents/*.md; do
+            agent=$(basename "$agent_file")
+            verdict=$(node skills/skill-audit/scripts/static-scan.js "$agent_file" 2>/dev/null | jq -r '.verdict // "ERROR"' 2>/dev/null || echo "ERROR")
+            if [ "$verdict" = "BLOCK" ]; then
+              echo "BLOCK: $agent"
+              FAILED=1
+            elif [ "$verdict" = "FLAG" ]; then
+              echo "FLAG:  $agent (review before merging)"
+            else
+              echo "PASS:  $agent"
+            fi
+          done
+          if [ $FAILED -eq 0 ]; then
+            echo "Static fallback scan: PASSED (AgentShield was unavailable — run project-audit locally for full 102-rule scan)"
+          fi
+          exit $FAILED
 
   static-scan-skills:
     name: Static scan all skills
@@ -62,7 +88,6 @@ jobs:
           FAILED=0
           for skill_dir in skills/*/; do
             skill=$(basename "$skill_dir")
-            # Run scanner; use jq to extract verdict cleanly (avoids bash special-char issues)
             verdict=$(node skills/skill-audit/scripts/static-scan.js "$skill_dir" 2>/dev/null | jq -r '.verdict // "ERROR"' 2>/dev/null || echo "ERROR")
             if [ "$verdict" = "BLOCK" ]; then
               echo "BLOCK: $skill"

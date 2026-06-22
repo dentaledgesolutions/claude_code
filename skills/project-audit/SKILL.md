@@ -42,19 +42,19 @@ Identify which `.claude/` directory to scan:
 Run the JSON scan on the project directory:
 
 ```bash
-npx ecc-agentshield@latest scan --format json --path .claude 2>/dev/null
+npx ecc-agentshield@1.4.0 scan --format json --path .claude 2>/dev/null
 ```
 
 If `.claude/` does not exist, scan the global directory instead:
 
 ```bash
-npx ecc-agentshield@latest scan --format json 2>/dev/null
+npx ecc-agentshield@1.4.0 scan --format json 2>/dev/null
 ```
 
 If the command fails or produces no output (network unavailable, npx error), fall back to text output:
 
 ```bash
-npx ecc-agentshield@latest scan --path .claude 2>/dev/null
+npx ecc-agentshield@1.4.0 scan --path .claude 2>/dev/null
 ```
 
 Present the text output as-is and skip Steps 4–6.
@@ -164,7 +164,7 @@ If any auto-fixable findings exist:
 If user confirms:
 
 ```bash
-npx ecc-agentshield@latest scan --fix --path .claude 2>/dev/null
+npx ecc-agentshield@1.4.0 scan --fix --path .claude 2>/dev/null
 ```
 
 Report which fixes were applied. Re-run Step 3 to show the updated score.

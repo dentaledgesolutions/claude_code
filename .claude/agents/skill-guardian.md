@@ -65,7 +65,7 @@ If a file exists dated within the last 7 days, read it as `prior_audit` (grade, 
 Then run the project-level security scan:
 
 ```bash
-npx ecc-agentshield@latest scan --format json --path .claude 2>/dev/null
+npx ecc-agentshield@1.4.0 scan --format json --path .claude 2>/dev/null
 ```
 
 Parse the result:
