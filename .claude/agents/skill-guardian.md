@@ -1,6 +1,7 @@
 ---
 name: skill-guardian
 description: Gathers full project context, inventories active skills, evaluates their effectiveness with measurable metrics, and runs Karpathy autoresearch refinement cycles. Use when asked to run a skill health check, evaluate project skills, improve skills, audit new skills, or periodically maintain skill quality for any project.
+model: sonnet
 tools: Read, Write, Edit, Bash, Glob, Grep, WebSearch, WebFetch
 color: "#6366F1"
 ---
