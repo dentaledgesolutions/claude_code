@@ -104,12 +104,15 @@ If no references were provided or all fetches failed, `ref_signals = null`.
    - `requirements.txt`
    - `README.md`
    - Check for any `*.ipynb` files: `ls *.ipynb 2>/dev/null`
+   - `.claude/settings.json` — read `hooks` key (detect active automation events)
+   - `.mcp.json` — read `mcpServers` keys (detect external integrations)
+   - `~/.claude/settings.json` — read `enabledPlugins` keys (detect active plugins)
 
 2. **Build auto-recommendations** for each interview question.
    When `ref_signals` is non-null, supplement local signals with reference signals as described below. Reference signals never override local signals — local always wins when present. Reference-sourced values are labeled `(from references)`.
 
    - **Q1 rec**: `package.json:description` → first substantive non-heading line of README.md → `ref_signals.ref_purpose` labeled `(from references)` → `null`
-   - **Q2 rec**: stack tokens from local manifests (package.json deps / pyproject.toml / Cargo.toml / go.mod); append any `ref_signals.ref_stack` tokens not already present, each labeled `(from references)`; `*.ipynb` present → Python + Jupyter; nothing → `null`
+   - **Q2 rec**: stack tokens from local manifests (package.json deps / pyproject.toml / Cargo.toml / go.mod); append any `ref_signals.ref_stack` tokens not already present, each labeled `(from references)`; `*.ipynb` present → Python + Jupyter; if `.mcp.json` found, note the MCP servers as context (e.g. "jira MCP detected — add to stack description if relevant"); nothing → `null`
    - **Q3 rec**: `package.json:scripts` keys (test, build, lint, start, deploy); for any key with no local value, fill from `ref_signals.ref_commands[key]` labeled `(from references)`; see default commands table in Rules; nothing → blank
    - **Q4 rec**: none from local files — but if `ref_signals` is non-null and `ref_rules_always` / `ref_rules_never` are non-empty, show them as examples labeled `(from references)` instead of the generic "Always run tests…" examples
    - **Q5 rec**: top-level directories minus `node_modules`, `.git`, `dist`, `build`, `.cache`, `__pycache__`; append any `ref_signals.ref_directories` entries whose path is not already listed, each labeled `(from references)`
@@ -260,7 +263,10 @@ Construct and write `evals/project-context.json` directly:
   "ref_skills": ["<ref_signals.ref_skills if ref_signals non-null, else []>"],
   "ref_agents": ["<ref_signals.ref_agents if ref_signals non-null, else []>"],
   "key_phrases": ["<purpose>", "<command values joined with space>"],
-  "artifact_paths": ["<directories paths normalised to ./path/ form>"]
+  "artifact_paths": ["<directories paths normalised to ./path/ form>"],
+  "hooks": ["<array of {event, matcher, command} parsed from .claude/settings.json and ~/.claude/settings.json; or []>"],
+  "mcp_servers": ["<array of server names from .mcp.json mcpServers keys; or []>"],
+  "plugins": ["<array of plugin names from ~/.claude/settings.json:enabledPlugins keys, stripped of @suffix; or []>"]
 }
 ```
 
@@ -276,6 +282,9 @@ For `installed_skills`: run `ls skills/ 2>/dev/null` and parse the directory nam
     workflow_terms:  <N terms>
     key_phrases:     <N phrases>
     installed_skills:<N skills>
+    hooks:           <N hooks across SessionStart/PreToolUse/PostToolUse>
+    mcp_servers:     <N servers: name1, name2, … | none>
+    plugins:         <N plugins: name1, name2, … | none>
 
 [Show the following block only when ref_signals is non-null:]
 From references (<N> repos analysed):

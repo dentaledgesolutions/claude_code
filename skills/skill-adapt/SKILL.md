@@ -32,7 +32,12 @@ Rewrite a sourced skill so it fits your project like a native skill — not a tr
    ```
    Then read `evals/project-context.json`. Supplement with a quick scan of the raw source files if anything looks missing (the script may miss hand-written conventions in `CLAUDE.md` or `.planning/` that require reading in full).
 
-   From `project-context.json`, extract: `stack`, `workflow_terms`, `key_phrases`, `artifact_paths`, `installed_skills`. These are the exact fields skill-eval will later test against — adapting from this data closes the loop.
+   From `project-context.json`, extract: `stack`, `workflow_terms`, `key_phrases`, `artifact_paths`, `installed_skills`, `hooks`, `mcp_servers`, `plugins`. These are the exact fields skill-eval will later test against — adapting from this data closes the loop.
+
+   Use the three new fields as constraints when adapting workflow steps:
+   - **`hooks`**: if a `PostToolUse` hook already runs a formatter, linter, or test command that matches what the skill would do, remove the redundant step from the adapted workflow. If a `PreToolUse` hook guards a tool (e.g. `Bash`), note this as a constraint in the skill's Rules section.
+   - **`mcp_servers`**: if the skill assumes an external integration (e.g. GitHub PR creation, JIRA ticket updates), confirm the relevant MCP name appears in this list. If not, add a prerequisite note in the skill's Prerequisite section.
+   - **`plugins`**: if the skill's core capability is already provided by an installed plugin, flag a potential conflict — same logic as the `installed_skills` overlap check.
 
 4. **Snapshot existing skill** — if a skill with this name is already installed, back it up before touching anything:
    ```bash

@@ -28,14 +28,14 @@ Run /project-setup first, then retry skill-needs-analysis-agent.
 ```
 and stop.
 
-Extract: `project_name`, `stack`, `workflow_terms`, `key_phrases`, `installed_skills`.
+Extract: `project_name`, `stack`, `workflow_terms`, `key_phrases`, `installed_skills`, `mcp_servers`, `plugins`.
 
 ## Step 2 — Map to skill categories
 
-Apply both tables below. For each row where a token matches, add the skill category to
+Apply all three tables below. For each row where a token matches, add the skill category to
 the candidate list. Case-insensitive matching. Deduplicate.
 
-Remove any category already covered by an entry in `installed_skills`
+Remove any category already covered by an entry in `installed_skills` or `plugins`
 (match on substring, e.g. "code-review" covers "code-review-skill").
 
 ### Stack → skill category
@@ -68,12 +68,26 @@ Remove any category already covered by an entry in `installed_skills`
 | SECURITY, CVE, VULN | Security scanning | `security-scan` |
 | PERF, BENCH | Performance benchmarking | `benchmarking` |
 
+### mcp_servers → skill category
+
+| MCP server name (substring) | Skill category | Search term |
+|---|---|---|
+| github | PR workflow automation | `github-pr` |
+| jira, linear | Ticket-to-code workflow | `ticket-workflow` |
+| slack | Notification + status reporting | `slack-notify` |
+| postgres, mysql, sqlite, mongo | Database query + migration | `db-workflow` |
+| filesystem, fs | File management automation | `file-management` |
+| puppeteer, playwright | Browser automation | `browser-automation` |
+| sentry, datadog | Error monitoring integration | `monitoring-integration` |
+
 ## Step 3 — Rank candidates
 
 Sort the candidate list by this priority:
-1. Categories matched by BOTH stack AND workflow_terms signals (highest confidence)
-2. Categories matched by stack signal only
-3. Categories matched by workflow_terms signal only
+1. Categories matched by stack AND workflow_terms AND mcp_servers (highest confidence)
+2. Categories matched by stack AND mcp_servers
+3. Categories matched by stack AND workflow_terms
+4. Categories matched by stack signal only
+5. Categories matched by workflow_terms or mcp_servers only
 
 Cap at 5 recommendations.
 
@@ -86,11 +100,12 @@ Skill gap analysis for <project_name>
 
 Stack detected:       <stack joined with ", ", or "none">
 Workflow signals:     <workflow_terms joined with ", ", or "none">
+MCP servers:          <mcp_servers joined with ", ", or "none">
 Already installed:    <installed_skills joined with ", ", or "none">
 
 Recommended skills (highest value first):
 
-1. <skill-category>  [matched via: <stack signal | workflow signal | both>]
+1. <skill-category>  [matched via: stack | workflow | mcp | stack+workflow | stack+mcp | all three]
    Why: <one sentence>
    Search term for skill-scout: "<search term>"
 
