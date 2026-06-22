@@ -85,7 +85,9 @@ function paraphraseOf(phrase) {
 }
 
 function negativeOf(phrase) {
-  return `Can you explain how to ${verbPhrase(phrase)} without actually doing it?`;
+  // Clearly explanation-seeking — no intent to invoke the skill's workflow.
+  // Distinct from adversarial (wrong scope) by framing as curiosity/learning.
+  return `What are the steps involved in ${verbPhrase(phrase)}? I'm not asking you to do it — just explain the process so I can understand it.`;
 }
 
 // Adversarial: prompt that uses the skill's vocabulary but belongs to an adjacent
