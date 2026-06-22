@@ -78,7 +78,9 @@ and conflict detection — then present a ranked shortlist.
 
 7. Write all candidates to `/tmp/scout-candidates-<timestamp>.json` using the
    score-candidates.js schema (include trigger_keywords from the user's capability
-   description, and installed_skill_descriptions from step 2). Then run:
+   description, installed_skill_descriptions from step 2, and plugin_names from
+   the `plugins` field of project-context.json — used by scoreConflictRisk to
+   detect exact name collisions with plugin-provided skills). Then run:
    `node skills/skill-scout/scripts/score-candidates.js /tmp/scout-candidates-<timestamp>.json`
    Parse JSON output; sort by total_score descending.
 

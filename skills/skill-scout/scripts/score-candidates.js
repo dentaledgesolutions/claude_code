@@ -18,6 +18,7 @@
 //   repo_stars: number,
 //   trigger_keywords: string[],          // user-supplied: words describing the needed capability
 //   installed_skill_descriptions: string[] // descriptions of currently installed skills
+//   plugin_names: string[]                 // names of installed plugins (from project-context.json:plugins)
 // }
 
 const fs = require('fs');
@@ -38,7 +39,7 @@ Output:
 Candidate schema:
   name, source_url, commit_hash, description, skill_md_content?,
   skill_md_lines, has_scripts, has_reference, repo_age_days, repo_stars,
-  trigger_keywords[], installed_skill_descriptions[]
+  trigger_keywords[], installed_skill_descriptions[], plugin_names[]
 
 Examples:
   node skills/skill-scout/scripts/score-candidates.js /tmp/candidates.json
@@ -156,13 +157,27 @@ function scoreSourceReputation(candidate) {
 }
 
 function scoreConflictRisk(candidate) {
-  if (!candidate.installed_skill_descriptions?.length) return 10;
   const words = (candidate.description || '').toLowerCase().split(/\W+/).filter(w => w.length > 4);
+
+  // Exact name match with an installed plugin → full conflict (score 0)
+  const pluginNames = (candidate.plugin_names || []).map(p => p.toLowerCase());
+  if (candidate.name && pluginNames.includes(candidate.name.toLowerCase())) return 0;
+
+  // Keyword overlap with installed skill descriptions
+  const descriptions = candidate.installed_skill_descriptions || [];
+  if (!descriptions.length && !pluginNames.length) return 10;
+
   let maxOverlap = 0;
-  for (const installed of candidate.installed_skill_descriptions) {
+  for (const installed of descriptions) {
     const iWords = installed.toLowerCase().split(/\W+/).filter(w => w.length > 4);
     const overlap = words.filter(w => iWords.includes(w)).length;
     maxOverlap = Math.max(maxOverlap, overlap / Math.max(words.length, 1));
+  }
+  // Plugin names as weak keyword signals (name-level overlap, not description-level)
+  for (const plugin of pluginNames) {
+    const pWords = plugin.split(/[-_]/).filter(w => w.length > 3);
+    const overlap = words.filter(w => pWords.includes(w)).length;
+    maxOverlap = Math.max(maxOverlap, (overlap / Math.max(words.length, 1)) * 0.7); // 70% weight vs full description
   }
   return Math.round((1 - maxOverlap) * 10);
 }
