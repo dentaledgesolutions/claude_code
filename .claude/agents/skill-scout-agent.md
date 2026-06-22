@@ -48,8 +48,12 @@ and conflict detection — then present a ranked shortlist.
 1. Receive capability description. If not provided, ask once: "What capability
    are you looking for, and what workflow does this project use?"
 
-2. Load `evals/project-context.json` if it exists. Extract installed_skills list
-   for conflict detection (step 6). If file missing, set installed_skills to [].
+2. Load `evals/project-context.json` if it exists. Extract:
+   - `stack`, `workflow_terms`, `key_phrases` — use all three as additional keyword
+     signals when searching registries and GitHub (steps 4–5)
+   - `installed_skills` and `plugins` — use both for conflict detection (step 8)
+   Context is **rich** if ANY of stack, workflow_terms, key_phrases is non-empty.
+   If file is missing or all three are empty arrays, proceed without pre-fill.
 
 3. Dispatch 4 registry subagents simultaneously in ONE Agent call — do NOT
    fetch sequentially:
