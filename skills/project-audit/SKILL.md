@@ -95,6 +95,28 @@ Then list findings, grouped by severity. For each finding:
 
 Show ALL critical and high findings. For medium/low/info: show the first 3 and summarise the rest ("+ N more medium findings").
 
+### Step 4b — Persist security posture to project-context.json
+
+After displaying the report, update `evals/project-context.json` with the scan result so `skill-guardian` and downstream agents can read the current security posture without re-running AgentShield.
+
+If `evals/project-context.json` exists and Node.js is available, run:
+
+```bash
+node -e "
+const fs = require('fs'), p = 'evals/project-context.json';
+try {
+  const ctx = JSON.parse(fs.readFileSync(p, 'utf8'));
+  ctx.security_grade = '<GRADE>';
+  ctx.security_score = <SCORE>;
+  ctx.security_last_scanned = new Date().toISOString().slice(0, 10);
+  fs.writeFileSync(p, JSON.stringify(ctx, null, 2));
+  console.log('Security posture saved to', p);
+} catch (e) { /* silent — evals/ may not exist yet */ }
+"
+```
+
+Replace `<GRADE>` with the letter grade (A/B/C/D/F) and `<SCORE>` with the numeric score from the JSON output. If the file does not exist or Node.js is unavailable, skip this step silently — it is a convenience record, not a blocking requirement.
+
 ### Step 5 — Offer auto-fix
 
 If any auto-fixable findings exist:

@@ -184,6 +184,15 @@ context.plugins         = [...new Set(context.plugins)];
 const outDir  = path.join(projectRoot, 'evals');
 const outPath = path.join(outDir, 'project-context.json');
 fs.mkdirSync(outDir, { recursive: true });
+
+// Preserve security fields written by project-audit — never overwrite them
+try {
+  const prior = JSON.parse(fs.readFileSync(outPath, 'utf8'));
+  if (prior.security_grade)        context.security_grade        = prior.security_grade;
+  if (prior.security_score !== undefined) context.security_score = prior.security_score;
+  if (prior.security_last_scanned) context.security_last_scanned = prior.security_last_scanned;
+} catch { /* file doesn't exist yet — no prior security data to preserve */ }
+
 fs.writeFileSync(outPath, JSON.stringify(context, null, 2));
 console.error(`Project context written to ${outPath}`);
 console.log(JSON.stringify(context, null, 2));
