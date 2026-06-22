@@ -4,7 +4,8 @@
 
 | Failing metric | Root cause | Action |
 |----------------|-----------|--------|
-| Project Fit Score < 7 | Skill wasn't adapted to project context | **Exit: re-run skill-adapt** with richer project-context.json |
+| Project Fit Score < 7 (project-native or project-workflow failed) | Skill wasn't adapted to project context | **Exit: re-run skill-adapt** with richer project-context.json |
+| Project Fit Score < 7 (ONLY multi-turn failed) | Skill re-asks established context | **Lever B** — add continuation-awareness note; do NOT exit to skill-adapt |
 | Resilience Score < 8/10 | Description too broad — fires on wrong-scope prompts | **Lever A only** — tighten trigger conditions; add negative examples ("not when X") |
 | Trigger Accuracy < 85% | Description doesn't match how users phrase requests | **Lever A only** — don't touch B–E until triggers are stable |
 | Eval Pass Rate < 80%, triggers and resilience fine | Skill fires but executes incorrectly | **Levers B–E** |
@@ -98,7 +99,8 @@ Stop the loop when ANY of:
 3. Budget exhausted with no improvement in last 2 iterations → **DONE**
 4. All generated hypotheses have been tested → **DONE**
 5. `eval_pass_rate < 40%` after 5 iterations → **REWRITE** — recommend `write-a-skill`
-6. Project Fit Score < 7 at routing step → **RE-ADAPT** — do not enter refinement loop
+6. Project Fit Score < 7 AND (project-native or project-workflow failed) → **RE-ADAPT** — do not enter refinement loop
+   Exception: if ONLY multi-turn failed, this is NOT an exit condition — continue with Lever B
 
 ---
 

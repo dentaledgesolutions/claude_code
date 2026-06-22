@@ -54,8 +54,13 @@ own eval logic.
    `skills/<skill-name>/SKILL.md`.
 
 3. Route by failing metric (from refine-input.json):
-   - project_fit_score < 7 → EXIT immediately. Print: "Project Fit Score below 7.
-     Re-run skill-adapt with richer evals/project-context.json before refining."
+   - project_fit_score < 7 → check which scenarios drove the failure:
+       - project-native or project-workflow failed → EXIT immediately. Print:
+         "Project Fit Score below 7 (project-native/workflow failed). Re-run
+         skill-adapt with richer evals/project-context.json before refining."
+       - ONLY multi-turn failed (project-native and project-workflow passed) →
+         do NOT exit. Set active_lever = "B". Print: "Multi-turn continuation
+         issue detected. Will try Lever B (continuation-awareness note) first."
    - resilience_score < 8 → active_lever = "A" only. The skill is over-triggering
      on adversarial probes. Do not touch B–E until resilience passes.
    - trigger_accuracy < 85% → active_lever = "A" only. Do not touch B–E until

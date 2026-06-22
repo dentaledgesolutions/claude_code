@@ -31,7 +31,9 @@ BUDGET:  default 10 iterations, stop early at 95%+ for 3 consecutive
    Then check staleness: if `refine-input.json` was written today **and** `SKILL.md` has not been modified since — trust the baseline scores directly, no re-run needed. If the skill was changed since eval ran, re-run only the failing scenarios (3 reps, same parallel subagent pattern as skill-eval) to refresh the baseline before proceeding. If baseline is already ≥ 90%, ask the user whether to continue.
 
 3. **Route by failing metric** — the correct lever depends on *which* metric is failing:
-   - **Project Fit Score < 7** → do not refine. Exit and re-run `skill-adapt` with a richer `evals/project-context.json`. Refining won't fix a mis-adapted skill.
+   - **Project Fit Score < 7** → check which scenarios drove it down:
+     - If `project-native` or `project-workflow` failed → Exit. Re-run `skill-adapt` with richer `evals/project-context.json`. Refining won't fix a mis-adapted skill.
+     - If ONLY `multi-turn` failed (project-native and project-workflow passed) → do NOT exit. Work Lever B this session: add a continuation-awareness note to the step whose output the multi-turn scenario re-asked for.
    - **Resilience Score < 8/10** → work Lever A (description) only this session. The skill is firing on adversarial probes — the trigger language is too broad. Tighten the "Use when" clause and add negative examples (what the skill should NOT handle). Don't touch B–E until resilience passes.
    - **Trigger Accuracy < 85%** → work Lever A (description) only this session. Don't touch B–E until triggers are stable.
    - **Eval Pass Rate < 80%** (triggers and resilience fine) → work Levers B–E.
