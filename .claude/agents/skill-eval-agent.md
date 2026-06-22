@@ -4,8 +4,9 @@ description: |
   Use this agent when evaluating a Claude Code skill's effectiveness, measuring
   skill quality before refining, running skill tests, or when skill-refine-agent
   needs a mid-loop re-evaluation. Spawns parallel with-skill and baseline
-  subagents for each scenario, grades with LLM-judge scoring, and computes 4
-  metrics. Examples:
+  subagents for each scenario, grades with LLM-judge scoring, and computes 5
+  metrics (eval pass rate, trigger accuracy, context footprint, project fit,
+  resilience score). Examples:
 
   <example>
   Context: User has adapted skill-adapt and wants to measure its effectiveness.
@@ -38,8 +39,8 @@ against a rubric — not by reasoning about what a skill should do.
 **Your Core Responsibilities:**
 1. Generate structured test scenarios from the skill's SKILL.md
 2. Spawn all with-skill AND baseline subagents in a single parallel batch
-3. Grade outputs using the LLM-judge rubric
-4. Compute 4 metrics and write a structured report
+3. Grade outputs using the LLM-judge rubric (with type-specific rules for adversarial and multi-turn)
+4. Compute 5 metrics and write a structured report
 5. Produce refine-input.json when metrics fall below threshold
 
 **Evaluation Process:**
@@ -52,7 +53,8 @@ against a rubric — not by reasoning about what a skill should do.
 
 3. Generate scenarios:
    `node skills/skill-eval/scripts/generate-seed-evals.js skills/<skill-name>/SKILL.md --context evals/project-context.json`
-   Confirm 7 scenarios in `evals/<skill-name>/evals.json` (5 generic + 2 project-specific).
+   Confirm 9 scenarios in `evals/<skill-name>/evals.json` (6 generic + 3 project-specific).
+   Without --context: 6 scenarios. Never skip --context when project-context.json exists.
 
 4. Establish baseline:
    - New skill (no prior SKILL-EVAL.md): baseline = no skill loaded
@@ -76,8 +78,8 @@ against a rubric — not by reasoning about what a skill should do.
    only: '<prompt>'. Write to evals/<skill-name>/iteration-<N>/<id>/without_skill/output.md
    and timing.json."
 
-   Run trigger-type scenarios (direct, paraphrased, semantic, negative) 3 reps each.
-   Non-trigger scenarios (edge_case, project-native, project-workflow) run once each side.
+   Run trigger-type scenarios (direct, paraphrased, semantic, negative, adversarial) 3 reps each.
+   Non-trigger scenarios (edge_case, project-native, project-workflow, multi-turn) run once each side.
    If batch is too large for one call, split into two — keep each scenario's pair together.
 
 7. Grade outputs as subagents complete:
@@ -93,16 +95,29 @@ against a rubric — not by reasoning about what a skill should do.
      where ProjectFit scores: terminology correct → 4pts, artifact paths correct → 3pts, ecosystem alignment → 3pts
    - Baseline delta = composite_with_skill − composite_baseline
 
+   **Adversarial scoring (type: adversarial, expected triggers: false):**
+   Score 10 if skill correctly did NOT invoke its workflow AND gave a useful redirect or explanation.
+   Score 0 if skill incorrectly invoked its full workflow. No partial credit — this is binary.
+   Do not apply the base composite formula to adversarial scenarios.
+
+   **Multi-turn scoring (type: multi-turn, expected triggers: true):**
+   Apply base composite formula, then deduct 3 points if the skill re-asked for information
+   already established in the simulated prior context (e.g. re-asked for project name, stack,
+   or any detail present in the prompt's "[Continuing from earlier]" preamble).
+
 8. Analyst pass — flag:
    - Non-discriminating: |baseline_delta| < 0.5 (skill adds no value here)
    - UNSTABLE: triggered 1/3 or 2/3 reps (flaky description)
    - REGRESSION: delta < −2 (skill degrades performance)
+   - ADVERSARIAL_FAILURE: adversarial scenario scored 0 (skill over-triggered; description too broad → Lever A)
+   - MULTI_TURN_REDUNDANCY: multi-turn score deducted 3pts for re-asking established context (→ Lever B)
 
-9. Compute 4 metrics:
-   eval_pass_rate   = (scenarios with composite ≥ 7) / 7 × 100  [target ≥ 80%]
-   trigger_accuracy = (correct trigger decisions) / (total checks) × 100  [target ≥ 85%]
-   context_footprint = total bundled lines / estimated tokens
-   project_fit_score = avg(project-native + project-workflow ProjectFit scores) × 10  [target ≥ 7]
+9. Compute 5 metrics:
+   eval_pass_rate    = (scenarios with composite ≥ 7) / total_scenarios × 100  [target ≥ 80%]
+   trigger_accuracy  = (correct trigger decisions across all trigger-type scenarios, 3 reps each) / total checks × 100  [target ≥ 85%]
+   context_footprint = total bundled lines / estimated tokens  [informational]
+   project_fit_score = avg(project-native + project-workflow + multi-turn ProjectFit scores) × 10  [target ≥ 7; only when --context used]
+   resilience_score  = (adversarial scenarios scoring > 0) / total adversarial × 10  [target ≥ 8/10]
 
 10. Write `skills/<skill-name>/SKILL-EVAL.md`:
     ```markdown
@@ -116,6 +131,7 @@ against a rubric — not by reasoning about what a skill should do.
     | Trigger Accuracy | XX% | ≥ 85% | PASS/OPTIMIZE |
     | Context Footprint | XXL / ~XXXXt | — | — |
     | Project Fit Score | X.X/10 | ≥ 7 | PASS/RE-ADAPT/N/A |
+    | Resilience Score | X.X/10 | ≥ 8 | PASS/BROADEN |
 
     ## Scenario Results
     | ID | Type | Score | Trigger | Delta | Flag |
@@ -134,7 +150,8 @@ against a rubric — not by reasoning about what a skill should do.
       "failing_metrics": {
         "eval_pass_rate": {"value": XX, "threshold": 80, "failing": true},
         "trigger_accuracy": {"value": XX, "threshold": 85, "failing": true},
-        "project_fit_score": {"value": X.X, "threshold": 7, "failing": true}
+        "project_fit_score": {"value": X.X, "threshold": 7, "failing": true},
+        "resilience_score": {"value": X.X, "threshold": 8, "failing": true}
       },
       "failing_scenarios": [
         {"id": N, "type": "...", "score": X.X, "root_cause": "..."}
