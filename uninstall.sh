@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # Skill Builder — Uninstall
-# Mirrors install.sh exactly: removes from project AND ~/.claude/ runtime.
+# Mirrors install.sh: removes all discovered skills from project AND ~/.claude/ runtime.
+# Skills and agents are discovered dynamically from the repo — no hardcoded list.
 #
 # Usage:
 #   ./uninstall.sh /path/to/target-project
@@ -41,9 +42,9 @@ echo "  Project : ${TARGET}"
 echo "  Runtime : ${GLOBAL_SKILLS}"
 echo ""
 echo "  Will remove:"
-echo "    • ${TARGET}/skills/"
-echo "    • ${GLOBAL_SKILLS}/{${SKILL_NAMES[*]}}"
-echo "    • ${TARGET}/.claude/agents/{${AGENT_FILES[*]}}"
+echo "    • ${TARGET}/skills/  (${#SKILL_NAMES[@]} skills: ${SKILL_NAMES[*]})"
+echo "    • ${GLOBAL_SKILLS}/<each skill above>"
+echo "    • ${TARGET}/.claude/agents/  (${#AGENT_FILES[@]} agents: ${AGENT_FILES[*]})"
 echo ""
 
 read -r -p "Proceed? [y/N] " confirm

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Skill Builder — Install
-# Copies the 5-skill system to a target project AND syncs to ~/.claude/skills/ runtime.
+# Copies all skills to a target project AND syncs to ~/.claude/skills/ runtime.
 # Claude Code reads skills from ~/.claude/skills/ — both locations must be populated.
+# Skills are discovered dynamically from the skills/ directory — no hardcoded list.
 #
 # Usage:
 #   ./install.sh /path/to/target-project
@@ -111,6 +112,27 @@ if [ ${#ADDED[@]} -gt 0 ]; then
     ok "added to .gitignore: ${ADDED[*]}"
 else
     ok ".gitignore already up to date"
+fi
+echo ""
+
+# ── 4b. Refresh project-context.json if stale ────────────────────────────────
+# A pre-existing project-context.json may be missing the hooks/mcp_servers/plugins
+# fields added in the June 2026 expansion. Detect and offer to regenerate.
+CTX="${TARGET}/evals/project-context.json"
+if [ -f "${CTX}" ] && command -v node &>/dev/null; then
+    # Check for the presence of the "hooks" field (added in expansion)
+    if ! node -e "const d=require('${CTX}'); process.exit(d.hooks !== undefined ? 0 : 1)" 2>/dev/null; then
+        warn "project-context.json is missing the hooks/mcp_servers/plugins fields (pre-expansion format)"
+        read -r -p "  Regenerate it now? [Y/n] " confirm_ctx
+        if [[ ! "${confirm_ctx}" =~ ^[Nn]$ ]]; then
+            (cd "${TARGET}" && node "${TARGET}/skills/skill-eval/scripts/extract-project-context.js" 2>/dev/null)
+            ok "regenerated ${CTX}"
+        else
+            warn "Skipped — run '/project-setup' or 'node skills/skill-eval/scripts/extract-project-context.js' to refresh"
+        fi
+    else
+        ok "project-context.json is current (hooks field present)"
+    fi
 fi
 echo ""
 
