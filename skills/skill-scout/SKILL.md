@@ -30,13 +30,14 @@ User: find a skill for code review that fits our GSD workflow
 
 1. **Capture the need** — ask: "What capability are you looking for?" If project context was pre-filled from `evals/project-context.json`, skip stack/framework questions — ask only about the specific capability needed. Otherwise ask: "What does the project use?" (GSD? custom workflow? specific stack?). One question at a time.
 
-2. **Check known registries first** — before a generic search, WebFetch the index or README of these known sources and scan for a match:
-   - `github.com/anthropics/claude-code-skills`
-   - `github.com/multica-ai/andrej-karpathy-skills`
-   - `github.com/vercel-labs/skills`
-   - `github.com/ComposioHQ/awesome-claude-skills`
+2. **Check known registries first** — before a generic search, WebFetch the README of these live registries and scan for a match:
+   - `https://raw.githubusercontent.com/multica-ai/andrej-karpathy-skills/main/README.md`
+   - `https://raw.githubusercontent.com/vercel-labs/skills/main/README.md`
+   - `https://raw.githubusercontent.com/Evol-ai/SkillCompass/main/README.md`
 
    If a match is found here, skip step 3 and go directly to step 4.
+
+   *(anthropics/claude-code-skills and ComposioHQ/awesome-claude-skills returned 404 as of 2026-06-22 — removed. Re-add if they become live.)*
 
 3. **Search GitHub** — if registries don't cover the need, use WebSearch with:
    - `site:github.com filename:SKILL.md <capability>`

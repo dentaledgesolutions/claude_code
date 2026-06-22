@@ -55,14 +55,14 @@ and conflict detection — then present a ranked shortlist.
    Context is **rich** if ANY of stack, workflow_terms, key_phrases is non-empty.
    If file is missing or all three are empty arrays, proceed without pre-fill.
 
-3. Dispatch 4 registry subagents simultaneously in ONE Agent call — do NOT
+3. Dispatch 3 registry subagents simultaneously in ONE Agent call — do NOT
    fetch sequentially:
-   - Registry A: https://raw.githubusercontent.com/anthropics/claude-code-skills/main/README.md
-   - Registry B: https://raw.githubusercontent.com/multica-ai/andrej-karpathy-skills/main/README.md
-   - Registry C: https://raw.githubusercontent.com/vercel-labs/skills/main/README.md
-   - Registry D: https://raw.githubusercontent.com/ComposioHQ/awesome-claude-skills/main/README.md
+   - Registry A: https://raw.githubusercontent.com/multica-ai/andrej-karpathy-skills/main/README.md
+   - Registry B: https://raw.githubusercontent.com/vercel-labs/skills/main/README.md
+   - Registry C: https://raw.githubusercontent.com/Evol-ai/SkillCompass/main/README.md
    Each subagent: "WebFetch [URL]. Return raw text. If unreachable, return UNREACHABLE."
    Mark UNREACHABLE registries; do not retry.
+   (anthropics/claude-code-skills and ComposioHQ/awesome-claude-skills removed — returned 404 on 2026-06-22.)
 
 4. Scan all returned registry content for capability keyword matches
    (2+ keywords per line = match). Collect: skill name, source URL, org.
