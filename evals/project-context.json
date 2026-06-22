@@ -1,0 +1,95 @@
+{
+  "project_name": "claude_code",
+  "stack": [],
+  "workflow_terms": [
+    "SKILL",
+    "CLAUDE",
+    "PASS",
+    "FLAG",
+    "BLOCK",
+    "EVAL",
+    "REFINE",
+    "LOG",
+    "API"
+  ],
+  "installed_skills": [
+    "agent-adapt",
+    "agent-audit",
+    "agent-scout",
+    "project-audit",
+    "project-setup",
+    "skill-adapt",
+    "skill-audit",
+    "skill-eval",
+    "skill-refine",
+    "skill-scout"
+  ],
+  "key_phrases": [
+    "Infrastructure for finding, vetting, customizing, and evaluating Claude Code skills and agents. Run `/project-setup` once to configure your project, then use the pipeline to source and install capabilities from the ecosystem rather than building from scratch."
+  ],
+  "artifact_paths": [
+    "./install.sh",
+    ".claude/agents/",
+    ".claude/"
+  ],
+  "hooks": [
+    {
+      "event": "SessionStart",
+      "matcher": null,
+      "command": "gsd-check-update.js"
+    },
+    {
+      "event": "SessionStart",
+      "matcher": null,
+      "command": "gsd-session-state.sh"
+    },
+    {
+      "event": "SessionStart",
+      "matcher": null,
+      "command": "context-mode-cache-heal.mjs"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Bash|Edit|Write|MultiEdit|Agent|Task",
+      "command": "gsd-context-monitor.js"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Read",
+      "command": "gsd-read-injection-scanner.js"
+    },
+    {
+      "event": "PostToolUse",
+      "matcher": "Write|Edit",
+      "command": "gsd-phase-boundary.sh"
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Write|Edit",
+      "command": "gsd-prompt-guard.js"
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Write|Edit",
+      "command": "gsd-read-guard.js"
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Write|Edit",
+      "command": "gsd-workflow-guard.js"
+    },
+    {
+      "event": "PreToolUse",
+      "matcher": "Bash",
+      "command": "gsd-validate-commit.sh"
+    }
+  ],
+  "mcp_servers": [],
+  "plugins": [
+    "superpowers",
+    "skill-creator",
+    "context-mode",
+    "claude-mem",
+    "frontend-design"
+  ]
+}
