@@ -18,7 +18,11 @@ Run `node skills/skill-audit/scripts/static-scan.js /tmp/candidate-skill` then r
 
 ## Workflow
 
-1. **Static scan** — run `static-scan.js <skill-dir>`. Records PASS/FLAG/BLOCK per finding.
+1. **Static scan** — run the 47-pattern scanner against the skill directory, agent file, or settings file:
+   ```bash
+   node skills/skill-audit/scripts/static-scan.js <skill-dir|agent.md|settings.json>
+   ```
+   Covers 5 categories: prompt injection, dangerous Bash, hardcoded secrets (Anthropic/GitHub/AWS keys), overly permissive settings.json rules, and malicious scripts. Records PASS/FLAG/BLOCK per finding.
 
 2. **Permissions audit** — read every `.md` file; list all tools, Bash commands, and external URLs the skill's instructions request. Check each against the skill's stated purpose. Flag mismatches (e.g., a "summarize" skill requesting `rm` or WebFetch to unknown domains).
 
