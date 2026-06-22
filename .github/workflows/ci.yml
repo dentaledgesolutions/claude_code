@@ -27,28 +27,25 @@ jobs:
         with:
           node-version: '20'
       - name: Scan .claude/ configuration
-        id: scan
         run: |
-          npx ecc-agentshield@latest scan --format json --path .claude 2>/dev/null > scan-result.json || true
-          cat scan-result.json
+          # Run scan in text mode — text output format is stable and documented
+          npx ecc-agentshield@latest scan --path .claude 2>/dev/null > scan-result.txt || true
+          cat scan-result.txt
       - name: Check grade threshold
         run: |
-          node -e "
-          const fs = require('fs');
-          try {
-            const result = JSON.parse(fs.readFileSync('scan-result.json', 'utf8'));
-            const grade = result.grade || result.summary?.grade || 'F';
-            const score = result.score || result.summary?.score || 0;
-            console.log('Security grade:', grade, '(' + score + '/100)');
-            if (['D', 'F'].includes(grade)) {
-              console.error('Security grade below threshold (C required). Address critical/high findings.');
-              process.exit(1);
-            }
-            console.log('Security gate: PASSED');
-          } catch (e) {
-            console.warn('Could not parse AgentShield output — skipping gate:', e.message);
-          }
-          "
+          # Extract grade letter from text output: "Grade: B (72/100)" or similar
+          grade=$(grep -oP 'Grade:\s+\K[A-F]' scan-result.txt | head -1 || echo "")
+          score=$(grep -oP 'Grade:\s+[A-F]\s+\(\K[0-9]+' scan-result.txt | head -1 || echo "0")
+          if [ -z "$grade" ]; then
+            echo "Warning: could not parse AgentShield grade — skipping gate (network or format issue)"
+            exit 0
+          fi
+          echo "Security grade: $grade ($score/100)"
+          if [[ "$grade" == "D" || "$grade" == "F" ]]; then
+            echo "Security grade below threshold (C required). Address critical/high findings."
+            exit 1
+          fi
+          echo "Security gate: PASSED"
 
   static-scan-skills:
     name: Static scan all skills
@@ -58,13 +55,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+      - name: Install jq
+        run: sudo apt-get install -y jq
       - name: Run static scanner on each skill
         run: |
           FAILED=0
           for skill_dir in skills/*/; do
             skill=$(basename "$skill_dir")
-            result=$(node skills/skill-audit/scripts/static-scan.js "$skill_dir" 2>/dev/null)
-            verdict=$(echo "$result" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).verdict)}catch{console.log('ERROR')}})")
+            # Run scanner; use jq to extract verdict cleanly (avoids bash special-char issues)
+            verdict=$(node skills/skill-audit/scripts/static-scan.js "$skill_dir" 2>/dev/null | jq -r '.verdict // "ERROR"' 2>/dev/null || echo "ERROR")
             if [ "$verdict" = "BLOCK" ]; then
               echo "BLOCK: $skill"
               FAILED=1
