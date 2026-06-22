@@ -23,10 +23,17 @@ Run after writing the adapted skill (step 11). All items must pass.
 - [ ] Detailed content in REFERENCE.md, not inline in SKILL.md
 - [ ] No content duplicated across files
 
+**Project context integration** (verify all 9 `project-context.json` fields were used):
+- [ ] `stack` and `key_phrases` informed the description's trigger language
+- [ ] `workflow_terms` and `artifact_paths` appear in adapted workflow steps where relevant
+- [ ] `installed_skills` and `plugins` were checked for capability conflicts
+- [ ] `hooks` were reviewed — no adapted workflow step duplicates a PostToolUse hook that already runs the same action
+- [ ] `mcp_servers` were checked — if the skill assumes an external integration (GitHub, JIRA, etc.), the relevant MCP is either present in the list or a prerequisite note was added to the skill
+
 **Testing:**
 - [ ] 2-3 test prompts correctly activate the skill
-- [ ] Trigger overlap with installed skills < 50%
-- [ ] Skill does not activate on prompts it should not handle
+- [ ] Trigger overlap with installed skills and plugins < 50%
+- [ ] Skill does not activate on prompts it should not handle (adversarial test — resilience_score ≥ 8/10 in skill-eval)
 
 ---
 
@@ -58,7 +65,7 @@ metadata:
   license: <license from source, or omit if unknown>
 ```
 
-`project_context_source` is the structured context file that shaped this adaptation. skill-eval reads the same file when generating `project-native` and `project-workflow` scenarios — this is what closes the adapt → eval loop. If the file doesn't exist yet when adapting, generate it with `node skills/skill-eval/scripts/extract-project-context.js` first.
+`project_context_source` is the structured context file that shaped this adaptation. skill-eval reads the same file when generating `project-native`, `project-workflow`, and `multi-turn` scenarios — this is what closes the adapt → eval loop. If the file doesn't exist yet when adapting, generate it with `node skills/skill-eval/scripts/extract-project-context.js` first.
 
 For multi-source adaptations, add an `additional_sources` block:
 

@@ -5,9 +5,10 @@
 | Failing metric | Root cause | Action |
 |----------------|-----------|--------|
 | Project Fit Score < 7 | Skill wasn't adapted to project context | **Exit: re-run skill-adapt** with richer project-context.json |
+| Resilience Score < 8/10 | Description too broad — fires on wrong-scope prompts | **Lever A only** — tighten trigger conditions; add negative examples ("not when X") |
 | Trigger Accuracy < 85% | Description doesn't match how users phrase requests | **Lever A only** — don't touch B–E until triggers are stable |
-| Eval Pass Rate < 80%, triggers fine | Skill fires but executes incorrectly | **Levers B–E** |
-| Both trigger + pass rate failing | Trigger instability cascades to execution failures | **Lever A first**, then B–E |
+| Eval Pass Rate < 80%, triggers and resilience fine | Skill fires but executes incorrectly | **Levers B–E** |
+| Multiple metrics failing | Trigger/resilience instability cascades to execution failures | **Lever A first**, then B–E |
 
 ---
 
@@ -76,7 +77,9 @@ When a scenario fails, map the failure to a lever:
 |-------------|-------|--------------------|
 | Skill didn't trigger | A | Add "search for skill" to trigger list |
 | Triggered on a negative | A | Narrow description: add "installed skill" qualifier |
+| **Adversarial false positive** (resilience < 8) | **A** | Add "not when [wrong scope]" to description; example: "does not apply to general code review — only to Claude Code skill files" |
 | Step was skipped | B | Add explicit output requirement to step N |
+| **Multi-turn re-asks established context** | **B** | Add continuation-awareness note to step N: "If prior context established [X], skip asking for it" |
 | Output was incomplete | C | Add example showing complete output format |
 | Edge case not handled | D | Add edge case section to REFERENCE.md |
 | Script returned wrong format | E | Fix JSON schema in script output |
@@ -90,8 +93,8 @@ When a scenario fails, map the failure to a lever:
 
 Stop the loop when ANY of:
 
-1. `eval_pass_rate ≥ 80%` AND `trigger_accuracy ≥ 85%` → **DONE**
-2. `pass_rate ≥ 95%` for 3 consecutive experiments → **DONE** (diminishing returns)
+1. `eval_pass_rate ≥ 80%` AND `trigger_accuracy ≥ 85%` AND `resilience_score ≥ 8` → **DONE**
+2. All three ≥ 95% for 3 consecutive experiments → **DONE** (diminishing returns)
 3. Budget exhausted with no improvement in last 2 iterations → **DONE**
 4. All generated hypotheses have been tested → **DONE**
 5. `eval_pass_rate < 40%` after 5 iterations → **REWRITE** — recommend `write-a-skill`
@@ -108,10 +111,10 @@ Save to `skills/<skill-name>/SKILL-REFINE-LOG.md`.
 ```markdown
 # Skill Refinement Log: <skill-name>
 **Started:** YYYY-MM-DD  
-**Baseline:** pass_rate=XX%, trigger_accuracy=XX%, project_fit=X/10  
-**Target:** pass_rate ≥ 80%, trigger_accuracy ≥ 85%  
-**Training set:** <N> failing scenarios from refine-input.json  
-**Held-out set:** project-native, project-workflow scenarios  
+**Baseline:** pass_rate=XX%, trigger_accuracy=XX%, resilience=X.X/10, project_fit=X.X/10  
+**Target:** pass_rate ≥ 80%, trigger_accuracy ≥ 85%, resilience_score ≥ 8/10  
+**Training set:** <N> failing scenarios from refine-input.json (adversarial always included)  
+**Held-out set:** project-native, project-workflow, multi-turn scenarios  
 
 ## Iterations
 
@@ -119,8 +122,8 @@ Save to `skills/<skill-name>/SKILL-REFINE-LOG.md`.
 - **Hypothesis:** Changing [section] will improve [scenario name] because [reason]
 - **Lever:** A/B/C/D/E — [what type of change]
 - **Change:** [one-line summary]
-- **Before:** pass_rate=XX%, trigger_accuracy=XX%
-- **After:** pass_rate=XX%, trigger_accuracy=XX%
+- **Before:** pass_rate=XX%, trigger_accuracy=XX%, resilience=X.X/10
+- **After:** pass_rate=XX%, trigger_accuracy=XX%, resilience=X.X/10
 - **Decision:** KEPT / REVERTED / NEUTRAL-KEPT
 - **Note:** [why it worked or didn't]
 
@@ -130,7 +133,8 @@ Save to `skills/<skill-name>/SKILL-REFINE-LOG.md`.
 |--------|----------|-------|-------|
 | Eval Pass Rate | XX% | XX% | +/-XX% |
 | Trigger Accuracy | XX% | XX% | +/-XX% |
-| Project Fit Score | X/10 | X/10 | +/-X |
+| Resilience Score | X.X/10 | X.X/10 | +/-X.X |
+| Project Fit Score | X.X/10 | X.X/10 | +/-X.X |
 | Context Footprint | XXL | XXL | +/-XXL |
 | Iterations run | — | N | — |
 | Keep rate | — | X/N | — |
