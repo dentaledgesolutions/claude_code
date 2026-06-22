@@ -59,12 +59,36 @@ try {
 }
 
 // Orgs with established track records in the Claude Code skills ecosystem.
+// Tier 1 — Canonical: maintained by Anthropic or official tooling partners
+const TRUSTED_ORGS_T1 = new Set([
+  'anthropics', 'anthropic',        // Anthropic official (github.com/anthropics)
+  'vercel-labs', 'vercel',          // Vercel skills registry
+]);
+
+// Tier 2 — Ecosystem builders: registries, frameworks, and high-quality skill collections
+const TRUSTED_ORGS_T2 = new Set([
+  'multica-ai',                     // Karpathy-style skills registry
+  'composiohq',                     // awesome-claude-skills registry
+  'evol-ai',                        // SkillCompass registry
+  'affaan-m',                       // ECC ecosystem (AgentShield, security guides)
+  'mattpocock',                     // Grilling skill; TypeScript educator, quality patterns
+  'chriswiles',                     // claude-code-showcase; comprehensive CC reference
+  'thedotmack',                     // claude-mem plugin; CC memory ecosystem
+  'mksglu',                         // context-mode plugin
+]);
+
+// Tier 3 — Known good: project-owner org; skills here should always be trusted
+const TRUSTED_ORGS_T3 = new Set([
+  'dentaledgesolutions',
+  'microsoft', 'google',            // large platform orgs; rarely publish CC skills but trusted
+]);
+
+// Union used for scoring — all tiers treated equally in the binary trusted/untrusted check.
+// Callers that need tier-aware scoring can inspect the individual sets directly.
 const TRUSTED_ORGS = new Set([
-  'anthropics', 'anthropic',
-  'vercel-labs', 'vercel',
-  'microsoft', 'google',
-  'multica-ai',
-  'composiohq',
+  ...TRUSTED_ORGS_T1,
+  ...TRUSTED_ORGS_T2,
+  ...TRUSTED_ORGS_T3,
 ]);
 
 function scoreTriggerPrecision(desc) {
