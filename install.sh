@@ -7,18 +7,26 @@
 # Usage:
 #   ./install.sh /path/to/target-project
 #   ./install.sh .   (current directory)
+#   ./install.sh --dry-run /path/to/target-project
 
 set -euo pipefail
 
 # ── Colours ──────────────────────────────────────────────────────────────────
-GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RESET='\033[0m'
-ok()   { echo -e "  ${GREEN}✓${RESET} $*"; }
-warn() { echo -e "  ${YELLOW}!${RESET} $*"; }
+GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'; RESET='\033[0m'
+ok()      { echo -e "  ${GREEN}✓${RESET} $*"; }
+warn()    { echo -e "  ${YELLOW}!${RESET} $*"; }
+dryrun()  { echo -e "  ${CYAN}~${RESET} [dry-run] $*"; }
 
 # ── Args ─────────────────────────────────────────────────────────────────────
-TARGET="${1:-}"
+DRY_RUN=false
+ARGS=()
+for arg in "$@"; do
+    [[ "${arg}" == "--dry-run" ]] && DRY_RUN=true || ARGS+=("${arg}")
+done
+
+TARGET="${ARGS[0]:-}"
 if [ -z "${TARGET}" ]; then
-    echo "Usage: ./install.sh /path/to/target-project"
+    echo "Usage: ./install.sh [--dry-run] /path/to/target-project"
     exit 1
 fi
 TARGET="$(cd "${TARGET}" && pwd)"
@@ -30,6 +38,7 @@ echo "║   Skill Builder — Install                ║"
 echo "════════════════════════════════════════════"
 echo "  Project : ${TARGET}"
 echo "  Runtime : ${GLOBAL_SKILLS}"
+${DRY_RUN} && echo -e "  ${CYAN}Mode    : DRY RUN — no files will be written${RESET}"
 echo ""
 
 # ── Check Node.js ────────────────────────────────────────────────────────────
@@ -42,7 +51,7 @@ fi
 echo ""
 
 # ── Existing installation check ──────────────────────────────────────────────
-if [ -d "${TARGET}/skills" ]; then
+if [ -d "${TARGET}/skills" ] && ! ${DRY_RUN}; then
     EXISTING="$(ls "${TARGET}/skills" 2>/dev/null | tr '\n' ' ')"
     warn "Existing skills/ found in target: ${EXISTING}"
     read -r -p "  Overwrite? [y/N] " confirm
@@ -58,36 +67,39 @@ done < <(find "${REPO_DIR}/skills" -mindepth 1 -maxdepth 1 -type d | sort)
 
 # ── 1. Project-scoped skills (source of truth) ───────────────────────────────
 echo "→ [1/4] Copying skills to project"
-mkdir -p "${TARGET}/skills"
-cp -R "${REPO_DIR}/skills/." "${TARGET}/skills/"
+if ! ${DRY_RUN}; then mkdir -p "${TARGET}/skills" && cp -R "${REPO_DIR}/skills/." "${TARGET}/skills/"; fi
 for skill in "${SKILL_NAMES[@]}"; do
-    ok "${skill}  →  ${TARGET}/skills/${skill}"
+    ${DRY_RUN} && dryrun "${skill}  →  ${TARGET}/skills/${skill}" || ok "${skill}  →  ${TARGET}/skills/${skill}"
 done
 echo ""
 
 # ── 2. Runtime sync (~/.claude/skills/) ─────────────────────────────────────
 echo "→ [2/4] Syncing skills to runtime"
-mkdir -p "${GLOBAL_SKILLS}"
+if ! ${DRY_RUN}; then mkdir -p "${GLOBAL_SKILLS}"; fi
 for skill in "${SKILL_NAMES[@]}"; do
-    cp -R "${REPO_DIR}/skills/${skill}" "${GLOBAL_SKILLS}/"
-    ok "${skill}  →  ${GLOBAL_SKILLS}/${skill}"
+    if ! ${DRY_RUN}; then cp -R "${REPO_DIR}/skills/${skill}" "${GLOBAL_SKILLS}/"; fi
+    ${DRY_RUN} && dryrun "${skill}  →  ${GLOBAL_SKILLS}/${skill}" || ok "${skill}  →  ${GLOBAL_SKILLS}/${skill}"
 done
 echo ""
 
 # ── 3. Agents (project-scoped only) ─────────────────────────────────────────
 echo "→ [3/4] Installing agents"
-mkdir -p "${TARGET}/.claude/agents"
+if ! ${DRY_RUN}; then mkdir -p "${TARGET}/.claude/agents"; fi
 for agent_file in "${REPO_DIR}/.claude/agents/"*.md; do
     agent_name="$(basename "${agent_file}")"
-    cp "${agent_file}" "${TARGET}/.claude/agents/${agent_name}"
-    ok "project  →  ${TARGET}/.claude/agents/${agent_name}"
+    if ! ${DRY_RUN}; then cp "${agent_file}" "${TARGET}/.claude/agents/${agent_name}"; fi
+    ${DRY_RUN} && dryrun "project  →  ${TARGET}/.claude/agents/${agent_name}" || ok "project  →  ${TARGET}/.claude/agents/${agent_name}"
 done
 echo ""
 
 # ── 4. Evals workspace + .gitignore ─────────────────────────────────────────
 echo "→ [4/4] Setting up evals/ workspace and .gitignore"
-mkdir -p "${TARGET}/evals"
-ok "created  ${TARGET}/evals/"
+if ! ${DRY_RUN}; then
+    mkdir -p "${TARGET}/evals"
+    ok "created  ${TARGET}/evals/"
+else
+    dryrun "would create  ${TARGET}/evals/"
+fi
 
 # Entries to ignore: generated artifacts that should not be committed
 IGNORE_ENTRIES=(
@@ -99,19 +111,22 @@ IGNORE_ENTRIES=(
 )
 
 GITIGNORE="${TARGET}/.gitignore"
-touch "${GITIGNORE}"
 ADDED=()
-for entry in "${IGNORE_ENTRIES[@]}"; do
-    if ! grep -qF "${entry}" "${GITIGNORE}" 2>/dev/null; then
-        printf '%s\n' "${entry}" >> "${GITIGNORE}"
-        [[ "${entry}" != "#"* ]] && ADDED+=("${entry}")
+if ! ${DRY_RUN}; then
+    touch "${GITIGNORE}"
+    for entry in "${IGNORE_ENTRIES[@]}"; do
+        if ! grep -qF "${entry}" "${GITIGNORE}" 2>/dev/null; then
+            printf '%s\n' "${entry}" >> "${GITIGNORE}"
+            [[ "${entry}" != "#"* ]] && ADDED+=("${entry}")
+        fi
+    done
+    if [ ${#ADDED[@]} -gt 0 ]; then
+        ok "added to .gitignore: ${ADDED[*]}"
+    else
+        ok ".gitignore already up to date"
     fi
-done
-
-if [ ${#ADDED[@]} -gt 0 ]; then
-    ok "added to .gitignore: ${ADDED[*]}"
 else
-    ok ".gitignore already up to date"
+    dryrun "would update ${GITIGNORE} with skill-builder entries"
 fi
 echo ""
 
@@ -119,7 +134,7 @@ echo ""
 # A pre-existing project-context.json may be missing the hooks/mcp_servers/plugins
 # fields added in the June 2026 expansion. Detect and offer to regenerate.
 CTX="${TARGET}/evals/project-context.json"
-if [ -f "${CTX}" ] && command -v node &>/dev/null; then
+if ! ${DRY_RUN} && [ -f "${CTX}" ] && command -v node &>/dev/null; then
     # Check for the presence of the "hooks" field (added in expansion)
     if ! node -e "const d=require('${CTX}'); process.exit(d.hooks !== undefined ? 0 : 1)" 2>/dev/null; then
         warn "project-context.json is missing the hooks/mcp_servers/plugins fields (pre-expansion format)"
@@ -139,7 +154,12 @@ echo ""
 # ── Done ─────────────────────────────────────────────────────────────────────
 echo "════════════════════════════════════════════"
 echo ""
-echo -e "  ${GREEN}✓ Install complete.${RESET}"
+if ${DRY_RUN}; then
+    echo -e "  ${CYAN}~ Dry run complete — no files were written.${RESET}"
+    echo -e "  ${CYAN}  Run without --dry-run to apply.${RESET}"
+else
+    echo -e "  ${GREEN}✓ Install complete.${RESET}"
+fi
 echo ""
 echo "  Skills are live in Claude Code."
 echo ""
