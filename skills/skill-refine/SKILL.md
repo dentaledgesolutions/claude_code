@@ -16,7 +16,7 @@ Apply Karpathy's autoresearch loop to measurably improve a skill. Diagnose → t
 
 ```
 RULE:    One lever per iteration. Score ↑ (>+2%) → keep. Score ↓ (>−5%) → revert. Repeat.
-TARGET:  eval_pass_rate ≥ 80%  AND  trigger_accuracy ≥ 85%
+TARGET:  eval_pass_rate ≥ 80%  AND  trigger_accuracy ≥ 85%  AND  resilience_score ≥ 8/10
 BUDGET:  default 10 iterations, stop early at 95%+ for 3 consecutive
 ```
 
@@ -32,11 +32,16 @@ BUDGET:  default 10 iterations, stop early at 95%+ for 3 consecutive
 
 3. **Route by failing metric** — the correct lever depends on *which* metric is failing:
    - **Project Fit Score < 7** → do not refine. Exit and re-run `skill-adapt` with a richer `evals/project-context.json`. Refining won't fix a mis-adapted skill.
+   - **Resilience Score < 8/10** → work Lever A (description) only this session. The skill is firing on adversarial probes — the trigger language is too broad. Tighten the "Use when" clause and add negative examples (what the skill should NOT handle). Don't touch B–E until resilience passes.
    - **Trigger Accuracy < 85%** → work Lever A (description) only this session. Don't touch B–E until triggers are stable.
-   - **Eval Pass Rate < 80%** (triggers fine) → work Levers B–E.
-   - **Both failing** → fix Lever A first; pass rate issues are often downstream of trigger instability.
+   - **Eval Pass Rate < 80%** (triggers and resilience fine) → work Levers B–E.
+   - **Multiple failing** → fix Lever A first; pass rate and resilience issues are often downstream of description problems.
 
-4. **Train/test split** — treat the failing scenarios from `refine-input.json` as the *training set* (mutate against these). Hold the `project-native` and `project-workflow` scenarios as the *validation set* (run only on final validation, not during iterations). This prevents overfitting the skill to its own eval suite.
+4. **Train/test split** — treat the failing scenarios from `refine-input.json` as the *training set* (mutate against these). Hold the `project-native`, `project-workflow`, and `multi-turn` scenarios as the *validation set* (run only on final validation, not during iterations).
+
+   Exception: `adversarial` scenarios belong on the **training set** even when resilience_score is the failing metric — they are the most direct signal for Lever A mutations and must be checked each iteration. Running them only at final validation defeats the purpose of tightening the description.
+
+   This split prevents overfitting the skill to its own eval suite.
 
 5. **Hypothesis** — pick ONE change from the lever space. Consult the failure mode → lever table in REFERENCE.md. Track which levers have been tried this session (coverage) — in early iterations, vary lever types; in later iterations, exploit the best-performing lever.
 
@@ -51,7 +56,7 @@ BUDGET:  default 10 iterations, stop early at 95%+ for 3 consecutive
 
 9. **Repeat** steps 5–8 until any convergence criterion is met (see REFERENCE.md).
 
-10. **Final validation** — invoke `skill-eval` on the improved skill. Do not implement a separate eval process — skill-eval IS the final validation. This produces a new `SKILL-EVAL.md` replacing the old one, giving a clean before/after comparison on identical methodology. The held-out `project-native` and `project-workflow` scenarios run here for the first time during this refinement session.
+10. **Final validation** — invoke `skill-eval` on the improved skill with `--context evals/project-context.json`. Do not implement a separate eval process — skill-eval IS the final validation. This produces a new `SKILL-EVAL.md` replacing the old one, giving a clean before/after comparison on identical methodology. The held-out `project-native`, `project-workflow`, and `multi-turn` scenarios run here for the first time during this refinement session. All 5 metrics (including resilience_score) must be reported.
 
 11. **Write report** — save `skills/<skill-name>/SKILL-REFINE-LOG.md` using the template in REFERENCE.md. If claude-mem is installed, persist a summary there too.
 

@@ -56,24 +56,28 @@ own eval logic.
 3. Route by failing metric (from refine-input.json):
    - project_fit_score < 7 → EXIT immediately. Print: "Project Fit Score below 7.
      Re-run skill-adapt with richer evals/project-context.json before refining."
+   - resilience_score < 8 → active_lever = "A" only. The skill is over-triggering
+     on adversarial probes. Do not touch B–E until resilience passes.
    - trigger_accuracy < 85% → active_lever = "A" only. Do not touch B–E until
      trigger accuracy passes.
-   - eval_pass_rate < 80% (triggers fine) → active_lever = "B–E" per iteration.
-   - Both failing → fix Lever A first.
+   - eval_pass_rate < 80% (triggers and resilience fine) → active_lever = "B–E" per iteration.
+   - Multiple failing → fix Lever A first (resilience and trigger issues share the root cause).
 
 4. Create baseline backup (once, before first mutation):
    `cp skills/<skill-name>/SKILL.md skills/<skill-name>/SKILL.md.baseline`
    If .baseline already exists (prior session), do NOT overwrite.
 
 5. Train/test split from refine-input.json:
-   Training set = all failing scenarios EXCEPT project-native and project-workflow.
-   Validation set (held out until step 9) = project-native + project-workflow.
+   Training set = all failing scenarios EXCEPT project-native, project-workflow, and multi-turn.
+   Exception: adversarial scenarios always stay in the training set — they are the direct
+   signal for Lever A and must be checked every iteration when resilience_score is failing.
+   Validation set (held out until step 9) = project-native + project-workflow + multi-turn.
 
 6. Initialize `skills/<skill-name>/SKILL-REFINE-LOG.md` if it doesn't exist:
    ```
    # Skill Refine Log: <skill-name>
-   Baseline: eval_pass_rate=X%, trigger_accuracy=X%, project_fit=X.X
-   Target: eval_pass_rate ≥ 80%, trigger_accuracy ≥ 85%
+   Baseline: eval_pass_rate=X%, trigger_accuracy=X%, resilience=X.X/10, project_fit=X.X/10
+   Target: eval_pass_rate ≥ 80%, trigger_accuracy ≥ 85%, resilience_score ≥ 8/10
    Session: YYYY-MM-DD
    ```
 
@@ -84,8 +88,10 @@ own eval logic.
    | Failure | Lever | Change |
    |---------|-------|--------|
    | Skill doesn't trigger | A | Add/clarify "Use when" triggers |
-   | Skill over-triggers | A | Narrow description specificity |
+   | Skill over-triggers (low trigger_accuracy) | A | Narrow description specificity |
+   | Adversarial false positive (low resilience_score) | A | Tighten trigger conditions; add negative examples to description ("not when X") |
    | Step skipped | B | Add explicit output req to step N |
+   | Multi-turn re-asks established context | B | Add continuation-awareness note to relevant workflow step |
    | Output wrong format | C | Add example showing correct output |
    | Edge case unhandled | D | Add section to REFERENCE.md |
    | Script wrong format | E | Fix script output schema |
@@ -113,15 +119,16 @@ own eval logic.
    `Hypothesis: ... | Change: ... | Before: X%/X% | After: X%/X% | KEEP/REVERT | Notes: ...`
 
 8. Convergence criteria — stop on first true:
-   - eval_pass_rate ≥ 80% AND trigger_accuracy ≥ 85% → target met
-   - Both ≥ 95% for 3 consecutive iterations → early stop (optimal)
+   - eval_pass_rate ≥ 80% AND trigger_accuracy ≥ 85% AND resilience_score ≥ 8 → target met
+   - All three ≥ 95% for 3 consecutive iterations → early stop (optimal)
    - 10 iterations completed → budget exhausted
    - eval_pass_rate < 40% after 5 iterations → "Recommend write-a-skill." Exit.
    - All levers tried ≥ 2× with no improvement → no hypotheses remain
 
-9. Final validation — invoke skill-eval-agent as subagent (full 7-scenario run):
-   "Run full evaluation of skill <name> including project-native and project-workflow
-   scenarios. Print EVAL_COMPLETE when done."
+9. Final validation — invoke skill-eval-agent as subagent (full 9-scenario run):
+   "Run full evaluation of skill <name> with --context evals/project-context.json,
+   including project-native, project-workflow, and multi-turn scenarios.
+   Print EVAL_COMPLETE when done."
    Wait for EVAL_COMPLETE. Read final SKILL-EVAL.md.
 
 10. Append final log entry (baseline→final delta, iterations used, effective levers,
