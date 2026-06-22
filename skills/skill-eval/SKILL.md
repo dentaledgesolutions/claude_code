@@ -29,7 +29,21 @@ User: evaluate the skill-adapt skill
    node skills/skill-eval/scripts/generate-seed-evals.js skills/<skill-name>/SKILL.md \
      --context evals/project-context.json
    ```
-   This produces 7 scenarios: 5 generic (direct, paraphrased, edge_case, negative, semantic) + 2 project-specific (project-native, project-workflow). Without `--context` you get 5. If the project has a UAT.md or acceptance criteria, add those too:
+   This produces 9 scenarios: 6 generic + 3 project-specific. Without `--context` you get 6.
+
+   | # | Type | Triggers? | What it tests |
+   |---|------|-----------|---------------|
+   | 1 | `direct` | ✓ | Primary trigger phrase cold-start |
+   | 2 | `paraphrased` | ✓ | Same intent, different words |
+   | 3 | `edge_case` | ✓ | Entry mid-workflow |
+   | 4 | `negative` | ✗ | "Explain without doing" — should not invoke |
+   | 5 | `semantic` | ✓ | Synonym verb variations |
+   | 6 | `adversarial` | ✗ | Skill vocabulary in wrong scope/stage — must not fire |
+   | 7 | `project-native` | ✓ | Project terminology injected into trigger |
+   | 8 | `project-workflow` | ✓ | Skill invoked after a sibling skill |
+   | 9 | `multi-turn` | ✓ | Continuation framing from mid-session |
+
+   If the project has a UAT.md or acceptance criteria, add those too:
    ```bash
    node skills/skill-eval/scripts/generate-seed-evals.js <path-to-UAT.md> --context evals/project-context.json
    ```
@@ -46,16 +60,19 @@ User: evaluate the skill-adapt skill
 
 6. **Grade outputs** — score each with-skill run using the LLM judge rubric in REFERENCE.md. For trigger scenarios (direct, paraphrased, semantic, negative), use programmatic detection first (did the skill tool call appear in the transcript?), then LLM judgment for quality.
 
-7. **Compute 4 metrics**:
+7. **Compute 5 metrics**:
    - **Eval Pass Rate** = (scenarios correct) / (total) × 100%. Threshold: ≥ 80%
    - **Trigger Accuracy** = (correct trigger decisions, 3 reps each) / (total checks) × 100%. Threshold: ≥ 85%
    - **Context Footprint** = total lines across all files loaded on trigger + estimated tokens (lines × 4 avg)
-   - **Project Fit Score** = average score of project-native + project-workflow scenarios × 10. Only reported when `--context` was used. Threshold: ≥ 7/10
+   - **Project Fit Score** = average score of project-native + project-workflow + multi-turn scenarios × 10. Only reported when `--context` was used. Threshold: ≥ 7/10
+   - **Resilience Score** = % of adversarial scenarios correctly NOT triggered × 10. Threshold: ≥ 8/10. A skill that fires on adversarial probes has an over-broad description — route to Lever A in skill-refine.
 
 8. **Analyst pass** — before writing the report, review graded results for:
    - Scenarios that pass whether or not the skill is loaded (non-discriminating — skill adds no value here)
    - High-variance scenarios (triggered 1/3 or 2/3 times — unstable description)
    - Large baseline delta (skill significantly outperforms or underperforms no-skill)
+   - Adversarial false positives (skill triggered when it should not — description is over-broad; route to Lever A)
+   - Multi-turn redundancy (skill re-asked for context already given — workflow lacks continuation awareness)
 
 9. **Write SKILL-EVAL.md** — save to `skills/<skill-name>/SKILL-EVAL.md` using the template in REFERENCE.md.
 
@@ -73,6 +90,11 @@ User: evaluate the skill-adapt skill
 
 **Eval Pass Rate:** ≥ 80% = healthy; 60–79% = refine; < 60% = rewrite  
 **Trigger Accuracy:** ≥ 85% = healthy; < 85% = description needs optimization  
-**Project Fit Score:** ≥ 7/10 = well-adapted; < 7 = re-run skill-adapt with richer project context
+**Project Fit Score:** ≥ 7/10 = well-adapted; < 7 = re-run skill-adapt with richer project context  
+**Resilience Score:** ≥ 8/10 = healthy; < 8 = description too broad — tighten trigger language (Lever A)
+
+**Adversarial scoring note:** For `adversarial` scenarios, score 10 = correctly did NOT trigger + gave a useful redirecting response. Score 0 = incorrectly triggered the full skill workflow. There is no partial credit for wrong trigger decisions on adversarial probes.
+
+**Multi-turn scoring note:** For `multi-turn` scenarios, penalise 3 points if the skill re-asks for information already established in the simulated prior context. Full score requires picking up mid-stream without redundant clarification questions.
 
 See [REFERENCE.md](REFERENCE.md) for scenario types, eval file format, LLM judge rubric, and report template.
