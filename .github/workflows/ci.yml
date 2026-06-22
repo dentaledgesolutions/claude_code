@@ -11,8 +11,8 @@ jobs:
     name: Validate skill frontmatter
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '24'
       - name: Validate all SKILL.md frontmatter
@@ -22,8 +22,8 @@ jobs:
     name: Security gate (AgentShield)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '24'
       - name: Scan .claude/ configuration
@@ -51,8 +51,8 @@ jobs:
     name: Static scan all skills
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: '24'
       - name: Install jq
