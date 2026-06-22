@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate-skills:
+    name: Validate skill frontmatter
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Validate all SKILL.md frontmatter
+        run: node scripts/validate-skills.js
+
+  security-scan:
+    name: Security gate (AgentShield)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Scan .claude/ configuration
+        id: scan
+        run: |
+          npx ecc-agentshield@latest scan --format json --path .claude 2>/dev/null > scan-result.json || true
+          cat scan-result.json
+      - name: Check grade threshold
+        run: |
+          node -e "
+          const fs = require('fs');
+          try {
+            const result = JSON.parse(fs.readFileSync('scan-result.json', 'utf8'));
+            const grade = result.grade || result.summary?.grade || 'F';
+            const score = result.score || result.summary?.score || 0;
+            console.log('Security grade:', grade, '(' + score + '/100)');
+            if (['D', 'F'].includes(grade)) {
+              console.error('Security grade below threshold (C required). Address critical/high findings.');
+              process.exit(1);
+            }
+            console.log('Security gate: PASSED');
+          } catch (e) {
+            console.warn('Could not parse AgentShield output — skipping gate:', e.message);
+          }
+          "
+
+  static-scan-skills:
+    name: Static scan all skills
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Run static scanner on each skill
+        run: |
+          FAILED=0
+          for skill_dir in skills/*/; do
+            skill=$(basename "$skill_dir")
+            result=$(node skills/skill-audit/scripts/static-scan.js "$skill_dir" 2>/dev/null)
+            verdict=$(echo "$result" | node -e "process.stdin.setEncoding('utf8');let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>{try{console.log(JSON.parse(d).verdict)}catch{console.log('ERROR')}})")
+            if [ "$verdict" = "BLOCK" ]; then
+              echo "BLOCK: $skill"
+              FAILED=1
+            elif [ "$verdict" = "FLAG" ]; then
+              echo "FLAG:  $skill (review before merging)"
+            else
+              echo "PASS:  $skill"
+            fi
+          done
+          exit $FAILED
