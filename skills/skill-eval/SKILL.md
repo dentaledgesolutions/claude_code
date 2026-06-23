@@ -16,13 +16,15 @@ User: evaluate the skill-adapt skill
 
 ## Workflow
 
+**Resume check (read first):** If the user's prompt indicates work is already in progress — e.g., "I've already generated the scenarios", "the eval is done, score it", "I'm at step N" — skip directly to the appropriate step. Do not re-run scenario generation (step 3) or project context extraction (step 2) if the user has confirmed those artifacts exist. Ask only for what is genuinely missing.
+
 1. **Load the skill** — read `skills/<skill-name>/SKILL.md` and all bundled files (REFERENCE.md, scripts/, references/). Note every file that gets loaded when the skill triggers — these all count toward context footprint.
 
-2. **Extract project context** — run once per project (reuse the output for all skill evals):
+2. **Extract project context** — check first: if `evals/project-context.json` was already confirmed to exist earlier in this session (e.g., the user mentioned it, or a prior skill step generated it), read it directly and skip the script. Only run the script when the file's existence has not been established:
    ```bash
    node skills/skill-eval/scripts/extract-project-context.js
    ```
-   This reads `CLAUDE.md`, `README.md`, `package.json`, `CONTEXT.md`, `.planning/REQUIREMENTS.md`, and the installed skills list, then writes `evals/project-context.json`. Review the output and add any project-specific terms or artifact paths the script missed.
+   This reads `CLAUDE.md`, `README.md`, `package.json`, `CONTEXT.md`, `.planning/REQUIREMENTS.md`, and the installed skills list, then writes `evals/project-context.json`. Review the output and add any project-specific terms or artifact paths the script missed. Always pass `--context evals/project-context.json` to the scenario generator in step 3 — do not ask the user whether to include it.
 
 3. **Generate seed scenarios** — run with project context:
    ```bash

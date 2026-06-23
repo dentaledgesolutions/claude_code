@@ -1,6 +1,6 @@
 ---
 name: skill-adapt
-description: Adapts a security-audited skill to match a specific project's patterns, terminology, workflow gates, and installed skill ecosystem. Use when adapting a skill for a project, customizing a skill, modifying a skill to fit a project's workflow, after skill-audit returns PASS, or when synthesizing multiple candidate skills into one project-native skill.
+description: Adapts a security-audited skill to match a specific project's patterns, terminology, workflow gates, and installed skill ecosystem. Use when adapting a skill for a project, customizing a skill, modifying a skill to fit a project's workflow, rewriting a skill to match project conventions, after skill-audit returns PASS, or when synthesizing multiple candidate skills into one project-native skill.
 compatibility: "Claude Code. Node.js ≥ 18 (extract-project-context.js)."
 ---
 

@@ -67,6 +67,22 @@ metadata:
 
 `project_context_source` is the structured context file that shaped this adaptation. skill-eval reads the same file when generating `project-native`, `project-workflow`, and `multi-turn` scenarios — this is what closes the adapt → eval loop. If the file doesn't exist yet when adapting, generate it with `node skills/skill-eval/scripts/extract-project-context.js` first.
 
+### Fully-Populated Example
+
+This example shows every field, including `license`. Do not omit `license` — write `"unknown"` if the source has no license file rather than leaving the field out.
+
+```yaml
+metadata:
+  source_url: https://github.com/acme-org/skill-registry/blob/a3f8c2d1e9b04567890abcdef1234567890abcd/skills/skill-audit/SKILL.md
+  source_commit: a3f8c2d1e9b04567890abcdef1234567890abcd
+  adapted_for: my-saas-project
+  adapted_date: 2026-06-23
+  project_context_source: evals/project-context.json
+  license: MIT
+```
+
+If the source has no LICENSE file, write `license: unknown` — never omit the field.
+
 For multi-source adaptations, add an `additional_sources` block:
 
 ```yaml

@@ -6,9 +6,6 @@
   "workflow_terms": [
     "SKILL",
     "CLAUDE",
-    "PASS",
-    "FLAG",
-    "BLOCK",
     "EVAL",
     "REFINE",
     "LOG",
@@ -94,5 +91,8 @@
     "context-mode",
     "claude-mem",
     "frontend-design"
-  ]
+  ],
+  "security_grade": "C",
+  "security_score": 71,
+  "security_last_scanned": "2026-06-22"
 }
