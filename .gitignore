@@ -3,3 +3,7 @@
 
 # Git worktrees
 .claude/worktrees/
+
+# macOS metadata
+.DS_Store
+**/.DS_Store
