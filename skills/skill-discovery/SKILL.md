@@ -1,6 +1,6 @@
 ---
 name: skill-discovery
-description: "Use when: the user wants to identify new skills worth building from repeated manual tasks; asks 'what keeps coming up that we don't have a skill for'; wants to review the skill improvement backlog; or the project has been running long enough that friction patterns have accumulated in the logs. Run periodically — after a few campaign cycles or delivery milestones — not as a step in the main skill-sourcing pipeline."
+description: "Use when: the user wants to identify new skills worth building from repeated manual tasks; asks 'what keeps coming up that we don't have a skill for'; wants to review the skill improvement backlog; or the project has been running long enough that friction patterns have accumulated in the logs. Not for: explanation requests ('how does this work', 'walk me through what X involves'), feasibility checks ('is this the right approach for my situation'), or questions about the process without intent to run it. Run periodically — after a few campaign cycles or delivery milestones — not as a step in the main skill-sourcing pipeline."
 compatibility: "Claude Code. Read tool required. Works with any project that has logs/ and evals/project-context.json."
 ---
 
@@ -32,7 +32,13 @@ User: analyze the logs and find skill candidates
    - `logs/agent-handoffs.md` — notes from agent-to-agent handoffs; failures and workarounds surface here
    - `logs/skill-improvement-backlog.md` — explicit backlog of known gaps; highest-confidence source
 
-   If none of the three files exist or all are empty, stop and tell the user: "No log data found — skill-discovery needs accumulated project activity to work. Come back after a few delivery cycles."
+   Before counting entries or identifying patterns, filter out template header content: markdown headings (lines starting with `#`), the `## Format` block and its example lines (`**Date:**`, `**Context:**`, `**Decision:**`, `**From → To:**`, `**Note:**`, `**[skill-name or capability]**`), and any `---` that appears as part of the template rather than as a record separator written by the user.
+
+   Count only user-written entries:
+   - `decisions.md` and `agent-handoffs.md`: each `---`-separated block that contains at least one non-template line
+   - `skill-improvement-backlog.md`: each `- [ ]` or `- [x]` line
+
+   If none of the three files exist, or all exist but contain only template headers with no user-written entries, stop and tell the user: "No log data found — skill-discovery needs accumulated project activity to work. Come back after a few delivery cycles."
 
 3. **Identify patterns**
    Read each log file and look for tasks that appear repeatedly without a corresponding installed skill.
@@ -50,8 +56,14 @@ User: analyze the logs and find skill candidates
    - Any entry counts as a signal — these are already identified gaps
    - Note how many times a backlog item was referenced across entries (each reference is evidence of continued friction)
 
-4. **Cross-reference against installed skills**
-   For each pattern found, check whether any installed skill plausibly covers it. Use loose matching — the task doesn't need to be a name match, just a plausible overlap in purpose. Only surface candidates where no installed skill covers the need.
+4. **Cross-reference against installed skills and agents**
+   For each pattern found, check whether any installed skill or agent plausibly covers it. Read installed skills from `evals/project-context.json:installed_skills`. Also check installed agents:
+
+   ```bash
+   ls .claude/agents/ 2>/dev/null
+   ```
+
+   Strip `.md` suffixes to get agent names. Use loose matching across both lists — a candidate task may already be covered by a sub-agent rather than a skill. Only surface candidates where neither an installed skill nor an installed agent covers the need.
 
 5. **Score each candidate**
    Score each unfilled pattern on two dimensions:
