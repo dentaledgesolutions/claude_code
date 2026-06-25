@@ -51,7 +51,7 @@ User: analyze the logs and find skill candidates
    - Note how many times a backlog item was referenced across entries (each reference is evidence of continued friction)
 
 4. **Cross-reference against installed skills**
-   For each pattern found, check whether any installed skill plausibly covers it. Use loose matching — "write a caption" maps to `social-copy`; "analyze competitors" maps to `competitive-intel-scraper`. Only surface candidates where no installed skill covers the need.
+   For each pattern found, check whether any installed skill plausibly covers it. Use loose matching — the task doesn't need to be a name match, just a plausible overlap in purpose. Only surface candidates where no installed skill covers the need.
 
 5. **Score each candidate**
    Score each unfilled pattern on two dimensions:

@@ -107,6 +107,7 @@ If no references were provided or all fetches failed, `ref_signals = null`.
    - `.claude/settings.json` — read `hooks` key (detect active automation events)
    - `.mcp.json` — read `mcpServers` keys (detect external integrations)
    - `~/.claude/settings.json` — read `enabledPlugins` keys (detect active plugins)
+   - `logs/decisions.md`, `logs/agent-handoffs.md`, `logs/skill-improvement-backlog.md` — note whether `logs/` exists; these are read by `skill-discovery` to surface skill candidates from accumulated project activity
 
 2. **Build auto-recommendations** for each interview question.
    When `ref_signals` is non-null, supplement local signals with reference signals as described below. Reference signals never override local signals — local always wins when present. Reference-sourced values are labeled `(from references)`.
@@ -272,7 +273,54 @@ Construct and write `evals/project-context.json` directly:
 
 For `installed_skills`: run `ls skills/ 2>/dev/null` and parse the directory names. Use `[]` if `skills/` doesn't exist.
 
-#### 3c. Show summary
+#### 3c. Create logs/ directory and skill-discovery log files
+
+Create `logs/` and the three files that `skill-discovery` reads. Skip any file that already exists — never overwrite.
+
+```bash
+mkdir -p logs
+```
+
+**`logs/decisions.md`** (if missing):
+```markdown
+# Decisions Log
+
+Record decisions made during delivery. Repeated manual choices signal automation candidates for skill-discovery.
+
+## Format
+
+**Date:** YYYY-MM-DD
+**Context:** [what you were doing]
+**Decision:** [what you decided or did manually]
+---
+```
+
+**`logs/agent-handoffs.md`** (if missing):
+```markdown
+# Agent Handoffs Log
+
+Record agent-to-agent handoff notes, workarounds, and failures. Patterns here surface skills worth building.
+
+## Format
+
+**Date:** YYYY-MM-DD
+**From → To:** [agent or task context]
+**Note:** [what happened, any workaround or failure]
+---
+```
+
+**`logs/skill-improvement-backlog.md`** (if missing):
+```markdown
+# Skill Improvement Backlog
+
+Explicit list of known skill gaps. Highest-confidence source for skill-discovery.
+
+## Format
+
+- [ ] **[skill-name or capability]** — [what it would do, why it's needed]
+```
+
+#### 3d. Show summary
 
 ```
 ✓ CLAUDE.md [created | updated — N sections added]
@@ -285,6 +333,7 @@ For `installed_skills`: run `ls skills/ 2>/dev/null` and parse the directory nam
     hooks:           <N hooks across SessionStart/PreToolUse/PostToolUse>
     mcp_servers:     <N servers: name1, name2, … | none>
     plugins:         <N plugins: name1, name2, … | none>
+✓ logs/ [created with decisions.md, agent-handoffs.md, skill-improvement-backlog.md | already existed]
 
 [Show the following block only when ref_signals is non-null:]
 From references (<N> repos analysed):
@@ -294,6 +343,7 @@ From references (<N> repos analysed):
 
 Next: 'find a skill for <capability>' to start the pipeline.
   Or: run skill-needs-analysis-agent to get a prioritized skill shortlist for this project.
+  Log decisions and handoffs in logs/ as work accumulates — run skill-discovery periodically to surface new skill candidates.
 ```
 
 ## CLAUDE.md Template
@@ -315,6 +365,7 @@ Next: 'find a skill for <capability>' to start the pipeline.
 
 <for each directory:>
 - `<path>` — <description>
+- `logs/` — decisions log, agent handoff notes, and skill improvement backlog (read by skill-discovery)
 
 ## Claude's Rules
 
