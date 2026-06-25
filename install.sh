@@ -66,7 +66,7 @@ while IFS= read -r dir; do
 done < <(find "${REPO_DIR}/skills" -mindepth 1 -maxdepth 1 -type d | sort)
 
 # ── 1. Project-scoped skills (source of truth) ───────────────────────────────
-echo "→ [1/4] Copying skills to project"
+echo "→ [1/5] Copying skills to project"
 if ! ${DRY_RUN}; then mkdir -p "${TARGET}/skills" && cp -R "${REPO_DIR}/skills/." "${TARGET}/skills/"; fi
 for skill in "${SKILL_NAMES[@]}"; do
     ${DRY_RUN} && dryrun "${skill}  →  ${TARGET}/skills/${skill}" || ok "${skill}  →  ${TARGET}/skills/${skill}"
@@ -74,7 +74,7 @@ done
 echo ""
 
 # ── 2. Runtime sync (~/.claude/skills/) ─────────────────────────────────────
-echo "→ [2/4] Syncing skills to runtime"
+echo "→ [2/5] Syncing skills to runtime"
 if ! ${DRY_RUN}; then mkdir -p "${GLOBAL_SKILLS}"; fi
 for skill in "${SKILL_NAMES[@]}"; do
     if ! ${DRY_RUN}; then cp -R "${REPO_DIR}/skills/${skill}" "${GLOBAL_SKILLS}/"; fi
@@ -83,7 +83,7 @@ done
 echo ""
 
 # ── 3. Agents (project-scoped only) ─────────────────────────────────────────
-echo "→ [3/4] Installing agents"
+echo "→ [3/5] Installing agents"
 if ! ${DRY_RUN}; then mkdir -p "${TARGET}/.claude/agents"; fi
 for agent_file in "${REPO_DIR}/.claude/agents/"*.md; do
     agent_name="$(basename "${agent_file}")"
@@ -93,7 +93,7 @@ done
 echo ""
 
 # ── 4. Evals workspace + .gitignore ─────────────────────────────────────────
-echo "→ [4/4] Setting up evals/ workspace and .gitignore"
+echo "→ [4/5] Setting up evals/ workspace and .gitignore"
 if ! ${DRY_RUN}; then
     mkdir -p "${TARGET}/evals"
     ok "created  ${TARGET}/evals/"
@@ -127,6 +127,55 @@ if ! ${DRY_RUN}; then
     fi
 else
     dryrun "would update ${GITIGNORE} with skill-builder entries"
+fi
+echo ""
+
+# ── 5. CLAUDE.md pipeline section ────────────────────────────────────────────
+echo "→ [5/5] Writing pipeline rules to CLAUDE.md"
+CLAUDE_MD="${TARGET}/CLAUDE.md"
+MARKER_START="# >>> skill-builder >>>"
+
+if grep -qF "${MARKER_START}" "${CLAUDE_MD}" 2>/dev/null; then
+    ${DRY_RUN} && dryrun "CLAUDE.md pipeline section already present — skipping" || ok "CLAUDE.md pipeline section already present"
+else
+    if ! ${DRY_RUN}; then
+        touch "${CLAUDE_MD}"
+        [ -s "${CLAUDE_MD}" ] && echo "" >> "${CLAUDE_MD}"
+        cat >> "${CLAUDE_MD}" << 'PIPELINE_SECTION'
+# >>> skill-builder >>>
+## Skill & Agent Development
+
+This project uses the Skill Builder pipeline. Skills live in `skills/`. Agents live in `.claude/agents/`.
+
+### Always
+
+- Run `skill-needs-analysis-agent` before building anything new — maps the project stack and workflow terms to missing skill categories
+- Use `skill-scout` to find existing candidates before writing any skill from scratch
+- Run `skill-audit` on every sourced skill before installing — never skip the security gate
+- Run `skill-adapt` to make a sourced skill project-native before use
+- Run `skill-eval` after every adaptation — ship only skills clearing all 5 metric thresholds: pass rate ≥ 80%, trigger accuracy ≥ 85%, resilience ≥ 8/10, project fit ≥ 7/10
+- Run `skill-refine` if any metric is below threshold — up to 10 iterations before escalating
+
+### Never
+
+- Write a skill or agent from scratch without first running `skill-scout`
+- Install an external skill with a FLAG or BLOCK verdict from `skill-audit`
+- Skip `skill-eval` after adapting a skill
+
+### Pipeline
+
+```
+skill-scout → skill-audit → skill-adapt → skill-eval → skill-refine
+agent-scout → agent-audit → agent-adapt
+```
+
+Periodic health check: `skill-guardian` — audits all skills, measures 5 metrics, refines any below-threshold skills.
+# <<< skill-builder <<<
+PIPELINE_SECTION
+        ok "added pipeline section to ${CLAUDE_MD}"
+    else
+        dryrun "would add pipeline section to ${CLAUDE_MD}"
+    fi
 fi
 echo ""
 

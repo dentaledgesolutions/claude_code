@@ -52,7 +52,7 @@ read -r -p "Proceed? [y/N] " confirm
 echo ""
 
 # ── 1. Project skills ────────────────────────────────────────────────────────
-echo "→ [1/4] Removing project skills"
+echo "→ [1/5] Removing project skills"
 if [ -d "${TARGET}/skills" ]; then
     rm -rf "${TARGET}/skills"
     ok "removed  ${TARGET}/skills/"
@@ -62,7 +62,7 @@ fi
 echo ""
 
 # ── 2. Runtime skills (~/.claude/skills/) ───────────────────────────────────
-echo "→ [2/4] Removing runtime skills"
+echo "→ [2/5] Removing runtime skills"
 for skill in "${SKILL_NAMES[@]}"; do
     runtime_skill="${GLOBAL_SKILLS}/${skill}"
     if [ -d "${runtime_skill}" ]; then
@@ -75,7 +75,7 @@ done
 echo ""
 
 # ── 3. Agents (project-scoped only) ─────────────────────────────────────────
-echo "→ [3/4] Removing agents"
+echo "→ [3/5] Removing agents"
 for agent_file in "${AGENT_FILES[@]}"; do
     project_agent="${TARGET}/.claude/agents/${agent_file}"
     if [ -f "${project_agent}" ]; then
@@ -88,7 +88,17 @@ done
 echo ""
 
 # ── 4. Evals workspace (optional — contains generated data) ─────────────────
-echo "→ [4/4] Evals workspace"
+echo "→ [4/5] Removing pipeline section from CLAUDE.md"
+CLAUDE_MD="${TARGET}/CLAUDE.md"
+if [ -f "${CLAUDE_MD}" ] && grep -qF "# >>> skill-builder >>>" "${CLAUDE_MD}" 2>/dev/null; then
+    sed -i '' '/^# >>> skill-builder >>>/,/^# <<< skill-builder <<</d' "${CLAUDE_MD}"
+    ok "removed pipeline section from CLAUDE.md"
+else
+    skip "CLAUDE.md pipeline section not found"
+fi
+echo ""
+
+echo "→ [5/5] Evals workspace"
 if [ -d "${TARGET}/evals" ]; then
     echo "  evals/ contains generated data: scenario runs, timing, project-context.json."
     read -r -p "  Remove evals/ too? [y/N] " confirm_evals
