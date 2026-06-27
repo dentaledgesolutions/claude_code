@@ -103,52 +103,64 @@ function extractFileBlocks(content) {
   return blocks;
 }
 
-const [,, packedPath, outputDir] = process.argv;
-if (!packedPath || !outputDir) {
-  console.error('Usage: categorize-files.js <packed-file> <output-dir>');
-  process.exit(1);
+function run(packedPath, outputDir) {
+  let content;
+  try {
+    content = fs.readFileSync(packedPath, 'utf8');
+  } catch (e) {
+    throw new Error(`Error reading ${packedPath}: ${e.message}`);
+  }
+
+  const fileBlocks = extractFileBlocks(content);
+  if (fileBlocks.length === 0) {
+    throw new Error('No file blocks found. Check Repomix output format.');
+  }
+
+  const isXml      = content.trimStart().startsWith('<?xml') || content.includes('<file ');
+  const layerBlocks = {};
+  const manifest    = { total_files: fileBlocks.length, layers: {} };
+  LAYER_NAMES.forEach(layer => {
+    layerBlocks[layer] = [];
+    manifest.layers[layer] = { file_count: 0, files: [] };
+  });
+
+  for (const { path: filePath, rawBlock } of fileBlocks) {
+    for (const layer of matchLayers(filePath)) {
+      layerBlocks[layer].push(rawBlock);
+      manifest.layers[layer].file_count++;
+      manifest.layers[layer].files.push(filePath);
+    }
+  }
+
+  fs.mkdirSync(outputDir, { recursive: true });
+  for (const layer of LAYER_NAMES) {
+    const sliceContent = isXml
+      ? `<?xml version="1.0" encoding="UTF-8"?>\n<layer name="${layer}">\n${layerBlocks[layer].join('\n')}\n</layer>`
+      : `=== Layer: ${layer} ===\n\n${layerBlocks[layer].join('\n' + '='.repeat(50) + '\n')}`;
+    fs.writeFileSync(path.join(outputDir, `layer-${layer}.xml`), sliceContent);
+  }
+  fs.writeFileSync(path.join(outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+
+  return {
+    total_files: fileBlocks.length,
+    layers: Object.fromEntries(LAYER_NAMES.map(l => [l, manifest.layers[l].file_count]))
+  };
 }
 
-let content;
-try {
-  content = fs.readFileSync(packedPath, 'utf8');
-} catch (e) {
-  console.error(`Error reading ${packedPath}: ${e.message}`);
-  process.exit(1);
-}
-
-const fileBlocks = extractFileBlocks(content);
-if (fileBlocks.length === 0) {
-  console.error('No file blocks found. Check Repomix output format.');
-  process.exit(1);
-}
-
-const isXml      = content.trimStart().startsWith('<?xml') || content.includes('<file ');
-const layerBlocks = {};
-const manifest    = { total_files: fileBlocks.length, layers: {} };
-LAYER_NAMES.forEach(layer => {
-  layerBlocks[layer] = [];
-  manifest.layers[layer] = { file_count: 0, files: [] };
-});
-
-for (const { path: filePath, rawBlock } of fileBlocks) {
-  for (const layer of matchLayers(filePath)) {
-    layerBlocks[layer].push(rawBlock);
-    manifest.layers[layer].file_count++;
-    manifest.layers[layer].files.push(filePath);
+// CLI entry point
+if (require.main === module) {
+  const [,, packedPath, outputDir] = process.argv;
+  if (!packedPath || !outputDir) {
+    console.error('Usage: categorize-files.js <packed-file> <output-dir>');
+    process.exit(1);
+  }
+  try {
+    const result = run(packedPath, outputDir);
+    console.log(JSON.stringify(result));
+  } catch (e) {
+    console.error(e.message);
+    process.exit(1);
   }
 }
 
-fs.mkdirSync(outputDir, { recursive: true });
-for (const layer of LAYER_NAMES) {
-  const sliceContent = isXml
-    ? `<?xml version="1.0" encoding="UTF-8"?>\n<layer name="${layer}">\n${layerBlocks[layer].join('\n')}\n</layer>`
-    : `=== Layer: ${layer} ===\n\n${layerBlocks[layer].join('\n' + '='.repeat(50) + '\n')}`;
-  fs.writeFileSync(path.join(outputDir, `layer-${layer}.xml`), sliceContent);
-}
-fs.writeFileSync(path.join(outputDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
-
-console.log(JSON.stringify({
-  total_files: fileBlocks.length,
-  layers: Object.fromEntries(LAYER_NAMES.map(l => [l, manifest.layers[l].file_count]))
-}));
+module.exports = { matchLayers, extractFileBlocks, run };

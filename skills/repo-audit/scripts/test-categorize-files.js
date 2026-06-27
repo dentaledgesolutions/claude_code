@@ -2,12 +2,12 @@
 // test-categorize-files.js — unit tests for categorize-files.js
 // Run: node skills/repo-audit/scripts/test-categorize-files.js
 
-const assert       = require('assert');
-const { execSync } = require('child_process');
-const fs           = require('fs');
-const path         = require('path');
+const assert = require('assert');
+const fs     = require('fs');
+const path   = require('path');
 
-const SCRIPT  = path.resolve('skills/repo-audit/scripts/categorize-files.js');
+const { run } = require('./categorize-files');
+
 const TMP_XML = '/tmp/repo-audit-test-fixture.xml';
 const TMP_OUT = '/tmp/repo-audit-test-output';
 
@@ -30,7 +30,7 @@ const FIXTURE_XML = `<?xml version="1.0" encoding="UTF-8"?>
 fs.writeFileSync(TMP_XML, FIXTURE_XML);
 if (fs.existsSync(TMP_OUT)) fs.rmSync(TMP_OUT, { recursive: true });
 
-execSync(`node ${SCRIPT} ${TMP_XML} ${TMP_OUT}`);
+run(TMP_XML, TMP_OUT);
 
 const manifest = JSON.parse(fs.readFileSync(path.join(TMP_OUT, 'manifest.json'), 'utf8'));
 
