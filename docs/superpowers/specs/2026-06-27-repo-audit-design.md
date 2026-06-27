@@ -68,6 +68,8 @@ User invokes: repo-audit <github-url> [--pipeline] [--layer <names>]
 ```
 skills/repo-audit/
 ├── SKILL.md
+├── SKILL-AUDIT.md          ← required by skill-guardian health checks
+├── SKILL-EVAL.md           ← required by skill-guardian health checks
 └── scripts/
     └── categorize-files.js
 
@@ -81,6 +83,8 @@ skills/repo-audit/
 ├── repo-audit-ai-llm.md
 └── repo-audit-claude-code.md
 ```
+
+`SKILL-AUDIT.md` and `SKILL-EVAL.md` follow the same template as all other skills in the pipeline. `SKILL-EVAL.md` is generated via `generate-seed-evals.js` as part of the implementation. `SKILL-AUDIT.md` is written by hand at the end of implementation using the static-scan results.
 
 ### `SKILL.md` — orchestrator responsibilities
 1. Validate + normalize GitHub URL → `owner/repo`
@@ -139,11 +143,17 @@ Files matching multiple layers are duplicated into each relevant slice.
 
 **Step 1 — Invocation**
 ```
-repo-audit https://github.com/owner/repo [--pipeline] [--layer runtime,framework]
+repo-audit https://github.com/owner/repo [--pipeline] [--layer runtime,framework] [--estimate]
 ```
 - URL normalized to `owner/repo`
 - `--layer` runs only specified layers (default: all 8)
 - `--pipeline` enables injection into `evals/project-context.json`
+- `--estimate` runs Repomix stats only (no agents) and prints a cost preview before committing to a full audit:
+  ```
+  Repo: owner/repo — 142 files, ~84,300 tokens (compressed)
+  Full audit: ~8 agent calls. Proceed? [y/N]
+  ```
+  If the user answers N, audit aborts cleanly with no artifacts written.
 
 **Step 2 — Repomix pack**
 ```bash
@@ -240,10 +250,15 @@ Two new optional fields (non-breaking, default to `[]`):
 }
 ```
 
+**Touch point 3 — `extract-project-context.js` update**
+
+`skills/skill-eval/scripts/extract-project-context.js` currently extracts the existing 9 fields. It must be updated to also extract `audited_repos` and `audit_signals` so `skill-needs-analysis-agent` and downstream pipeline tools receive the richer context. Change is additive — existing 9 fields unchanged.
+
 **Standalone use cases:**
 
 | Scenario | Command |
 |---|---|
+| Preview token count before auditing | `repo-audit https://github.com/owner/repo --estimate` |
 | Audit any repo | `repo-audit https://github.com/owner/repo` |
 | Audit + feed pipeline | `repo-audit https://github.com/owner/repo --pipeline` |
 | Audit specific layers only | `repo-audit https://github.com/owner/repo --layer runtime,framework,claude-code` |
@@ -413,6 +428,8 @@ Two new optional fields (non-breaking, default to `[]`):
 - Multiple audits accumulate — no overwrite, history preserved
 - `docs/audits/raw/` holds Repomix XML only on failure
 
+**Versioning policy:** `docs/audits/` is intentionally **committed to git** — unlike `evals/` (volatile, generated each run), audit reports are reference artifacts worth versioning and comparing over time. `.gitignore` must explicitly NOT exclude this path. Add a comment to `.gitignore`: `# docs/audits/ is intentionally committed — audit reports are reference artifacts`.
+
 ---
 
 ## Summary
@@ -426,4 +443,7 @@ Two new optional fields (non-breaking, default to `[]`):
 | Output | JSON (machine/pipeline) + Markdown (human review) per audit |
 | Pipeline integration | `--pipeline` flag injects `ref_signals`; `--deep` in project-setup Phase 0 |
 | Breaking changes | None — all changes to existing files are additive |
-| New files | 1 skill, 1 script, 8 agents |
+| New files | 1 skill, 1 script, 8 agents, SKILL-AUDIT.md, SKILL-EVAL.md |
+| Existing files touched | `project-setup/SKILL.md` (Phase 0 `--deep`), `extract-project-context.js` (2 new fields), `.gitignore` (comment only) |
+| `docs/audits/` versioning | Committed to git — reference artifacts, not volatile |
+| Token cost guard | `--estimate` flag shows file/token count + confirmation before running agents |
