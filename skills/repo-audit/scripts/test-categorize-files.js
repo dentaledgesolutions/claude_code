@@ -72,4 +72,49 @@ if (emptyLayer) {
 fs.rmSync(TMP_OUT, { recursive: true });
 fs.rmSync(TMP_XML);
 
+// ─── Test 2: Gitingest plain-text branch ─────────────────────────────────────
+
+const TS              = Date.now();
+const TMP_GITINGEST   = `/tmp/test-categorize-gitingest-${TS}.txt`;
+const TMP_GITINGEST_OUT = `/tmp/test-categorize-gitingest-${TS}-out`;
+
+// Gitingest plain-text format: sections separated by ===...=== (≥10 chars)
+// Each section contains a "File: <path>" line followed by file content.
+const FIXTURE_GITINGEST = [
+  '='.repeat(80),
+  'File: package.json',
+  '='.repeat(80),
+  '{"name":"test-gi","scripts":{"test":"vitest","build":"tsc"}}',
+  '='.repeat(80),
+  'File: Dockerfile',
+  '='.repeat(80),
+  'FROM node:20-alpine',
+  'CMD ["node","server.js"]',
+].join('\n');
+
+fs.writeFileSync(TMP_GITINGEST, FIXTURE_GITINGEST);
+if (fs.existsSync(TMP_GITINGEST_OUT)) fs.rmSync(TMP_GITINGEST_OUT, { recursive: true });
+
+run(TMP_GITINGEST, TMP_GITINGEST_OUT);
+
+const giManifest = JSON.parse(fs.readFileSync(path.join(TMP_GITINGEST_OUT, 'manifest.json'), 'utf8'));
+
+// At least one layer-*.xml file must exist
+const giXmlFiles = fs.readdirSync(TMP_GITINGEST_OUT).filter(f => f.startsWith('layer-') && f.endsWith('.xml'));
+assert(giXmlFiles.length > 0, 'Gitingest: at least one layer-*.xml must be created');
+
+// manifest must have at least one layer with file_count > 0
+const giNonEmpty = Object.values(giManifest.layers).some(l => l.file_count > 0);
+assert(giNonEmpty, 'Gitingest: manifest must have at least one layer with file_count > 0');
+
+// package.json → runtime, Dockerfile → runtime
+assert(giManifest.layers.runtime.files.includes('package.json'), 'Gitingest: package.json → runtime');
+assert(giManifest.layers.runtime.files.includes('Dockerfile'),   'Gitingest: Dockerfile → runtime');
+
+// The two files route to different layers (runtime has both; verify total_files is 2)
+assert.equal(giManifest.total_files, 2, 'Gitingest: total_files should be 2');
+
+fs.rmSync(TMP_GITINGEST_OUT, { recursive: true });
+fs.rmSync(TMP_GITINGEST);
+
 console.log('All tests passed ✓');

@@ -36,7 +36,7 @@ Strip `--deep` from the URL before normalisation. Set `deep_mode = true` for tha
 
 For a deep-mode URL, instead of the lightweight fetch (0b), invoke the `repo-audit` skill:
 ```
-repo-audit <url> --pipeline
+repo-audit <url>
 ```
 When repo-audit completes, read `docs/audits/<owner>-<repo>-<latest-date>.json` and use its `ref_signals` field directly as this URL's contribution to `ref_signals`. Label all values from this source `(from deep audit)` instead of `(from references)`.
 

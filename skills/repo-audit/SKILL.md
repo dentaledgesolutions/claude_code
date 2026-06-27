@@ -58,7 +58,7 @@ npx repomix --remote <owner>/<repo> --compress --output-format xml \
 If Repomix exits non-zero (private repo, network error, timeout after 60s):
 ```bash
 pip install gitingest -q 2>/dev/null && \
-  gitingest <owner>/<repo> --output /tmp/repo-audit-<owner>-<repo>/packed.xml 2>&1
+  gitingest https://github.com/<owner>/<repo> --output /tmp/repo-audit-<owner>-<repo>/packed.xml 2>&1
 ```
 
 If both fail: print `"Could not fetch repo. It may be private or inaccessible."` and stop. Copy packed.xml to `docs/audits/raw/<owner>-<repo>-<date>.xml` if it exists before stopping.
@@ -137,7 +137,7 @@ Derive `architecture_signals`: scan all layer signals and write 3–6 one-line s
 
 Derive `ref_signals.ref_stack`: union of `runtime.signals.language`, `framework.signals.primary` (framework name only), `framework.signals.key_libraries`, filtered to non-null.
 
-Derive `ref_signals.ref_commands` from `cicd.signals.stages` cross-referenced with `runtime` signals — fill test/build/lint/deploy keys with detected commands where possible.
+Set `ref_signals.ref_commands` to `{ test: "", build: "", lint: "", deploy: "" }` (empty strings). The cicd and runtime agents extract stage names, not executable command strings — leave this field blank so project-setup Phase 1 can discover actual commands from the target project's package.json/Makefile instead.
 
 ### Phase 6 — Write artifacts
 
