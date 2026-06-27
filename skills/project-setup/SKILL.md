@@ -22,11 +22,25 @@ User: help me configure CLAUDE.md
 
 Ask exactly once at the start of every `/project-setup` run:
 
-> "Do you have any reference projects to draw conventions from? Paste up to 3 GitHub URLs, one per line — or press Enter to skip."
+> "Do you have any reference projects to draw conventions from? Paste up to 3 GitHub URLs, one per line — or press Enter to skip.
+>
+> Add `--deep` after any URL for a full 8-layer audit via repo-audit (more thorough, takes ~1 minute per repo)."
 
 **If the user presses Enter or says "no":** set `ref_signals = null` and proceed immediately to Phase 1. No further Phase 0 work.
 
 **If URLs are provided:**
+
+**If a URL has `--deep` suffix:**
+
+Strip `--deep` from the URL before normalisation. Set `deep_mode = true` for that URL.
+
+For a deep-mode URL, instead of the lightweight fetch (0b), invoke the `repo-audit` skill:
+```
+repo-audit <url> --pipeline
+```
+When repo-audit completes, read `docs/audits/<owner>-<repo>-<latest-date>.json` and use its `ref_signals` field directly as this URL's contribution to `ref_signals`. Label all values from this source `(from deep audit)` instead of `(from references)`.
+
+Non-deep URLs continue with the existing lightweight fetch (0b–0d) unchanged.
 
 #### 0a. URL normalisation
 

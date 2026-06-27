@@ -43,6 +43,8 @@ const context = {
   hooks:           [],
   mcp_servers:     [],
   plugins:         [],
+  audited_repos:   [],
+  audit_signals:   { architecture_patterns: [], ref_stack_extended: [] },
 };
 
 function readFile(...parts) {
@@ -191,6 +193,8 @@ try {
   if (prior.security_grade)        context.security_grade        = prior.security_grade;
   if (prior.security_score !== undefined) context.security_score = prior.security_score;
   if (prior.security_last_scanned) context.security_last_scanned = prior.security_last_scanned;
+  if (prior.audited_repos && prior.audited_repos.length) context.audited_repos = prior.audited_repos;
+  if (prior.audit_signals) context.audit_signals = prior.audit_signals;
 } catch { /* file doesn't exist yet — no prior security data to preserve */ }
 
 fs.writeFileSync(outPath, JSON.stringify(context, null, 2));
