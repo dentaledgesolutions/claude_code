@@ -113,6 +113,7 @@ If no references were provided or all fetches failed, `ref_signals = null`.
 ### Phase 1 — Discovery (silent, run before speaking)
 
 1. **Scan for existing files** — attempt Read on each (silently skip if missing):
+   - `PROJECT-BRIEF.md` — if present, signals a `project-idea` run preceded this setup; read and store as `brief`. Show one note at interview open: *"Found `PROJECT-BRIEF.md` — recommendations pre-filled from your project brief."*
    - `CLAUDE.md` and `.claude/CLAUDE.md`
    - `package.json`, `pyproject.toml`, `Cargo.toml`, `go.mod`
    - `requirements.txt`
@@ -124,14 +125,14 @@ If no references were provided or all fetches failed, `ref_signals = null`.
    - `logs/decisions.md`, `logs/agent-handoffs.md`, `logs/skill-improvement-backlog.md` — note whether `logs/` exists; these are read by `skill-discovery` to surface skill candidates from accumulated project activity
 
 2. **Build auto-recommendations** for each interview question.
-   When `ref_signals` is non-null, supplement local signals with reference signals as described below. Reference signals never override local signals — local always wins when present. Reference-sourced values are labeled `(from references)`.
+   When `brief` is non-null (from `PROJECT-BRIEF.md`), brief values take priority over all other signals. Brief-sourced values are labeled `(from project brief)`. When `ref_signals` is non-null, supplement local signals with reference signals as described below. Reference signals never override local signals — local always wins when present. Reference-sourced values are labeled `(from references)`.
 
-   - **Q1 rec**: `package.json:description` → first substantive non-heading line of README.md → `ref_signals.ref_purpose` labeled `(from references)` → `null`
-   - **Q2 rec**: stack tokens from local manifests (package.json deps / pyproject.toml / Cargo.toml / go.mod); append any `ref_signals.ref_stack` tokens not already present, each labeled `(from references)`; `*.ipynb` present → Python + Jupyter; if `.mcp.json` found, note the MCP servers as context (e.g. "jira MCP detected — add to stack description if relevant"); nothing → `null`
+   - **Q1 rec**: `brief["What It Does"]` labeled `(from project brief)` → `package.json:description` → first substantive non-heading line of README.md → `ref_signals.ref_purpose` labeled `(from references)` → `null`
+   - **Q2 rec**: `brief["Tech Direction"]` labeled `(from project brief)` → stack tokens from local manifests (package.json deps / pyproject.toml / Cargo.toml / go.mod); append any `ref_signals.ref_stack` tokens not already present, each labeled `(from references)`; `*.ipynb` present → Python + Jupyter; if `.mcp.json` found, note the MCP servers as context (e.g. "jira MCP detected — add to stack description if relevant"); nothing → `null`
    - **Q3 rec**: `package.json:scripts` keys (test, build, lint, start, deploy); for any key with no local value, fill from `ref_signals.ref_commands[key]` labeled `(from references)`; see default commands table in Rules; nothing → blank
-   - **Q4 rec**: none from local files — but if `ref_signals` is non-null and `ref_rules_always` / `ref_rules_never` are non-empty, show them as examples labeled `(from references)` instead of the generic "Always run tests…" examples
+   - **Q4 rec**: if `brief["Out of Scope (v1)"]` is non-empty, show those items as Never examples labeled `(from project brief)`; otherwise if `ref_signals` is non-null and `ref_rules_always` / `ref_rules_never` are non-empty, show them labeled `(from references)`; otherwise no recommendation
    - **Q5 rec**: top-level directories minus `node_modules`, `.git`, `dist`, `build`, `.cache`, `__pycache__`; append any `ref_signals.ref_directories` entries whose path is not already listed, each labeled `(from references)`
-   - **Q6 rec**: all-caps tokens (≥3 chars) from README.md and CLAUDE.md, deduplicated, max 10; append any `ref_signals.ref_glossary` entries whose term is not already present, each labeled `(from references)`
+   - **Q6 rec**: if `brief["Open Questions"]` is non-empty and contains real items (not "None."), offer those items as terms to name and define, labeled `(from project brief)`; append all-caps tokens (≥3 chars) from README.md and CLAUDE.md, deduplicated, max 10; append any `ref_signals.ref_glossary` entries whose term is not already present, each labeled `(from references)`
 
 3. **Run extract-project-context.js if Node ≥ 18**:
    ```bash
