@@ -48,7 +48,8 @@ let id = 1;
 // ── Load project context ──────────────────────────────────────────────────────
 let projectCtx = null;
 if (contextFile && fs.existsSync(contextFile)) {
-  try { projectCtx = JSON.parse(fs.readFileSync(contextFile, 'utf8')); } catch {}
+  try { projectCtx = JSON.parse(fs.readFileSync(contextFile, 'utf8')); }
+  catch (e) { console.error(`Warning: could not parse context file ${contextFile}: ${e.message}. Generating 6 scenarios only.`); }
 }
 
 // ── Parse YAML frontmatter ────────────────────────────────────────────────────
@@ -100,10 +101,15 @@ function extractSteps(text) {
 
 // ── Parse "Use when" triggers from description ───────────────────────────────
 function extractUseWhen(description) {
-  const uw = description.match(/[Uu]se (?:this agent )?when[^:]*:?\s*([\s\S]+?)(?:\n\n|$)/);
-  if (!uw) return description.split('\n')[0];
-  // Take the first condition (before first comma/semicolon/period)
-  return uw[1].trim().split(/[;,\n]/)[0].trim().replace(/\.$/, '');
+  // Strip examples section before matching
+  const stripped = description.replace(/<example>[\s\S]*$/i, '').replace(/Examples?:[\s\S]*$/i, '').trim();
+  const uw = stripped.match(/[Uu]se (?:this agent )?when[^:]*:?\s*(.+)/);
+  if (uw && uw[1].trim().length > 2) {
+    return uw[1].trim().split(/[;,\n]/)[0].trim().replace(/\.$/, '');
+  }
+  // Fallback: first non-empty sentence from stripped description
+  const firstSentence = stripped.split(/[.!?]/)[0].trim();
+  return firstSentence.length > 5 ? firstSentence : stripped.slice(0, 80).trim();
 }
 
 // ── Verb synonym table ────────────────────────────────────────────────────────
@@ -118,11 +124,13 @@ const VERB_SYNONYMS = {
   analyze:  ['examine', 'inspect', 'review', 'investigate'],
 };
 
-function synonymPhrase(phrase) {
+function synonymPhrase(phrase, agentName) {
   const lower = phrase.toLowerCase();
   for (const [verb, syns] of Object.entries(VERB_SYNONYMS)) {
     if (lower.includes(verb)) {
-      const syn = syns[Math.floor(Math.random() * syns.length)];
+      // Deterministic: hash agent name to pick synonym
+      const idx = agentName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % syns.length;
+      const syn = syns[idx];
       return phrase.replace(new RegExp(verb, 'i'), syn);
     }
   }
@@ -154,29 +162,31 @@ function negativePrompt(agentName) {
 }
 
 function semanticPrompt(agentName, useWhen) {
-  const syn = synonymPhrase(useWhen);
+  const syn = synonymPhrase(useWhen, agentName);
   return syn
     ? `Have the ${agentName} ${syn}.`
     : `Use the ${agentName} to handle the following: ${useWhen}.`;
 }
 
 function adversarialPrompt(agentName, useWhen) {
-  // Inject agent vocabulary into a wrong-scope context
   const swapped = useWhen
     .replace(/\bskill[s]?\b/g, 'codebase')
     .replace(/\bagent[s]?\b/g, 'component')
-    .replace(/\beval\b/g, 'code review');
+    .replace(/\beval\b/g, 'code review')
+    .replace(/\bdispatch\b/g, 'analyze');
   const changed = swapped !== useWhen;
-  return changed
-    ? `Use the ${agentName} to ${swapped}.`
-    : `Before we dispatch the ${agentName}, walk me through whether it's even the right tool for this situation and what the alternatives are.`;
+  // When swapped: frame as a generic request that should NOT trigger this agent
+  if (changed) {
+    return `Can you ${swapped.replace(/^[A-Z]/, c => c.toLowerCase())}? I need help understanding the approach.`;
+  }
+  // Fallback: planning/scoping request — genuinely non-dispatch
+  return `Before we dispatch the ${agentName}, walk me through whether it's even the right tool for this situation and what the alternatives are.`;
 }
 
 // ── Parse the agent file ───────────────────────────────────────────────────────
 const fm    = parseFrontmatter(content);
 const agentName  = fm.name || path.basename(inputFile, '.md');
 const description = fm.description || '';
-const tools = Array.isArray(fm.tools) ? fm.tools : [];
 const steps = extractSteps(content);
 const useWhen = extractUseWhen(description);
 
