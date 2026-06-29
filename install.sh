@@ -155,6 +155,8 @@ This project uses the Skill Builder pipeline. Skills live in `skills/`. Agents l
 - Run `skill-adapt` to make a sourced skill project-native before use
 - Run `skill-eval` after every adaptation — ship only skills clearing all 5 metric thresholds: pass rate ≥ 80%, trigger accuracy ≥ 85%, resilience ≥ 8/10, project fit ≥ 7/10
 - Run `skill-refine` if any metric is below threshold — up to 10 iterations before escalating
+- Run `agent-eval` after every agent-adapt — same 5 thresholds; Dispatch Accuracy replaces Trigger Accuracy
+- Run `agent-refine` if any agent metric is below threshold — Lever E changes trigger agent-audit re-run automatically
 
 ### Never
 
@@ -166,7 +168,7 @@ This project uses the Skill Builder pipeline. Skills live in `skills/`. Agents l
 
 ```
 skill-scout → skill-audit → skill-adapt → skill-eval → skill-refine
-agent-scout → agent-audit → agent-adapt
+agent-scout → agent-audit → agent-adapt → agent-eval → agent-refine
 ```
 
 Periodic health check: `skill-guardian` — audits all skills, measures 5 metrics, refines any below-threshold skills.

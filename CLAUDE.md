@@ -22,7 +22,7 @@ A self-contained pipeline for sourcing, vetting, adapting, measuring, and auto-i
 ```
 project-setup → project-audit → skill-scout → skill-audit → skill-adapt → skill-eval → skill-refine
                                                                ↕
-                                              agent-scout → agent-audit → agent-adapt
+                                              agent-scout → agent-audit → agent-adapt → agent-eval → agent-refine
 ```
 
 - `project-setup` — generates `CLAUDE.md` + `evals/project-context.json` for the target project
@@ -32,6 +32,8 @@ project-setup → project-audit → skill-scout → skill-audit → skill-adapt 
 - `skill-adapt` / `agent-adapt` — rewrites sourced skill/agent to match target project context
 - `skill-eval` — 9-scenario test suite; 5 metrics (pass rate, trigger accuracy, footprint, fit, resilience)
 - `skill-refine` — Karpathy autoresearch loop; max 10 iterations; routes by failing metric to lever A–E
+- `agent-eval` — 9-scenario dispatch test suite; 5 metrics (pass rate, dispatch accuracy, footprint, fit, resilience)
+- `agent-refine` — Karpathy autoresearch loop for agents; max 10 iterations; Lever E triggers agent-audit re-run
 
 ## Domain Terms
 
@@ -41,7 +43,10 @@ project-setup → project-audit → skill-scout → skill-audit → skill-adapt 
 - **refine-input.json** — handoff from skill-eval to skill-refine; lists failing scenarios + root causes
 - **SKILL-EVAL.md** — per-skill eval report with 5-metric table and analyst observations
 - **SKILL-REFINE-LOG.md** — append-only iteration log produced by skill-refine / skill-refine-agent
-- **Lever A–E** — mutation targets in the autoresearch loop (A=description, B=checklist, C=examples, D=reference, E=scripts)
+- **AGENT-EVAL.md** — per-agent eval report at `.claude/agents/<name>-EVAL.md`; uses Dispatch Accuracy instead of Trigger Accuracy
+- **AGENT-REFINE-LOG.md** — append-only iteration log at `.claude/agents/<name>-REFINE-LOG.md`
+- **Lever A–E** — mutation targets in the autoresearch loop (A=description, B=checklist/workflow, C=examples, D=reference/what-not-to-do, E=scripts for skills / frontmatter config for agents)
+- **Dispatch Accuracy** — agent-eval metric equivalent to Trigger Accuracy; measures correct dispatch decisions ≥ 85% required
 - **Resilience Score** — metric measuring adversarial non-trigger rate; ≥ 8/10 required
 - **Project Fit Score** — metric averaging project-native + project-workflow + multi-turn scenario scores; ≥ 7/10 required
 
@@ -51,6 +56,7 @@ project-setup → project-audit → skill-scout → skill-audit → skill-adapt 
 
 - Run `extract-project-context.js` before evaluating any skill — stale context degrades adapt and eval quality
 - Pass `--context evals/project-context.json` to `generate-seed-evals.js` — without it you get 6 scenarios instead of 9 and miss resilience and fit metrics
+- Pass `--context evals/project-context.json` to `generate-agent-evals.js` — same rule applies for agent-eval; agent artifacts go to `evals/agents/<name>/`
 - Discover skills and agents dynamically (`find skills/ -mindepth 1 -maxdepth 1 -type d`) — never hardcode skill names in scripts
 - Keep `install.sh` and `uninstall.sh` in sync — every step in install must have a mirror in uninstall
 - Deploy to `~/.claude/skills/` after editing any skill so changes take effect immediately in Claude Code
