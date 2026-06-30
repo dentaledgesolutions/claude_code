@@ -59,7 +59,7 @@ User: check how well skill-refine-agent is working
    - **With-agent**: dispatch the named agent, execute the prompt, save output to `evals/agents/<agent-name>/iteration-<N>/<id>/with_agent/`
    - **Baseline**: no agent dispatched (general capabilities only), same prompt, save to `evals/agents/<agent-name>/iteration-<N>/<id>/without_agent/`
 
-   Run trigger-type scenarios (direct, paraphrased, semantic, negative, adversarial) 3 times each to measure dispatch consistency. Record `total_tokens` and `duration_ms` from each run — save to `timing.json` in the run directory.
+   Run dispatch-type scenarios (direct, paraphrased, semantic, negative, adversarial) 3 times each to measure dispatch consistency. Record `total_tokens` and `duration_ms` from each run — save to `timing.json` in the run directory.
 
 6. **Grade outputs** — score each with-agent run using the LLM judge rubric in REFERENCE.md. For dispatch scenarios, use programmatic detection first (did an `Agent` tool call with this agent's `name` appear in the transcript?), then LLM judgment for quality.
 

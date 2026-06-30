@@ -18,7 +18,7 @@ Generate one of each type. Named evals are easier to track than "eval-0".
 
 Types 1–6 always generated. Types 7–9 require `--context evals/project-context.json`.
 
-**Repetitions:** Run dispatch-type scenarios (direct, paraphrased, semantic, negative, adversarial) 3 times each. Run non-dispatch scenarios (edge_case, project-native, project-workflow, multi-turn) once per side.
+**Repetitions:** Run dispatch-type scenarios (direct, paraphrased, semantic, negative, adversarial) 3 times each. Run workflow-type scenarios (edge_case, project-native, project-workflow, multi-turn) once per side — these have dispatches:true but test execution quality, not trigger consistency.
 
 ---
 

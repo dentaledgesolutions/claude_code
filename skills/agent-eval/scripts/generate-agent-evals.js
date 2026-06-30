@@ -95,21 +95,33 @@ function parseFrontmatter(text) {
 // ── Extract workflow steps from body ─────────────────────────────────────────
 function extractSteps(text) {
   const steps = [];
-  for (const m of text.matchAll(/^\d+\.\s+\*\*(.+?)\*\*/gm)) steps.push(m[1]);
+  for (const m of text.matchAll(/^\d+\.\s+(?:\*\*(.+?)\*\*|(.+?)(?:\s*—|\s*$))/gm)) {
+    steps.push((m[1] || m[2] || '').trim());
+  }
   return steps;
 }
 
 // ── Parse "Use when" triggers from description ───────────────────────────────
 function extractUseWhen(description) {
+  // Normalize: collapse newlines and multiple spaces
+  const normalized = description.replace(/\s*\n\s*/g, ' ').trim();
   // Strip examples section before matching
-  const stripped = description.replace(/<example>[\s\S]*$/i, '').replace(/Examples?:[\s\S]*$/i, '').trim();
-  const uw = stripped.match(/[Uu]se (?:this agent )?when[^:]*:?\s*(.+)/);
+  const stripped = normalized
+    .replace(/<example>[\s\S]*$/i, '')
+    .replace(/Examples?:[\s\S]*$/i, '')
+    .trim();
+  // Match the clause AFTER "use (this agent) when"
+  const uw = stripped.match(/[Uu]se (?:this agent )?when\s+(.+)/);
   if (uw && uw[1].trim().length > 2) {
-    return uw[1].trim().split(/[;,\n]/)[0].trim().replace(/\.$/, '');
+    // Take only the first condition (before first semicolon, comma-preceded-by-verb, or period)
+    return uw[1].trim().split(/[;]/)[0].trim().replace(/\.$/, '');
   }
-  // Fallback: first non-empty sentence from stripped description
-  const firstSentence = stripped.split(/[.!?]/)[0].trim();
-  return firstSentence.length > 5 ? firstSentence : stripped.slice(0, 80).trim();
+  // Fallback: first sentence, with lead-in stripped
+  const noLeadIn = stripped
+    .replace(/^[Uu]se (?:this agent )?when\s+/i, '')
+    .replace(/^[Uu]se when:?\s*/i, '');
+  const firstClause = noLeadIn.split(/[.;,]/)[0].trim();
+  return firstClause.length > 5 ? firstClause : stripped.slice(0, 80).trim();
 }
 
 // ── Verb synonym table ────────────────────────────────────────────────────────
@@ -131,7 +143,7 @@ function synonymPhrase(phrase, agentName) {
       // Deterministic: hash agent name to pick synonym
       const idx = agentName.split('').reduce((a, c) => a + c.charCodeAt(0), 0) % syns.length;
       const syn = syns[idx];
-      return phrase.replace(new RegExp(verb, 'i'), syn);
+      return phrase.replace(new RegExp(`\\b${verb}\\b`, 'i'), syn);
     }
   }
   return null;
