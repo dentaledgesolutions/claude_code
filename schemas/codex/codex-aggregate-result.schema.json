@@ -1,0 +1,77 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Codex Aggregate Eval Result",
+  "description": "Computed from all per-scenario result.json files. Saved as aggregate-results.json.",
+  "type": "object",
+  "required": ["target", "target_type", "run_id", "mode", "timestamp", "scenario_count", "context_footprint", "metrics", "analyst_summary", "recommendation"],
+  "properties": {
+    "target": { "type": "string" },
+    "target_type": { "type": "string", "enum": ["skill", "agent"] },
+    "run_id": { "type": "string" },
+    "mode": { "type": "string", "enum": ["smoke", "standard", "full"] },
+    "timestamp": { "type": "string", "format": "date-time" },
+    "scenario_count": { "type": "integer" },
+    "context_footprint": {
+      "type": "object",
+      "description": "Runner-computed from source files. Not supplied by Codex.",
+      "required": ["lines", "tokens_est"],
+      "properties": {
+        "lines": { "type": "integer" },
+        "tokens_est": { "type": "integer" }
+      }
+    },
+    "hard_failures": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "metrics": {
+      "type": "object",
+      "required": ["eval_pass_rate", "context_footprint_lines", "context_footprint_tokens_est"],
+      "properties": {
+        "eval_pass_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Percentage. Threshold >= 80."
+        },
+        "trigger_accuracy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Skills only. Percentage. Threshold >= 85."
+        },
+        "dispatch_accuracy": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Agents only. Percentage. Threshold >= 85."
+        },
+        "context_footprint_lines": { "type": "integer" },
+        "context_footprint_tokens_est": { "type": "integer" },
+        "project_fit_score": {
+          "type": ["number", "string"],
+          "description": "0-10, or 'partial' (smoke mode), or 'N/A' (no fit scenarios)."
+        },
+        "resilience_score": {
+          "type": ["number", "string"],
+          "description": "0-10, or 'N/A' (no adversarial scenarios)."
+        }
+      }
+    },
+    "analyst_summary": {
+      "type": "object",
+      "properties": {
+        "non_discriminating_scenarios": { "type": "array", "items": { "type": "string" } },
+        "unstable_scenarios": { "type": "array", "items": { "type": "string" } },
+        "adversarial_false_positives": { "type": "array", "items": { "type": "string" } },
+        "multi_turn_redundancy": { "type": "array", "items": { "type": "string" } },
+        "tool_scope_violations": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "recommendation": {
+      "type": "string",
+      "enum": ["HEALTHY", "REFINE", "MANUAL REVIEW", "BLOCK"]
+    },
+    "notes": { "type": "string" }
+  }
+}

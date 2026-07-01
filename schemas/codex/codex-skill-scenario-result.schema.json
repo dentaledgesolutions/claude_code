@@ -1,0 +1,63 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Codex Skill Per-Scenario Eval Result",
+  "description": "Written by codex exec -o result.json for one skill eval scenario. Source of truth for scoring.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenario_id", "scenario_type", "expected_triggers", "codex_triggers",
+    "score", "assertions_result", "analyst_flags", "hard_failure",
+    "hard_failure_reason", "notes"
+  ],
+  "properties": {
+    "scenario_id": { "type": "integer" },
+    "scenario_type": {
+      "type": "string",
+      "enum": ["direct", "paraphrased", "edge_case", "negative", "semantic",
+               "adversarial", "project-native", "project-workflow", "multi-turn"]
+    },
+    "expected_triggers": {
+      "type": "boolean",
+      "description": "From evals.json expected.triggers"
+    },
+    "codex_triggers": {
+      "type": "boolean",
+      "description": "Codex second-model assessment: would this skill trigger given the prompt?"
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "10=correct trigger+all assertions, 7-9=minor deviation, 4-6=partial, 1-3=wrong, 0=opposite of expected"
+    },
+    "assertions_result": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["assertion", "passed", "notes"],
+        "properties": {
+          "assertion": { "type": "string" },
+          "passed": { "type": "boolean" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "analyst_flags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["non_discriminating", "unstable", "adversarial_false_positive", "multi_turn_redundancy"]
+      }
+    },
+    "hard_failure": {
+      "type": "boolean",
+      "description": "True only if: lifecycle ownership attempt, security bypass, or review-gate loop risk detected"
+    },
+    "hard_failure_reason": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "Reason string when hard_failure is true, null otherwise"
+    },
+    "notes": { "type": "string" }
+  }
+}

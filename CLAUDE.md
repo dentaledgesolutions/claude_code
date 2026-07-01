@@ -68,3 +68,55 @@ project-setup → project-audit → skill-scout → skill-audit → skill-adapt 
 - Run `npx ecc-agentshield --opus` automatically — it makes API calls and may incur cost; only on explicit user request
 - Edit `SKILL.md.baseline` once created — it is the immutable reference point for a refine session
 - Skip the analyst pass in skill-eval — non-discriminating and flaky scenarios are silent failures without it
+
+## Codex External Eval Layer
+
+Codex CLI is the independent second-model evaluator. It executes eval scenarios outside the Claude Code session, reducing session token consumption. Claude Code remains the methodology and lifecycle owner; Codex returns structured results and summaries only.
+
+Validated on: `skill-eval` and `skill-eval-agent` (smoke + standard mode, 2026-07-01). See `docs/evaluations/claude-code-codex-architecture-evaluation.md`.
+
+### Commands (DRY-RUN IS DEFAULT — add --live to call Codex)
+
+| Command | What it does |
+|---------|-------------|
+| `node scripts/codex/run-external-skill-eval.js <skill> --mode smoke` | Dry-run: writes prompts + command preview, no Codex call |
+| `node scripts/codex/run-external-skill-eval.js <skill> --mode smoke --live` | Live: 4 scenarios (direct, negative, adversarial, project-native) |
+| `node scripts/codex/run-external-skill-eval.js <skill> --mode standard --live` | Live: all 9 scenario types, 1 rep |
+| `node scripts/codex/run-external-skill-eval.js <skill> --mode full --live` | Live: all 9 types, 3 reps for trigger-sensitive scenarios |
+| `node scripts/codex/run-external-agent-eval.js <agent> --mode smoke` | Same dry-run pattern for agents |
+| `node scripts/codex/run-external-agent-eval.js <agent> --mode standard --live` | Live standard eval for agents |
+
+### What Claude Code reviews
+
+`CODEX-EVAL-SUMMARY.md` in `evals/codex-runs/<type>/<target>/<run-id>/` — not the JSONL traces. The summary contains the 5-metric table, recommendation, hard failures, and analyst findings.
+
+### Disagreement policy
+
+| Native eval | Codex eval | Route |
+|-------------|-----------|-------|
+| PASS | PASS | HEALTHY |
+| PASS | FAIL | REFINE or MANUAL REVIEW |
+| FAIL | PASS | MANUAL REVIEW |
+| FAIL | FAIL | BLOCK / REFINE / REWRITE |
+| Any hard failure | Any | BLOCK |
+
+Claude Code makes the final call. A Codex BLOCK that conflicts with a native PASS routes to MANUAL REVIEW, not auto-BLOCK.
+
+### Boundary
+
+Claude Code = methodology, scenarios, lifecycle, final decision.  
+Codex = external second-model execution, per-scenario `result.json`, `CODEX-EVAL-SUMMARY.md`.  
+See `docs/codex-external-eval-architecture.md` for the full boundary table and artifact flow.
+
+### What Codex is not
+
+Codex does not replay the Claude Code runtime — it is an independent second model reading skill/agent definitions and judging scenarios. Codex does not own any lifecycle step and does not call skill-refine, agent-refine, or skill-guardian.
+
+### Never
+
+- Add `--live` to any automated script — always require explicit human invocation
+- Enable the Codex plugin review gate
+- Parse `trace.jsonl` for scores — `result.json` (written by `-o`) is the only source of truth
+- Use `--sandbox workspace-write` or `danger-full-access` for read-only evals
+- Commit `evals/codex-runs/` artifacts — gitignored
+- Add CI until local results are stable and explicitly approved

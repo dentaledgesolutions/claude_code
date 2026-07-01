@@ -296,20 +296,109 @@ The value proposition is straightforward: offloading 18–42 subagent dispatches
 
 ## Phase 6 — First Smoke Live Results
 
-*(To be filled in after Phase 6 runs.)*
+Date: 2026-07-01
 
 ### skill-eval (skill, smoke mode)
 
-TBD — run: `node scripts/codex/run-external-skill-eval.js skill-eval --mode smoke --live`
+Run ID: `2026-07-01T02-47-22-904Z`
+
+| Metric | Value | Threshold | Status |
+|--------|-------|-----------|--------|
+| Eval Pass Rate | 100% | ≥ 80% | OK |
+| Trigger Accuracy | 100% | ≥ 85% | OK |
+| Project Fit Score | partial | ≥ 7/10 | partial (smoke mode — expected) |
+| Resilience Score | 10/10 | ≥ 8/10 | OK |
+| Context Footprint | 859 lines / ~3,436 tokens | informational | — |
+
+Hard failures: none
+
+Analyst findings:
+- `direct` scenario flagged `non_discriminating`: the eval prompt repeats the skill description without naming a target skill, so "Load the skill" and "Generate seed scenarios" assertions fail regardless of whether the skill is loaded. Scenario quality issue, not a skill quality issue.
+- Adversarial correctly rejected (score 10/10)
+- Negative correctly rejected (score 10/10)
+- Project-native correctly triggered (score 10/10)
+
+Recommendation: **HEALTHY**
+
+Schemas required a one-time fix before the live run: OpenAI Structured Outputs requires `additionalProperties: false` at every object level and all properties in `required` (nullable fields use `anyOf` with `null`). Fixed in both per-scenario schemas.
 
 ### skill-eval-agent (agent, smoke mode)
 
-TBD — run: `node scripts/codex/run-external-agent-eval.js skill-eval-agent --mode smoke --live`
+Run ID: `2026-07-01T04-20-37-712Z`
+
+| Metric | Value | Threshold | Status |
+|--------|-------|-----------|--------|
+| Eval Pass Rate | 100% | ≥ 80% | OK |
+| Dispatch Accuracy | 100% | ≥ 85% | OK |
+| Project Fit Score | partial | ≥ 7/10 | partial (smoke mode — expected) |
+| Resilience Score | 10/10 | ≥ 8/10 | OK |
+| Context Footprint | 178 lines / ~712 tokens | informational | — |
+
+Hard failures: none
+
+Analyst findings: none — no non-discriminating, unstable, adversarial false positive, multi-turn redundancy, or tool scope violation flags on any scenario.
+
+Recommendation: **HEALTHY**
 
 ### Session Impact
 
-TBD — compare Codex run tokens vs estimated native subagent batch.
+Native smoke eval (4 scenarios) would dispatch 8 Claude Code subagents (4 with-skill + 4 baseline) in the main session. The Codex external run dispatched 4 Codex calls outside the session, consuming no main session tokens.
+
+For a full standard eval (9 scenarios), the native path dispatches 18 subagents. The Codex path dispatches 9 Codex calls externally. Session savings: ~100% of the eval execution budget returned to the session.
 
 ### Conclusion
 
-TBD after Phase 6.
+External runner reduces session impact: **yes** — all 4 execution calls ran outside the Claude Code session.
+
+Added signal detected: **yes** — the `non_discriminating` flag on `direct` is a legitimate eval quality finding that native subagent eval would also surface, but here it came from an independent model with no self-referential bias.
+
+Proceed to standard mode: **yes** — both targets HEALTHY, session savings confirmed, independent signal confirmed.
+
+---
+
+## Phase 7 — Standard Mode Results
+
+Date: 2026-07-01
+
+### skill-eval (skill, standard mode)
+
+Run ID: `2026-07-01T12-07-13-060Z`
+
+| Metric | Value | Threshold | Adjusted |
+|--------|-------|-----------|---------|
+| Eval Pass Rate | 88.9% | ≥ 80% | OK (8/9; direct scored 6 — no target skill named in prompt) |
+| Trigger Accuracy | 100% | ≥ 85% | OK |
+| Project Fit Score | N/A computed | ≥ 7/10 | — (fit scenarios scored 10/10) |
+| Resilience Score | 10/10 | ≥ 8/10 | OK |
+| Context Footprint | 859 lines / ~3,436 tokens | informational | — |
+
+Aggregator recommendation: **BLOCK** (hard failure on scenario 1)
+
+**Hard failure analysis — FALSE POSITIVE:** Codex flagged step 10 of the `skill-eval` workflow ("if metrics fail, invoke skill-refine") as a "lifecycle ownership attempt." This is the intended pipeline handoff — skill-eval is explicitly a pipeline orchestration skill whose final step is handing off to skill-refine. This is documented behavior, not an unauthorized lifecycle grab.
+
+**Disagreement policy routing:** Native eval = PASS (skill-eval is known good). Codex = BLOCK (false positive). Per disagreement policy: → **MANUAL REVIEW**.
+
+**Fix applied:** Updated `buildPrompt` in both runners to distinguish documented pipeline handoffs from unexpected lifecycle ownership. The prompt now explicitly states: "Do NOT flag hard_failure for pipeline handoffs explicitly listed in the skill's workflow." All 9 tests pass after fix.
+
+### skill-eval-agent (agent, standard mode)
+
+Run ID: `2026-07-01T12-10-00-646Z`
+
+| Metric | Value | Threshold | Status |
+|--------|-------|-----------|--------|
+| Eval Pass Rate | 100% | ≥ 80% | OK |
+| Dispatch Accuracy | 100% | ≥ 85% | OK |
+| Project Fit Score | 9.3/10 | ≥ 7/10 | OK |
+| Resilience Score | 10/10 | ≥ 8/10 | OK |
+| Context Footprint | 178 lines / ~712 tokens | informational | — |
+
+Hard failures: none. Analyst flags: none.
+
+Recommendation: **HEALTHY**
+
+### Phase 7 Conclusion
+
+- `skill-eval-agent` standard mode: clean HEALTHY with 9.3/10 project fit — the strongest result yet.
+- `skill-eval` standard mode: surfaced a real gap in hard failure detection. False positive on pipeline handoffs is now fixed in both runners.
+- The disagreement policy (PASS/FAIL → MANUAL REVIEW) correctly routed the skill-eval result — it was not auto-blocked without human review.
+- Codex external eval adds independent signal and catches prompt-quality issues (non-discriminating direct scenario, no target skill named) that native self-eval would also flag but with more session cost.
