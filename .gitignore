@@ -9,3 +9,6 @@
 **/.DS_Store
 
 # docs/audits/ is intentionally committed — audit reports are reference artifacts, not volatile outputs
+
+# Codex external eval run artifacts (generated, not versioned)
+evals/codex-runs/
