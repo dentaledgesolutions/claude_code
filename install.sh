@@ -66,7 +66,7 @@ while IFS= read -r dir; do
 done < <(find "${REPO_DIR}/skills" -mindepth 1 -maxdepth 1 -type d | sort)
 
 # ── 1. Project-scoped skills (source of truth) ───────────────────────────────
-echo "→ [1/5] Copying skills to project"
+echo "→ [1/6] Copying skills to project"
 if ! ${DRY_RUN}; then mkdir -p "${TARGET}/skills" && cp -R "${REPO_DIR}/skills/." "${TARGET}/skills/"; fi
 for skill in "${SKILL_NAMES[@]}"; do
     ${DRY_RUN} && dryrun "${skill}  →  ${TARGET}/skills/${skill}" || ok "${skill}  →  ${TARGET}/skills/${skill}"
@@ -74,7 +74,7 @@ done
 echo ""
 
 # ── 2. Runtime sync (~/.claude/skills/) ─────────────────────────────────────
-echo "→ [2/5] Syncing skills to runtime"
+echo "→ [2/6] Syncing skills to runtime"
 if ! ${DRY_RUN}; then mkdir -p "${GLOBAL_SKILLS}"; fi
 for skill in "${SKILL_NAMES[@]}"; do
     if ! ${DRY_RUN}; then cp -R "${REPO_DIR}/skills/${skill}" "${GLOBAL_SKILLS}/"; fi
@@ -83,7 +83,7 @@ done
 echo ""
 
 # ── 3. Agents (project-scoped only) ─────────────────────────────────────────
-echo "→ [3/5] Installing agents"
+echo "→ [3/6] Installing agents"
 if ! ${DRY_RUN}; then mkdir -p "${TARGET}/.claude/agents"; fi
 for agent_file in "${REPO_DIR}/.claude/agents/"*.md; do
     agent_name="$(basename "${agent_file}")"
@@ -92,8 +92,25 @@ for agent_file in "${REPO_DIR}/.claude/agents/"*.md; do
 done
 echo ""
 
-# ── 4. Evals workspace + .gitignore ─────────────────────────────────────────
-echo "→ [4/5] Setting up evals/ workspace and .gitignore"
+# ── 4. Codex eval scripts + schemas ─────────────────────────────────────────
+echo "→ [4/6] Installing Codex external eval scripts and schemas"
+if ! ${DRY_RUN}; then
+    mkdir -p "${TARGET}/scripts/codex" "${TARGET}/schemas/codex"
+    cp -R "${REPO_DIR}/scripts/codex/." "${TARGET}/scripts/codex/"
+    cp -R "${REPO_DIR}/schemas/codex/." "${TARGET}/schemas/codex/"
+fi
+for f in "${REPO_DIR}/scripts/codex/"*.js; do
+    ${DRY_RUN} && dryrun "$(basename "${f}")  →  ${TARGET}/scripts/codex/$(basename "${f}")" \
+               || ok "$(basename "${f}")  →  ${TARGET}/scripts/codex/$(basename "${f}")"
+done
+for f in "${REPO_DIR}/schemas/codex/"*.json; do
+    ${DRY_RUN} && dryrun "$(basename "${f}")  →  ${TARGET}/schemas/codex/$(basename "${f}")" \
+               || ok "$(basename "${f}")  →  ${TARGET}/schemas/codex/$(basename "${f}")"
+done
+echo ""
+
+# ── 5. Evals workspace + .gitignore ─────────────────────────────────────────
+echo "→ [5/6] Setting up evals/ workspace and .gitignore"
 if ! ${DRY_RUN}; then
     mkdir -p "${TARGET}/evals"
     ok "created  ${TARGET}/evals/"
@@ -130,8 +147,8 @@ else
 fi
 echo ""
 
-# ── 5. CLAUDE.md pipeline section ────────────────────────────────────────────
-echo "→ [5/5] Writing pipeline rules to CLAUDE.md"
+# ── 6. CLAUDE.md pipeline section ────────────────────────────────────────────
+echo "→ [6/6] Writing pipeline rules to CLAUDE.md"
 CLAUDE_MD="${TARGET}/CLAUDE.md"
 MARKER_START="# >>> skill-builder >>>"
 
