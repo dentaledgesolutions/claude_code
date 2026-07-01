@@ -324,7 +324,21 @@ Schemas required a one-time fix before the live run: OpenAI Structured Outputs r
 
 ### skill-eval-agent (agent, smoke mode)
 
-TBD — run when ready: `node scripts/codex/run-external-agent-eval.js skill-eval-agent --mode smoke --live`
+Run ID: `2026-07-01T04-20-37-712Z`
+
+| Metric | Value | Threshold | Status |
+|--------|-------|-----------|--------|
+| Eval Pass Rate | 100% | ≥ 80% | OK |
+| Dispatch Accuracy | 100% | ≥ 85% | OK |
+| Project Fit Score | partial | ≥ 7/10 | partial (smoke mode — expected) |
+| Resilience Score | 10/10 | ≥ 8/10 | OK |
+| Context Footprint | 178 lines / ~712 tokens | informational | — |
+
+Hard failures: none
+
+Analyst findings: none — no non-discriminating, unstable, adversarial false positive, multi-turn redundancy, or tool scope violation flags on any scenario.
+
+Recommendation: **HEALTHY**
 
 ### Session Impact
 
@@ -338,4 +352,4 @@ External runner reduces session impact: **yes** — all 4 execution calls ran ou
 
 Added signal detected: **yes** — the `non_discriminating` flag on `direct` is a legitimate eval quality finding that native subagent eval would also surface, but here it came from an independent model with no self-referential bias.
 
-Proceed to standard mode: **yes, pending skill-eval-agent smoke run approval**.
+Proceed to standard mode: **yes** — both targets HEALTHY, session savings confirmed, independent signal confirmed.
