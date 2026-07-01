@@ -17,6 +17,7 @@
     "agent-scout",
     "project-audit",
     "project-setup",
+    "repo-audit",
     "skill-adapt",
     "skill-audit",
     "skill-discovery",
@@ -65,6 +66,11 @@
       "command": "gsd-phase-boundary.sh"
     },
     {
+      "event": "PostToolUse",
+      "matcher": "Bash",
+      "command": "gsd-graphify-update.sh"
+    },
+    {
       "event": "PreToolUse",
       "matcher": "Write|Edit",
       "command": "gsd-prompt-guard.js"
@@ -88,11 +94,18 @@
   "mcp_servers": [],
   "plugins": [
     "superpowers",
-    "skill-creator",
-    "context-mode",
-    "claude-mem",
-    "frontend-design"
+    "andrej-karpathy-skills",
+    "frontend-design",
+    "ralph-skills",
+    "security-guidance",
+    "codex",
+    "claude-seo"
   ],
+  "audited_repos": [],
+  "audit_signals": {
+    "architecture_patterns": [],
+    "ref_stack_extended": []
+  },
   "security_grade": "C",
   "security_score": 71,
   "security_last_scanned": "2026-06-22"
