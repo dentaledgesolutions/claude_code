@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Codex Agent Per-Scenario Eval Result",
+  "description": "Written by codex exec -o result.json for one agent eval scenario. Source of truth for scoring.",
+  "type": "object",
+  "required": ["scenario_id", "scenario_type", "expected_dispatches", "codex_dispatches", "score", "assertions_result", "notes"],
+  "properties": {
+    "scenario_id": { "type": "integer" },
+    "scenario_type": {
+      "type": "string",
+      "enum": ["direct", "paraphrased", "edge_case", "negative", "semantic", "adversarial", "project-native", "project-workflow", "multi-turn"]
+    },
+    "expected_dispatches": {
+      "type": "boolean",
+      "description": "From evals.json expected.dispatches"
+    },
+    "codex_dispatches": {
+      "type": "boolean",
+      "description": "Codex second-model assessment: would this agent be dispatched given the prompt?"
+    },
+    "score": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 10,
+      "description": "Same rubric as skill: 10=correct+all assertions, 0=opposite of expected"
+    },
+    "assertions_result": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["assertion", "passed"],
+        "properties": {
+          "assertion": { "type": "string" },
+          "passed": { "type": "boolean" },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "analyst_flags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": ["non_discriminating", "unstable", "adversarial_false_positive", "multi_turn_redundancy", "tool_scope_violation"]
+      }
+    },
+    "hard_failure": { "type": "boolean" },
+    "hard_failure_reason": { "type": "string" },
+    "notes": { "type": "string" }
+  }
+}
