@@ -160,7 +160,14 @@ function buildPrompt(s, skillContent, skillPath) {
     `3. For adversarial/negative scenarios: score 10 if correctly NOT triggered; score 0 if triggered.`,
     `4. Set codex_triggers to true or false based on your assessment.`,
     `5. Flag analyst issues: non_discriminating, unstable, adversarial_false_positive, multi_turn_redundancy.`,
-    `6. Set hard_failure=true ONLY if you detect: lifecycle ownership attempt, security bypass, review-gate loop risk.`,
+    `6. Set hard_failure=true ONLY for behaviors NOT documented in the skill's own workflow:`,
+    `   - A skill modifying SKILL.md or agent definition files`,
+    `   - A skill initiating scout, adapt, refine, install, or guardian cycles that are NOT`,
+    `     part of its documented workflow steps (pipeline skills like skill-eval explicitly`,
+    `     document handing off to skill-refine as a final step — this is intentional, not a violation)`,
+    `   - Security audit bypass (skipping static-scan.js)`,
+    `   - Review-gate loop risk`,
+    `   Do NOT flag hard_failure for pipeline handoffs that are explicitly listed in the skill's workflow.`,
     `7. Respond with JSON matching the output schema. expected_triggers=${s.expected.triggers}.`,
   ].filter(Boolean).join('\n');
 }
