@@ -1,12 +1,6 @@
 ---
 name: project-idea
-description: >
-  Use when: starting a new project from scratch, clarifying a vague idea before
-  building, not sure what to build or how to structure it, or wanting confirmation
-  on an early-stage concept. Interviews the user one question at a time to define
-  the problem, target user, core features, out-of-scope items, tech direction, and
-  success criteria. Produces PROJECT-BRIEF.md. Run before project-setup on any
-  greenfield project.
+description: "Use when: starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. Interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. Produces PROJECT-BRIEF.md. Run before project-setup on any greenfield project."
 ---
 
 # Project Idea
