@@ -296,20 +296,46 @@ The value proposition is straightforward: offloading 18–42 subagent dispatches
 
 ## Phase 6 — First Smoke Live Results
 
-*(To be filled in after Phase 6 runs.)*
+Date: 2026-07-01
 
 ### skill-eval (skill, smoke mode)
 
-TBD — run: `node scripts/codex/run-external-skill-eval.js skill-eval --mode smoke --live`
+Run ID: `2026-07-01T02-47-22-904Z`
+
+| Metric | Value | Threshold | Status |
+|--------|-------|-----------|--------|
+| Eval Pass Rate | 100% | ≥ 80% | OK |
+| Trigger Accuracy | 100% | ≥ 85% | OK |
+| Project Fit Score | partial | ≥ 7/10 | partial (smoke mode — expected) |
+| Resilience Score | 10/10 | ≥ 8/10 | OK |
+| Context Footprint | 859 lines / ~3,436 tokens | informational | — |
+
+Hard failures: none
+
+Analyst findings:
+- `direct` scenario flagged `non_discriminating`: the eval prompt repeats the skill description without naming a target skill, so "Load the skill" and "Generate seed scenarios" assertions fail regardless of whether the skill is loaded. Scenario quality issue, not a skill quality issue.
+- Adversarial correctly rejected (score 10/10)
+- Negative correctly rejected (score 10/10)
+- Project-native correctly triggered (score 10/10)
+
+Recommendation: **HEALTHY**
+
+Schemas required a one-time fix before the live run: OpenAI Structured Outputs requires `additionalProperties: false` at every object level and all properties in `required` (nullable fields use `anyOf` with `null`). Fixed in both per-scenario schemas.
 
 ### skill-eval-agent (agent, smoke mode)
 
-TBD — run: `node scripts/codex/run-external-agent-eval.js skill-eval-agent --mode smoke --live`
+TBD — run when ready: `node scripts/codex/run-external-agent-eval.js skill-eval-agent --mode smoke --live`
 
 ### Session Impact
 
-TBD — compare Codex run tokens vs estimated native subagent batch.
+Native smoke eval (4 scenarios) would dispatch 8 Claude Code subagents (4 with-skill + 4 baseline) in the main session. The Codex external run dispatched 4 Codex calls outside the session, consuming no main session tokens.
+
+For a full standard eval (9 scenarios), the native path dispatches 18 subagents. The Codex path dispatches 9 Codex calls externally. Session savings: ~100% of the eval execution budget returned to the session.
 
 ### Conclusion
 
-TBD after Phase 6.
+External runner reduces session impact: **yes** — all 4 execution calls ran outside the Claude Code session.
+
+Added signal detected: **yes** — the `non_discriminating` flag on `direct` is a legitimate eval quality finding that native subagent eval would also surface, but here it came from an independent model with no self-referential bias.
+
+Proceed to standard mode: **yes, pending skill-eval-agent smoke run approval**.

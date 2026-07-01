@@ -3,12 +3,18 @@
   "title": "Codex Agent Per-Scenario Eval Result",
   "description": "Written by codex exec -o result.json for one agent eval scenario. Source of truth for scoring.",
   "type": "object",
-  "required": ["scenario_id", "scenario_type", "expected_dispatches", "codex_dispatches", "score", "assertions_result", "notes"],
+  "additionalProperties": false,
+  "required": [
+    "scenario_id", "scenario_type", "expected_dispatches", "codex_dispatches",
+    "score", "assertions_result", "analyst_flags", "hard_failure",
+    "hard_failure_reason", "notes"
+  ],
   "properties": {
     "scenario_id": { "type": "integer" },
     "scenario_type": {
       "type": "string",
-      "enum": ["direct", "paraphrased", "edge_case", "negative", "semantic", "adversarial", "project-native", "project-workflow", "multi-turn"]
+      "enum": ["direct", "paraphrased", "edge_case", "negative", "semantic",
+               "adversarial", "project-native", "project-workflow", "multi-turn"]
     },
     "expected_dispatches": {
       "type": "boolean",
@@ -28,7 +34,8 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["assertion", "passed"],
+        "additionalProperties": false,
+        "required": ["assertion", "passed", "notes"],
         "properties": {
           "assertion": { "type": "string" },
           "passed": { "type": "boolean" },
@@ -40,11 +47,18 @@
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["non_discriminating", "unstable", "adversarial_false_positive", "multi_turn_redundancy", "tool_scope_violation"]
+        "enum": ["non_discriminating", "unstable", "adversarial_false_positive",
+                 "multi_turn_redundancy", "tool_scope_violation"]
       }
     },
-    "hard_failure": { "type": "boolean" },
-    "hard_failure_reason": { "type": "string" },
+    "hard_failure": {
+      "type": "boolean",
+      "description": "True only if: lifecycle ownership attempt, security bypass, tool-scope policy breach, or review-gate loop risk detected"
+    },
+    "hard_failure_reason": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "Reason string when hard_failure is true, null otherwise"
+    },
     "notes": { "type": "string" }
   }
 }
