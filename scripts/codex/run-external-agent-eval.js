@@ -17,10 +17,11 @@ const path = require('path');
 
 const args = process.argv.slice(2);
 const agentName = args.find(a => !a.startsWith('-'));
-const isLive = args.includes('--live');
-const isHelp = args.includes('--help') || args.includes('-h');
-const modeIdx = args.indexOf('--mode');
-const mode = modeIdx >= 0 ? args[modeIdx + 1] : 'standard';
+const isLive    = args.includes('--live');
+const isExecute = args.includes('--execute');
+const isHelp    = args.includes('--help') || args.includes('-h');
+const modeIdx   = args.indexOf('--mode');
+const mode      = modeIdx >= 0 ? args[modeIdx + 1] : 'standard';
 
 if (isHelp || !agentName) {
   console.log([
@@ -29,6 +30,7 @@ if (isHelp || !agentName) {
     'Options:',
     '  --mode smoke|standard|full   Evaluation depth (default: standard)',
     '  --live                       Call Codex and spend API credits (default: dry-run)',
+    '  --execute                    Run execution phase: Claude API behavioral test (requires --live + ANTHROPIC_API_KEY)',
     '  --help                       Show this help',
     '',
     'DRY-RUN IS THE DEFAULT. Use --live only when ready to spend API credits.',
@@ -185,10 +187,16 @@ console.log(`\nRun dir: ${runDir}`);
 console.log(`Scenarios: ${tasks.length} | Mode: ${mode} | Context: ${footprintLines} lines (~${footprintTokensEst} tokens)`);
 console.log(`project_fit note: ${evalSpec.project_fit_note}`);
 
+if (isExecute && !isLive) {
+  console.error('Error: --execute requires --live. Both flags must be used together.');
+  process.exit(1);
+}
+
 if (!isLive) {
   console.log('\nDry-run complete. No Codex calls made.');
   console.log(`Review: ${path.join(runDir, 'command-preview.sh')}`);
-  console.log('Add --live to execute.');
+  console.log('Add --live to execute Codex scenarios.');
+  console.log('Add --live --execute to also run the execution phase (requires ANTHROPIC_API_KEY).');
   process.exit(0);
 }
 
@@ -219,6 +227,14 @@ for (const { scenario, dir } of tasks) {
   } else {
     console.warn(`  result.json not written — check trace.jsonl`);
   }
+}
+
+if (isExecute) {
+  console.log('\nRunning execution phase...');
+  const execResult = spawnSync('node', [
+    'scripts/codex/run-execution-phase.js', runDir, agentName, 'agent',
+  ], { encoding: 'utf8', stdio: 'inherit' });
+  if (execResult.status !== 0) console.error('Execution phase failed — continuing to aggregate.');
 }
 
 const aggResult = spawnSync('node', [

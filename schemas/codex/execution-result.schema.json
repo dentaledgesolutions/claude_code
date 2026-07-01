@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Execution Phase Per-Scenario Result",
+  "description": "Written by run-execution-phase.js for each positive scenario. Tests actual behavioral output by calling Claude API with the skill/agent definition as system prompt.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "scenario_id", "scenario_type", "execution_model", "grader_model",
+    "response_preview", "assertions_result", "score", "execution_pass", "notes"
+  ],
+  "properties": {
+    "scenario_id": { "type": "integer" },
+    "scenario_type": {
+      "type": "string",
+      "enum": ["direct", "paraphrased", "edge_case", "negative", "semantic",
+               "adversarial", "project-native", "project-workflow", "multi-turn"]
+    },
+    "execution_model": { "type": "string", "description": "Haiku model used for behavioral execution" },
+    "grader_model":    { "type": "string", "description": "Sonnet model used to grade assertions" },
+    "response_preview": { "type": "string", "description": "First 500 chars of Claude's response" },
+    "assertions_result": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["assertion", "passed", "notes"],
+        "properties": {
+          "assertion": { "type": "string" },
+          "passed":    { "type": "boolean" },
+          "notes":     { "type": "string" }
+        }
+      }
+    },
+    "score":          { "type": "integer", "minimum": 0, "maximum": 10 },
+    "execution_pass": { "type": "boolean", "description": "true if score >= 7" },
+    "notes":          { "type": "string" }
+  }
+}

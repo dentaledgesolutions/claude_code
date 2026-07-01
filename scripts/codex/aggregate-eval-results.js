@@ -39,6 +39,19 @@ const results = resultPaths.map(p => {
 
 const total = results.length;
 
+// ── Load execution-result.json files (optional — only if execution phase ran) ─
+const executionResults = readdirSync(runDir, { withFileTypes: true })
+  .filter(e => e.isDirectory())
+  .map(e => path.join(runDir, e.name, 'execution-result.json'))
+  .filter(existsSync)
+  .map(p => { try { return JSON.parse(readFileSync(p, 'utf8')); } catch { return null; } })
+  .filter(Boolean);
+
+const hasExecution = executionResults.length > 0;
+const execPassCount = executionResults.filter(r => r.execution_pass).length;
+const execution_pass_rate = hasExecution
+  ? Math.round(execPassCount / executionResults.length * 100) : null;
+
 // ── Eval Pass Rate ───────────────────────────────────────────────────────────
 const eval_pass_rate = total > 0
   ? Math.round((results.filter(r => r.score >= 7).length / total) * 100) : 0;
@@ -118,6 +131,7 @@ const metrics = {
 };
 if (isSkill) metrics.trigger_accuracy  = accuracy;
 else         metrics.dispatch_accuracy = accuracy;
+if (hasExecution) metrics.execution_pass_rate = execution_pass_rate;
 
 // ── Write aggregate-results.json ─────────────────────────────────────────────
 const aggregate = {
@@ -132,6 +146,13 @@ const aggregate = {
   metrics,
   analyst_summary,
   recommendation,
+  ...(hasExecution ? { execution_summary: {
+    scenarios_executed: executionResults.length,
+    scenarios_passed: execPassCount,
+    execution_pass_rate,
+    execution_model: executionResults[0]?.execution_model || '',
+    grader_model: executionResults[0]?.grader_model || '',
+  }} : {}),
 };
 writeFileSync(path.join(runDir, 'aggregate-results.json'), JSON.stringify(aggregate, null, 2));
 
@@ -176,6 +197,26 @@ const summaryLines = [
   `- **Adversarial false positives:** ${analyst_summary.adversarial_false_positives.join(', ') || 'none'}`,
   `- **Multi-turn redundancy:** ${analyst_summary.multi_turn_redundancy.join(', ') || 'none'}`,
   `- **Tool scope violations:** ${analyst_summary.tool_scope_violations.join(', ') || 'none'}`,
+  ``,
+  ...(hasExecution ? [
+    ``,
+    `## Execution Phase`,
+    ``,
+    `> Behavioral test: Claude API called with ${isSkill ? 'skill' : 'agent'} as system prompt; output graded against assertions.`,
+    `> Execution model: ${executionResults[0]?.execution_model || ''} | Grader: ${executionResults[0]?.grader_model || ''}`,
+    ``,
+    `| Metric | Value | Threshold | Status |`,
+    `|--------|-------|-----------|--------|`,
+    `| Execution Pass Rate | ${execution_pass_rate}% | ≥ 80% | ${statusCell(execution_pass_rate, 80)} |`,
+    `| Scenarios executed | ${executionResults.length} of ${total} | positive triggers only | — |`,
+    ``,
+    `**Per-scenario:**`,
+    ...executionResults.map(r => {
+      const p = r.assertions_result.filter(a => a.passed).length;
+      const t = r.assertions_result.length;
+      return `- Scenario ${r.scenario_id} (${r.scenario_type}): ${r.score}/10 — ${t > 0 ? `${p}/${t} assertions` : 'no assertions'} — ${r.execution_pass ? 'PASS' : 'FAIL'}`;
+    }),
+  ] : []),
   ``,
   `## Scenario Result Paths`,
   ...scenarioDirs.map(e => `- \`${path.join(runDir, e.name, 'result.json')}\``),

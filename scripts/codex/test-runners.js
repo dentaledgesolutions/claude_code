@@ -125,6 +125,26 @@ test('aggregator: CODEX-EVAL-SUMMARY.md is written', () => {
   if (!content.includes('Context Footprint')) throw new Error('Summary missing Context Footprint');
 });
 
+test('aggregator: execution-result.json included in summary', () => {
+  const dir = 'evals/codex-runs/.test/execution';
+  setupFixture(dir, [
+    makeResult({ scenario_id: 1, scenario_type: 'direct', expected_triggers: true, codex_triggers: true, score: 9 }),
+  ]);
+  writeFileSync(path.join(dir, '01-direct', 'execution-result.json'), JSON.stringify({
+    scenario_id: 1, scenario_type: 'direct',
+    execution_model: 'claude-haiku-4-5-20251001', grader_model: 'claude-sonnet-4-6',
+    response_preview: 'I will help set up the project...',
+    assertions_result: [{ assertion: 'skill triggers', passed: true, notes: 'response confirms activation' }],
+    score: 9, execution_pass: true, notes: '',
+  }));
+  runAgg(dir, 'skill-eval', 'skill', 'standard');
+  const summary = readFileSync(path.join(dir, 'CODEX-EVAL-SUMMARY.md'), 'utf8');
+  if (!summary.includes('Execution Phase')) throw new Error('Summary missing Execution Phase section');
+  const agg = JSON.parse(readFileSync(path.join(dir, 'aggregate-results.json'), 'utf8'));
+  if (agg.metrics.execution_pass_rate === undefined) throw new Error('execution_pass_rate missing from metrics');
+  if (agg.metrics.execution_pass_rate !== 100) throw new Error(`Expected 100%, got ${agg.metrics.execution_pass_rate}%`);
+});
+
 // ── Runner tests (conditional on runners existing) ───────────────────────────
 
 function runnerExists(name) {
@@ -163,6 +183,21 @@ if (runnerExists('run-external-agent-eval.js')) {
     const runs = require('fs').readdirSync(base).sort();
     const runDir = path.join(base, runs[runs.length - 1]);
     if (!existsSync(path.join(runDir, 'eval-spec.json'))) throw new Error('eval-spec.json missing');
+  });
+}
+
+if (runnerExists('run-execution-phase.js')) {
+  test('run-execution-phase no args exits non-zero with usage', () => {
+    const r = spawnSync('node', ['scripts/codex/run-execution-phase.js'], { stdio: 'pipe', encoding: 'utf8' });
+    if (r.status === 0) throw new Error('Expected non-zero exit with no args');
+    if (!r.stdout.includes('Usage')) throw new Error('Expected usage message in stdout');
+  });
+  test('run-execution-phase missing ANTHROPIC_API_KEY exits 1', () => {
+    const env = { ...process.env, ANTHROPIC_API_KEY: '' };
+    const r = spawnSync('node', ['scripts/codex/run-execution-phase.js', 'some-dir', 'skill-eval', 'skill'],
+      { stdio: 'pipe', encoding: 'utf8', env });
+    if (r.status !== 1) throw new Error(`Expected exit 1, got ${r.status}`);
+    if (!r.stderr.includes('ANTHROPIC_API_KEY')) throw new Error('Expected API key error in stderr');
   });
 }
 
