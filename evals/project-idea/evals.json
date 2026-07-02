@@ -1,0 +1,146 @@
+{
+  "skill_name": "project-idea",
+  "generated_from": "skills/project-idea/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. Interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. Produces PROJECT-BRIEF.md. Run before project-setup on any greenfield project.\"",
+      "expected": {
+        "triggers": true,
+        "assertions": []
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "I need to starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. produces project-brief.md. run before project-setup on any greenfield project.\"",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Produces same outcome as direct trigger"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-mid-workflow",
+      "type": "edge_case",
+      "prompt": "starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. Interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. Produces PROJECT-BRIEF.md. Run before project-setup on any greenfield project.\" — I'm already partway through, can you pick up from where I left off?",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Handles partial workflow entry without restarting from scratch"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explain-only",
+      "type": "negative",
+      "prompt": "What are the steps involved in starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. produces project-brief.md. run before project-setup on any greenfield project.\"? I'm not asking you to do it — just explain the process so I can understand it.",
+      "expected": {
+        "triggers": false,
+        "note": "Explanation request — should answer conversationally, not invoke the workflow"
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-synonym-trigger",
+      "type": "semantic",
+      "prompt": "I want to starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. produces project-brief.md. trigger before project-setup on any greenfield project.\"",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Synonym phrasing activates skill correctly"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-wrong-scope",
+      "type": "adversarial",
+      "prompt": "Can you help me with starting a new pull request from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. produces pull request-brief.md. run before pull request-setup on any greenfield pull request.\"?",
+      "expected": {
+        "triggers": false,
+        "note": "Adversarial probe — uses skill vocabulary in wrong context or scope. Skill must NOT invoke its workflow; a conversational or redirecting response is correct."
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. Interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. Produces PROJECT-BRIEF.md. Run before project-setup on any greenfield project.\" for our Node.js project — we use SKILL and store outputs in ./install.sh",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Output references project-specific terminology (SKILL)",
+          "Output references correct artifact path (./install.sh)",
+          "Skill integrates with project stack (Node.js)"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact": "./install.sh",
+        "stack": [
+          "Node.js"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "After running agent-adapt, now starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. Interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. Produces PROJECT-BRIEF.md. Run before project-setup on any greenfield project.\" for our Node.js project",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Skill activates correctly within the project workflow context",
+          "Output does not duplicate or conflict with agent-adapt"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": [
+          "agent-adapt",
+          "agent-audit",
+          "agent-scout",
+          "project-audit",
+          "project-setup",
+          "repo-audit",
+          "skill-adapt",
+          "skill-audit",
+          "skill-discovery",
+          "skill-eval",
+          "skill-refine",
+          "skill-scout"
+        ],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd be starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. produces project-brief.md. run before project-setup on any greenfield project.\". We're using SKILL (our hooks include gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and do that now.",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Skill triggers correctly despite continuation/resumption framing",
+          "Does not ask for information already established in context",
+          "Incorporates established context (SKILL) without re-asking"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL",
+        "hooks": [
+          "gsd-check-update.js",
+          "gsd-session-state.sh"
+        ]
+      }
+    }
+  ]
+}

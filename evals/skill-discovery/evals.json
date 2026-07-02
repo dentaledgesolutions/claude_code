@@ -1,0 +1,150 @@
+{
+  "skill_name": "skill-discovery",
+  "generated_from": "skills/skill-discovery/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "I want to identify new skills worth building from repeated manual tasks",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Executes step: Load context",
+          "Executes step: Read the logs",
+          "Executes step: Identify patterns"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "I need to identify new skills worth building from repeated manual tasks",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Produces same outcome as direct trigger"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-mid-workflow",
+      "type": "edge_case",
+      "prompt": "I'm already partway through — I've completed the \"Load context\" step. Can you help me from \"Save candidates if requested\" onwards?",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Handles partial workflow entry without restarting from scratch"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explain-only",
+      "type": "negative",
+      "prompt": "What are the steps involved in identify new skills worth building from repeated manual tasks? I'm not asking you to do it — just explain the process so I can understand it.",
+      "expected": {
+        "triggers": false,
+        "note": "Explanation request — should answer conversationally, not invoke the workflow"
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-synonym-trigger",
+      "type": "semantic",
+      "prompt": "I want to identify new skills worth building from repeated manual tasks (alternate phrasing)",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Synonym phrasing activates skill correctly"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-wrong-scope",
+      "type": "adversarial",
+      "prompt": "Before we start, can you walk me through what identify new skills worth building from repeated manual tasks would involve and whether it's the right approach for my situation?",
+      "expected": {
+        "triggers": false,
+        "note": "Adversarial probe — uses skill vocabulary in wrong context or scope. Skill must NOT invoke its workflow; a conversational or redirecting response is correct."
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "I want to identify new skills worth building from repeated manual tasks for our Node.js project — we use SKILL and store outputs in ./install.sh",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Output references project-specific terminology (SKILL)",
+          "Output references correct artifact path (./install.sh)",
+          "Skill integrates with project stack (Node.js)"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact": "./install.sh",
+        "stack": [
+          "Node.js"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "After running agent-adapt, now I want to identify new skills worth building from repeated manual tasks for our Node.js project",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Skill activates correctly within the project workflow context",
+          "Output does not duplicate or conflict with agent-adapt"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": [
+          "agent-adapt",
+          "agent-audit",
+          "agent-scout",
+          "project-audit",
+          "project-setup",
+          "repo-audit",
+          "skill-adapt",
+          "skill-audit",
+          "skill-discovery",
+          "skill-eval",
+          "skill-refine",
+          "skill-scout"
+        ],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd identify new skills worth building from repeated manual tasks. We're using SKILL (our hooks include gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and do that now.",
+      "expected": {
+        "triggers": true,
+        "assertions": [
+          "Skill triggers correctly despite continuation/resumption framing",
+          "Does not ask for information already established in context",
+          "Incorporates established context (SKILL) without re-asking"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL",
+        "hooks": [
+          "gsd-check-update.js",
+          "gsd-session-state.sh"
+        ]
+      }
+    }
+  ]
+}

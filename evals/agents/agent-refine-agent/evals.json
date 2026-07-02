@@ -1,0 +1,148 @@
+{
+  "agent_name": "agent-refine-agent",
+  "agent_file": ".claude/agents/agent-refine-agent.md",
+  "project_context": "evals/project-context.json",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-dispatch",
+      "type": "direct",
+      "prompt": "Dispatch the agent-refine-agent to Use this agent when refining a Claude Code agent definition autonomously,\nimproving an agent's eval metrics, running the autoresearch loop on an agent,\nor when agent-eval-agent reports any metric below threshold.",
+      "expected": {
+        "dispatches": true,
+        "assertions": [
+          "Agent agent-refine-agent is dispatched (Agent tool call appears in transcript)"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "I need you to use the agent-refine-agent — specifically to Use this agent when refining a Claude Code agent definition autonomously,\nimproving an agent's eval metrics, running the autoresearch loop on an agent,\nor when agent-eval-agent reports any metric below threshold.",
+      "expected": {
+        "dispatches": true,
+        "assertions": [
+          "Produces same outcome as direct dispatch"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-mid-workflow",
+      "type": "edge_case",
+      "prompt": "The agent-refine-agent is partway through its workflow. Pick it up from where it left off.",
+      "expected": {
+        "dispatches": true,
+        "assertions": [
+          "Handles partial workflow entry without restarting from scratch"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explain-only",
+      "type": "negative",
+      "prompt": "Can you explain what the agent-refine-agent does and how it works? I'm not asking you to run it — I just want to understand it.",
+      "expected": {
+        "dispatches": false,
+        "note": "Explanation request — should answer conversationally without dispatching the agent"
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-synonym-dispatch",
+      "type": "semantic",
+      "prompt": "Have the agent-refine-agent Use this agent when refining a Claude Code agent definition autonomously,\nimproving an agent's eval metrics, launchning the autoresearch loop on an agent,\nor when agent-eval-agent reports any metric below threshold.",
+      "expected": {
+        "dispatches": true,
+        "assertions": [
+          "Synonym phrasing dispatches the correct agent"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-wrong-scope",
+      "type": "adversarial",
+      "prompt": "Can you use this component when refining a Claude Code component definition autonomously,\nimproving an component's code review metrics, running the autoresearch loop on an component,\nor when component-code review-component reports any metric below threshold? I need help understanding the approach.",
+      "expected": {
+        "dispatches": false,
+        "note": "Adversarial probe — agent vocabulary used in wrong scope. Agent must NOT be dispatched. Score 10 if not dispatched, 0 if dispatched. No partial credit."
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "Dispatch the agent-refine-agent to Use this agent when refining a Claude Code agent definition autonomously,\nimproving an agent's eval metrics, running the autoresearch loop on an agent,\nor when agent-eval-agent reports any metric below threshold for our Node.js project — we use SKILL and store outputs in ./install.sh.",
+      "expected": {
+        "dispatches": true,
+        "assertions": [
+          "Output references project-specific terminology (SKILL)",
+          "Output references correct artifact path (./install.sh)",
+          "Agent aligns with project stack (Node.js)"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact": "./install.sh",
+        "stack": [
+          "Node.js"
+        ]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "After agent-adapt finished its run, dispatch the agent-refine-agent to Use this agent when refining a Claude Code agent definition autonomously,\nimproving an agent's eval metrics, running the autoresearch loop on an agent,\nor when agent-eval-agent reports any metric below threshold for our Node.js project.",
+      "expected": {
+        "dispatches": true,
+        "assertions": [
+          "Agent dispatches correctly within the project workflow context",
+          "Output does not duplicate or conflict with agent-adapt"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": [
+          "agent-adapt",
+          "agent-audit",
+          "agent-scout",
+          "project-audit",
+          "project-setup",
+          "repo-audit",
+          "skill-adapt",
+          "skill-audit",
+          "skill-discovery",
+          "skill-eval",
+          "skill-refine",
+          "skill-scout"
+        ],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed to dispatch the agent-refine-agent to Use this agent when refining a Claude Code agent definition autonomously,\nimproving an agent's eval metrics, running the autoresearch loop on an agent,\nor when agent-eval-agent reports any metric below threshold. We're using SKILL (hooks: gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and dispatch it now.",
+      "expected": {
+        "dispatches": true,
+        "assertions": [
+          "Agent dispatches correctly despite continuation/resumption framing",
+          "Does not ask for information already established in context",
+          "Incorporates established context (SKILL) without re-asking"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL",
+        "hooks": [
+          "gsd-check-update.js",
+          "gsd-session-state.sh"
+        ]
+      }
+    }
+  ]
+}
