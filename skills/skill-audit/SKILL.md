@@ -2,6 +2,7 @@
 name: skill-audit
 description: Security gate that scans a skill sourced from GitHub for prompt injection, malicious scripts, permission escalation, and supply chain risks before installation. Use when auditing a skill, checking skill security, scanning a skill from GitHub, or before installing any externally sourced skill.
 compatibility: "Claude Code. Node.js ≥ 18."
+risk_tier: critical
 ---
 
 # Skill Audit

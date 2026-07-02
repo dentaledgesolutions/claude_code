@@ -63,6 +63,19 @@ if (!existsSync(skillPath)) {
   process.exit(1);
 }
 
+// ── Parse risk_tier from SKILL.md frontmatter ────────────────────────────────
+
+function parseRiskTier(filePath) {
+  if (!existsSync(filePath)) return 'standard';
+  const content = readFileSync(filePath, 'utf8');
+  const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/);
+  if (!match) return 'standard';
+  const m = match[1].match(/^risk_tier:\s*(\S+)/m);
+  return m ? m[1].trim() : 'standard';
+}
+
+const riskTier = parseRiskTier(skillPath);
+
 // ── Compute Context Footprint (runner-computed, not from Codex) ───────────────
 
 function countLines(p) {
@@ -118,6 +131,7 @@ const evalSpec = {
   run_id: runId,
   mode,
   live_run: isLive,
+  risk_tier: riskTier,
   timestamp: new Date().toISOString(),
   scenario_count: tasks.length,
   context_footprint: { lines: footprintLines, tokens_est: footprintTokensEst },

@@ -46,9 +46,11 @@ project-setup → project-audit → skill-scout → skill-audit → skill-adapt 
 - **AGENT-EVAL.md** — per-agent eval report at `.claude/agents/<name>-EVAL.md`; uses Dispatch Accuracy instead of Trigger Accuracy
 - **AGENT-REFINE-LOG.md** — append-only iteration log at `.claude/agents/<name>-REFINE-LOG.md`
 - **Lever A–E** — mutation targets in the autoresearch loop (A=description, B=checklist/workflow, C=examples, D=reference/what-not-to-do, E=scripts for skills / frontmatter config for agents)
-- **Dispatch Accuracy** — agent-eval metric equivalent to Trigger Accuracy; measures correct dispatch decisions ≥ 85% required
-- **Resilience Score** — metric measuring adversarial non-trigger rate; ≥ 8/10 required
-- **Project Fit Score** — metric averaging project-native + project-workflow + multi-turn scenario scores; ≥ 7/10 required
+- **Dispatch Accuracy** — agent-eval metric equivalent to Trigger Accuracy; measures correct dispatch decisions on positive-expected scenarios only; ≥ 85% required (standard), ≥ 95% (critical)
+- **Resilience Score** — metric measuring adversarial non-trigger rate; ≥ 8/10 required (standard), ≥ 9/10 (critical); separate from Trigger Accuracy — adversarial scenarios do not count toward accuracy
+- **Project Fit Score** — metric averaging project-native + project-workflow + multi-turn scenario scores; ≥ 7/10 required (standard), ≥ 8/10 (critical)
+- **risk_tier** — SKILL.md frontmatter field (`standard` | `critical`); critical applies to security-gate skills (skill-audit, project-audit); raises all thresholds and tightens recommendation logic
+- **codex-baseline.json** — written to `evals/<skill>/` or `evals/agents/<agent>/` after a HEALTHY Codex eval; used by aggregator for regression detection on subsequent runs
 
 ## Claude's Rules
 
