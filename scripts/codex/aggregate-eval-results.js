@@ -187,7 +187,7 @@ if (existsSync(baselinePath)) {
 }
 
 // Save new baseline when HEALTHY
-if (recommendation === 'HEALTHY') {
+if (recommendation === 'HEALTHY' && mode !== 'smoke') {
   try {
     mkdirSync(path.dirname(baselinePath), { recursive: true });
     writeFileSync(baselinePath, JSON.stringify({
