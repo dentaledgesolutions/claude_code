@@ -37,11 +37,14 @@ Codex CLI (external)
 └── No lifecycle access     (no file writes beyond result/trace)
 
 scripts/codex/ (local Node.js, no deps)
-├── run-external-skill-eval.js    ← skill runner
-├── run-external-agent-eval.js    ← agent runner
-├── aggregate-eval-results.js     ← reads result.json, computes 5 metrics
-├── test-schemas.js               ← schema validity (no AJV)
-└── test-runners.js               ← fixture tests + dry-run tests
+├── run-external-skill-eval.js       ← skill runner (cold prediction: reads SKILL.md + scenario)
+├── run-external-agent-eval.js       ← agent runner (cold prediction: reads agent.md + scenario)
+├── run-execution-phase.js           ← optional behavioral signal (Anthropic API, not Codex)
+├── run-native-audit.js              ← native-audit runner (reads a COMPLETED native run's real evidence)
+├── render-native-audit-report.js    ← standalone renderer for native-audit results
+├── aggregate-eval-results.js        ← reads result.json, computes 5 metrics (cold-prediction mode only)
+├── test-schemas.js                  ← schema validity (no AJV)
+└── test-runners.js                  ← fixture tests + dry-run tests
 ```
 
 ---
@@ -190,6 +193,92 @@ Hard failure conditions detected by Codex:
 
 Claude Code is the final decision-maker. `CODEX-EVAL-SUMMARY.md` provides evidence, not a binding verdict.
 
+**Addendum (native-audit mode):** a native-audit `escalation = MANUAL_REVIEW_REQUIRED` or
+`REVIEW_SUGGESTED` (see below) overrides any HEALTHY/PASS agreement in the table above — routes to
+MANUAL REVIEW regardless of the 2×2 outcome. This is evidence, not an auto-BLOCK; Claude Code remains
+the final decision-maker.
+
+---
+
+## Native Audit Mode
+
+The cold-prediction mode above (`run-external-skill-eval.js` / `run-external-agent-eval.js`) gives
+Codex only the raw `SKILL.md`/agent `.md` file and one scenario prompt, and asks it to predict "would
+this trigger?" — cold, with zero visibility into what the native `skill-eval-agent`/`agent-eval-agent`
+pipeline actually observed when it really ran the skill/agent. **Native audit mode is additive, not a
+replacement**: it packages a *completed* native run's real evidence — the definition, the native
+`SKILL-EVAL.md`/`<agent>-EVAL.md` report, and a sample of `with_skill`/`with_agent` transcripts — into a
+single Codex call whose job is to audit whether that evidence actually supports the native evaluator's
+own conclusions, not to re-predict triggering.
+
+Motivating evidence: a calibration test (inject known defects into a mutant skill, run the native
+pipeline blind) showed the native evaluator reliably catches integration-breaking bugs but **misses
+internal self-contradictions and silently-dropped workflow steps** — it grades transcript conformance
+against the skill's own (possibly-corrupted) instructions rather than critiquing whether those
+instructions are sound. A fresh reader looking at "here's what actually happened" transcripts is much
+better positioned to catch exactly this class of blind spot. See
+`docs/evaluations/claude-code-codex-architecture-evaluation.md` Phase 8 for the full writeup.
+
+### Artifact flow
+
+```
+evals/<target>/iteration-N/               ← produced by the NATIVE skill-eval-agent/agent-eval-agent run
+  <scenario-dir>/with_skill/output.md      (naming convention varies — see matching strategy below)
+skills/<target>/SKILL-EVAL.md              ← native report (the thing being audited)
+       ↓
+run-native-audit.js <target> <skill|agent> [--iteration N] [--all-reps] [--include-baseline] [--live]
+       ↓
+evals/codex-runs/native-audits/{skills,agents}/<target>/<run-id>/
+  ├── audit-spec.json          ← manifest: which scenarios/reps packaged, byte counts, native recommendation
+  ├── prompt.txt                ← the single holistic prompt Codex reads (dry-run and live)
+  ├── command-preview.sh        ← the codex exec command (written even in dry-run)
+  ├── result.json                ← Codex's structured audit (--live only)
+  ├── trace.jsonl                ← JSONL event stream (--live only, evidence only)
+  └── NATIVE-AUDIT-REPORT.md    ← written by render-native-audit-report.js (--live only)
+```
+
+### Scenario-dir matching strategy
+
+Native run directories are **not consistently named** across historical runs — three conventions have
+been observed on disk: `<id>_rep<N>` (e.g. `1_rep1`), `<id>` with no rep suffix (e.g. `3`), and
+`s<id>-<type>[-r<N>]` (e.g. `s1-direct`, `s2-paraphrased-r1`). `run-native-audit.js` handles all three:
+
+1. **Primary filter**: only directories containing a `with_skill`/`with_agent` subdirectory count as
+   real scenario dirs.
+2. **ID extraction**: `/^s?(\d+)/` on the dirname — never inferred from position.
+3. **Type/prompt/expected**: always cross-referenced from `evals/<target>/evals.json` by numeric `id`,
+   never derived from the dirname (the `<id>_rep<N>` convention encodes no type at all).
+4. **Rep de-dup**: keeps the lowest rep per id by default (caps packaged size); `--all-reps` includes
+   every rep found.
+
+### Schema
+
+`schemas/codex/codex-native-audit-result.schema.json` — a single holistic object per audited run (not
+a per-scenario array like the cold-prediction schemas). Deliberately has **no** `codex_triggers` /
+`codex_dispatches` / `score` fields, to keep this mode's output unconflated with cold-prediction
+results. Key fields: a fixed 4-item `checklist` (`instruction_self_consistency`,
+`workflow_step_fidelity`, `native_scoring_supported`, `output_integration_claims` — mapped directly to
+the calibration-test defect classes), `audit_findings[]` (each requiring an `evidence_quote` so
+findings are grounded, not vibes), and `native_conclusion_supported`.
+
+`render-native-audit-report.js` computes an `escalation` label **locally** (never trusted from Codex's
+own output — same philosophy as the aggregator computing `recommendation` itself):
+`MANUAL_REVIEW_REQUIRED` if `hard_failure` or `native_conclusion_supported === false` or any finding
+`severity === critical`; `REVIEW_SUGGESTED` if any finding `severity === major`; else `NONE`. Findings
+go to a separate `NATIVE-AUDIT-REPORT.md`, not merged into `CODEX-EVAL-SUMMARY.md` or its 0–10 metric
+aggregation model — and this mode does **not** participate in `codex-baseline.json` regression
+tracking, which is specific to the cold-prediction numeric metrics.
+
+### Rollout guidance (documentation only, not enforced in code)
+
+Standalone, on-demand tool — never wired into any native workflow step (`skills/skill-eval/SKILL.md`,
+`skills/agent-eval/SKILL.md`, and their subagent definitions are untouched by this mode). Suggested
+(not enforced) triggers for a human to reach for it: a native run's Recommendation is REFINE/BLOCK; a
+metric is borderline (within ~5 points of threshold); the target is `risk_tier: critical`; right after
+a `skill-refine`/`agent-refine` cycle converges to HEALTHY (where self-referential blind spots are most
+dangerous); or ad hoc whenever a human suspects the native process missed something. This is a
+secondary trust-but-verify pass, not a tax on every native eval.
+
 ---
 
 ## What Claude Code Reviews
@@ -247,3 +336,26 @@ When running `/codex:adversarial-review` manually (optional):
 - Ask Codex to compute Context Footprint — the runner has the source files
 - Share the skill and agent schemas — separate files required
 - Mark smoke mode project fit as complete — it is always `"partial"`
+- Auto-trigger `run-native-audit.js` after a native eval completes — it is on-demand only
+- Let `run-native-audit.js` write anywhere except `evals/codex-runs/native-audits/` — it is read-only
+  against `evals/<target>/iteration-N/` and `skills/*/SKILL-EVAL.md` / `.claude/agents/*-EVAL.md`
+
+---
+
+## Future Work: Level 4 — Results-Based Performance Analysis
+
+A related but distinct proposal was evaluated alongside native audit mode: Codex analyzing structured
+logs of *real* skill/agent usage (real user requests, produced artifacts, diffs, user corrections,
+final accept/revise/reject status) rather than synthetic eval scenario transcripts — answering "has
+this skill/agent actually performed well in real use?" as a third signal alongside native audit mode's
+"does the eval evidence support the native evaluator's conclusion?" and cold-prediction mode's "would
+this trigger per the description?"
+
+**Not built.** No structured per-invocation log capture exists anywhere in this repo today. The closest
+analog (`logs/decisions.md`, `agent-handoffs.md`, `skill-improvement-backlog.md`, referenced in
+`skills/skill-discovery/SKILL.md` and `skills/project-setup/SKILL.md`) is unstructured prose, manually/
+optionally appended, and serves a different purpose (surfacing new skill-candidate ideas, not per-run
+outcome tracking). Building this requires new instrumentation (likely hooks) to reliably capture fields
+like `user_corrections`/`final_status` from freeform conversation, plus a privacy design pass (these
+logs would contain real user requests and diffs, unlike synthetic eval data) — a separate,
+larger-scoped exploration and design effort, not an extension of native audit mode.

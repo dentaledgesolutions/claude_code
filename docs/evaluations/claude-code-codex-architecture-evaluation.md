@@ -402,3 +402,93 @@ Recommendation: **HEALTHY**
 - `skill-eval` standard mode: surfaced a real gap in hard failure detection. False positive on pipeline handoffs is now fixed in both runners.
 - The disagreement policy (PASS/FAIL → MANUAL REVIEW) correctly routed the skill-eval result — it was not auto-blocked without human review.
 - Codex external eval adds independent signal and catches prompt-quality issues (non-discriminating direct scenario, no target skill named) that native self-eval would also flag but with more session cost.
+
+---
+
+## Phase 8 — Native Audit Mode (Design)
+
+Date: 2026-07-03
+
+### Problem identified
+
+Both the cold-prediction mode above and the "execution phase" (`run-execution-phase.js`) leave Codex's
+own judgment ungrounded in real native-run evidence. Cold-prediction gives Codex only the raw
+`SKILL.md`/agent `.md` file and a scenario prompt — it predicts "would this trigger?" with zero
+visibility into what the native `skill-eval-agent`/`agent-eval-agent` pipeline actually observed. The
+execution phase adds a genuine behavioral signal (Anthropic API: Haiku executes, Sonnet grades), but it
+is computed entirely independently and merged with Codex's cold predictions only at the reporting layer
+(`aggregate-eval-results.js`) — never fed into a Codex prompt. So Codex's own judgment stays cold
+regardless of either existing mechanism.
+
+### Motivating evidence
+
+A deliberate calibration test run this session (inject 4 known defects into a mutant skill — a vague
+trigger description, an internal self-contradiction between two workflow phases, a silently-dropped
+interview step disguised as "faithful execution," and a broken output-filename integration — then run
+the native `skill-eval-agent` pipeline blind) found:
+
+| Injected defect | Result |
+|---|---|
+| Broken output-filename integration | **Caught cleanly** — Project Fit metric correctly failed, root cause correctly identified, REFINE correctly recommended |
+| Vague trigger description | **Partially caught** — numeric metrics passed, but analyst prose correctly flagged them as "best-case, not floor" |
+| Internal self-contradiction between phases | **Missed entirely** — no mention anywhere in the native report |
+| Silently-dropped interview step | **Missed — worse than missed** — described as "faithful execution" rather than flagged as a quality regression, because the native process grades conformance to the skill's own (corrupted) instructions rather than critiquing whether those instructions are sound |
+
+This is the direct case for native audit mode: a fresh reader looking at the *actual transcripts* a
+native run produced, rather than just the skill doc, is much better positioned to notice a
+contradiction or a quietly-skipped step than a process only checking assertion-by-assertion boxes.
+
+### Design summary
+
+Added `scripts/codex/run-native-audit.js` + `scripts/codex/render-native-audit-report.js` +
+`schemas/codex/codex-native-audit-result.schema.json` — a third Codex invocation mode, additive to
+cold-prediction, that packages a *completed* native run's real artifacts (definition, native
+`SKILL-EVAL.md`/`<agent>-EVAL.md` report, sampled `with_skill`/`with_agent` transcripts) into a single
+holistic Codex call whose job is to audit whether the evidence supports the native evaluator's own
+conclusions. Full design, artifact flow, and rollout guidance: see "Native Audit Mode" in
+`docs/codex-external-eval-architecture.md`.
+
+Standalone, on-demand only — no changes to `skills/skill-eval/SKILL.md`, `skills/agent-eval/SKILL.md`,
+or their subagent definitions. Findings go to a separate `NATIVE-AUDIT-REPORT.md`, not merged into
+`CODEX-EVAL-SUMMARY.md`.
+
+### Verification (no live Codex calls)
+
+- `node scripts/codex/test-schemas.js` — new schema validates.
+- `node scripts/codex/test-runners.js` — 9 new tests: `--help`, invalid-target-type rejection, dry-run
+  against the real `evals/agent-eval/iteration-1/` fixture (9 deduped scenarios, rep-1-only by
+  default), `--all-reps` (19 scenarios, matching the real on-disk count), a synthetic fixture proving
+  all 3 observed scenario-dir naming conventions match correctly (plus a stray-dir negative case and an
+  unparseable-id case that must warn and skip), and 4 renderer fixture tests covering every escalation
+  branch (`NONE`, `REVIEW_SUGGESTED`, `MANUAL_REVIEW_REQUIRED` via critical finding,
+  `MANUAL_REVIEW_REQUIRED` via `hard_failure` alone). All pass; zero regressions on the 16 pre-existing
+  tests.
+- Dry-run also verified manually against all 3 real naming conventions on disk (`evals/agent-eval/
+  iteration-1/` — `<id>_rep<N>`; `evals/agents/skill-eval-agent/iteration-1/` — `s<id>-<type>`;
+  `evals/agents/agent-eval-agent/iteration-1/` — `s<id>-<type>-r<N>`, which correctly hard-errored since
+  no native report exists yet for that agent).
+
+### Not yet done — Phase 9
+
+No real `--live` Codex call has been made against this mode yet. Acceptance bar for Phase 9: run
+`run-native-audit.js --live` against a native run with known ground-truth defects (recreate the
+calibration-test mutant, since its scratch artifacts weren't persisted) and confirm the
+`instruction_self_consistency`/`workflow_step_fidelity` checklist items actually catch what the native
+pipeline demonstrably missed above.
+
+---
+
+## Future Work: Level 4 — Results-Based Performance Analysis
+
+Evaluated alongside Phase 8 but explicitly out of scope: Codex analyzing structured logs of *real*
+skill/agent usage (real requests, produced artifacts, diffs, user corrections, final accept/revise/
+reject status) — a third question ("has this performed well in real use?") alongside native audit
+mode's "does the eval evidence support the native conclusion?" and cold-prediction's "would this
+trigger per the description?"
+
+Not built: no structured per-invocation log capture exists anywhere in this repo. The closest analog
+(`logs/decisions.md`, `agent-handoffs.md`, `skill-improvement-backlog.md`) is unstructured, manually-
+appended prose serving a different purpose (skill-candidate discovery, not outcome tracking). Building
+this requires new capture instrumentation (likely hooks) and a privacy design pass (real user data,
+unlike synthetic eval data) — a separate, larger-scoped effort. See
+`docs/codex-external-eval-architecture.md` for the full note.

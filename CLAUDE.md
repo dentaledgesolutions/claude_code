@@ -88,6 +88,22 @@ Validated on: `skill-eval` and `skill-eval-agent` (smoke + standard mode, 2026-0
 | `node scripts/codex/run-external-agent-eval.js <agent> --mode smoke` | Same dry-run pattern for agents |
 | `node scripts/codex/run-external-agent-eval.js <agent> --mode standard --live` | Live standard eval for agents |
 
+### Native Audit Mode
+
+Additive third mode — Codex audits a *completed* native eval run's real evidence (transcripts + native
+`SKILL-EVAL.md`/`<agent>-EVAL.md` report) instead of cold-reading the definition and predicting
+triggering. Motivated by a calibration test showing the native pipeline misses internal
+self-contradictions and silently-dropped workflow steps (see `docs/evaluations/claude-code-codex-architecture-evaluation.md` Phase 8). Standalone, on-demand only — never wired into `skill-eval`/`agent-eval`'s own workflow.
+
+| Command | What it does |
+|---------|-------------|
+| `node scripts/codex/run-native-audit.js <target> <skill\|agent>` | Dry-run: packages the latest native run's evidence, writes `audit-spec.json` + `prompt.txt`, no Codex call |
+| `node scripts/codex/run-native-audit.js <target> <skill\|agent> --live` | Live: single holistic Codex audit call, writes `NATIVE-AUDIT-REPORT.md` |
+| `node scripts/codex/run-native-audit.js <target> <skill\|agent> --iteration N` | Audit a specific `iteration-N` instead of the latest |
+| `node scripts/codex/run-native-audit.js <target> <skill\|agent> --all-reps --include-baseline` | Package every rep found + paired baseline transcripts (higher cost) |
+
+Findings go to `evals/codex-runs/native-audits/{skills,agents}/<target>/<run-id>/NATIVE-AUDIT-REPORT.md` — a separate report, not merged into `CODEX-EVAL-SUMMARY.md`. Full design: `docs/codex-external-eval-architecture.md`.
+
 ### What Claude Code reviews
 
 `CODEX-EVAL-SUMMARY.md` in `evals/codex-runs/<type>/<target>/<run-id>/` — not the JSONL traces. The summary contains the 5-metric table, recommendation, hard failures, and analyst findings.
@@ -103,6 +119,8 @@ Validated on: `skill-eval` and `skill-eval-agent` (smoke + standard mode, 2026-0
 | Any hard failure | Any | BLOCK |
 
 Claude Code makes the final call. A Codex BLOCK that conflicts with a native PASS routes to MANUAL REVIEW, not auto-BLOCK.
+
+**Addendum:** a native-audit `escalation = MANUAL_REVIEW_REQUIRED` or `REVIEW_SUGGESTED` overrides any HEALTHY/PASS agreement in the table above — routes to MANUAL REVIEW regardless of the 2×2 outcome. Evidence, not an auto-BLOCK.
 
 ### Boundary
 
@@ -122,3 +140,5 @@ Codex does not replay the Claude Code runtime — it is an independent second mo
 - Use `--sandbox workspace-write` or `danger-full-access` for read-only evals
 - Commit `evals/codex-runs/` artifacts — gitignored
 - Add CI until local results are stable and explicitly approved
+- Auto-trigger `run-native-audit.js` after a native eval completes — on-demand only
+- Let `run-native-audit.js` write anywhere except `evals/codex-runs/native-audits/` — read-only against native run trees

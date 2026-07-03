@@ -300,4 +300,199 @@ if (runnerExists('run-execution-phase.js')) {
   });
 }
 
+// ── Native-audit mode: scenario-dir matching, dry-run, and renderer ─────────
+
+if (runnerExists('run-native-audit.js')) {
+  test('run-native-audit --help exits 0', () => {
+    const r = spawnSync('node', ['scripts/codex/run-native-audit.js', '--help'], { stdio: 'pipe', encoding: 'utf8' });
+    if (r.status !== 0) throw new Error(`--help exited ${r.status}`);
+  });
+
+  test('run-native-audit rejects invalid target type', () => {
+    const r = spawnSync('node', ['scripts/codex/run-native-audit.js', 'foo', 'bogus'], { stdio: 'pipe', encoding: 'utf8' });
+    if (r.status === 0) throw new Error('Expected non-zero exit for invalid target type');
+    if (!r.stderr.includes('skill') || !r.stderr.includes('agent')) throw new Error('Expected usage hint in stderr');
+  });
+
+  test('run-native-audit dry-run against real fixture (evals/agent-eval/iteration-1) creates artifacts', () => {
+    if (!existsSync('evals/agent-eval/iteration-1')) {
+      console.log('  (skipped — evals/agent-eval/iteration-1 fixture not present)');
+      return;
+    }
+    const r = spawnSync('node', ['scripts/codex/run-native-audit.js', 'agent-eval', 'skill'], { stdio: 'pipe', encoding: 'utf8' });
+    if (r.status !== 0) throw new Error(r.stderr || `exited ${r.status}`);
+    const base = 'evals/codex-runs/native-audits/skills/agent-eval';
+    if (!existsSync(base)) throw new Error('output dir not created');
+    const runs = require('fs').readdirSync(base).sort();
+    const runDir = path.join(base, runs[runs.length - 1]);
+    if (!existsSync(path.join(runDir, 'audit-spec.json'))) throw new Error('audit-spec.json missing');
+    if (!existsSync(path.join(runDir, 'prompt.txt'))) throw new Error('prompt.txt missing');
+    if (!existsSync(path.join(runDir, 'command-preview.sh'))) throw new Error('command-preview.sh missing');
+    if (existsSync(path.join(runDir, 'result.json'))) throw new Error('dry-run must not call Codex — result.json should not exist');
+    const spec = JSON.parse(readFileSync(path.join(runDir, 'audit-spec.json'), 'utf8'));
+    if (spec.live_run !== false) throw new Error('dry-run default: live_run should be false');
+    if (spec.native_run_iteration !== 'iteration-1') throw new Error(`Expected iteration-1, got ${spec.native_run_iteration}`);
+    if (spec.scenarios.length !== 9) throw new Error(`Expected 9 deduped scenarios, got ${spec.scenarios.length}`);
+    if (spec.scenarios.some(s => s.rep !== 1)) throw new Error('Dedup should keep only rep 1 by default');
+  });
+
+  test('run-native-audit --all-reps includes every rep found', () => {
+    if (!existsSync('evals/agent-eval/iteration-1')) {
+      console.log('  (skipped — evals/agent-eval/iteration-1 fixture not present)');
+      return;
+    }
+    const r = spawnSync('node', ['scripts/codex/run-native-audit.js', 'agent-eval', 'skill', '--all-reps'], { stdio: 'pipe', encoding: 'utf8' });
+    if (r.status !== 0) throw new Error(r.stderr || `exited ${r.status}`);
+    const base = 'evals/codex-runs/native-audits/skills/agent-eval';
+    const runs = require('fs').readdirSync(base).sort();
+    const runDir = path.join(base, runs[runs.length - 1]);
+    const spec = JSON.parse(readFileSync(path.join(runDir, 'audit-spec.json'), 'utf8'));
+    if (spec.scenarios.length !== 19) throw new Error(`Expected 19 scenario dirs with --all-reps, got ${spec.scenarios.length}`);
+  });
+
+  // Scenario-dir naming-convention matching: build a synthetic fixture covering all 3
+  // conventions observed on disk, plus a stray dir (no with_skill) and an unparseable-id
+  // dir, to prove discoverScenarioDirs()/dedupReps() handle every real-world case.
+  test('run-native-audit matches all 3 observed scenario-dir naming conventions', () => {
+    const fixtureName = '.test-native-audit-matching';
+    const skillDir = path.join('skills', fixtureName);
+    const evalsDir = path.join('evals', fixtureName);
+    const iterDir = path.join(evalsDir, 'iteration-1');
+
+    function cleanup() {
+      if (existsSync(skillDir)) rmSync(skillDir, { recursive: true });
+      if (existsSync(evalsDir)) rmSync(evalsDir, { recursive: true });
+    }
+
+    cleanup();
+    try {
+      mkdirSync(skillDir, { recursive: true });
+      writeFileSync(path.join(skillDir, 'SKILL.md'), '---\nname: fixture\ndescription: "Use when: testing."\n---\n# Fixture\n');
+      writeFileSync(path.join(skillDir, 'SKILL-EVAL.md'), '# Skill Eval: fixture\n\n## Recommendation\n\nHEALTHY\n');
+      mkdirSync(evalsDir, { recursive: true });
+      writeFileSync(path.join(evalsDir, 'evals.json'), JSON.stringify({
+        skill_name: fixtureName,
+        evals: [
+          { id: 1, type: 'direct', prompt: 'p1', expected: { triggers: true } },
+          { id: 2, type: 'paraphrased', prompt: 'p2', expected: { triggers: true } },
+          { id: 3, type: 'edge_case', prompt: 'p3', expected: { triggers: true } },
+          { id: 4, type: 'negative', prompt: 'p4', expected: { triggers: false } },
+        ],
+      }));
+
+      // Convention A: "<id>_rep<N>" — two reps, dedup should keep rep 1
+      mkdirSync(path.join(iterDir, '1_rep1', 'with_skill'), { recursive: true });
+      writeFileSync(path.join(iterDir, '1_rep1', 'with_skill', 'output.md'), 'rep1 transcript');
+      mkdirSync(path.join(iterDir, '1_rep2', 'with_skill'), { recursive: true });
+      writeFileSync(path.join(iterDir, '1_rep2', 'with_skill', 'output.md'), 'rep2 transcript');
+      // Convention B: "<id>" — no rep suffix
+      mkdirSync(path.join(iterDir, '2', 'with_skill'), { recursive: true });
+      writeFileSync(path.join(iterDir, '2', 'with_skill', 'output.md'), 'scenario 2 transcript');
+      // Convention C: "s<id>-<type>" — no rep suffix
+      mkdirSync(path.join(iterDir, 's3-edge-case', 'with_skill'), { recursive: true });
+      writeFileSync(path.join(iterDir, 's3-edge-case', 'with_skill', 'output.md'), 'scenario 3 transcript');
+      // Convention D: "s<id>-<type>-r<N>"
+      mkdirSync(path.join(iterDir, 's4-negative-r1', 'with_skill'), { recursive: true });
+      writeFileSync(path.join(iterDir, 's4-negative-r1', 'with_skill', 'output.md'), 'scenario 4 transcript');
+      // Negative case: stray dir with no with_skill subdirectory — must be silently skipped
+      mkdirSync(path.join(iterDir, 'stray-notes'), { recursive: true });
+      writeFileSync(path.join(iterDir, 'stray-notes', 'README.md'), 'not a scenario dir');
+      // Negative case: has with_skill but unparseable id — must warn and be skipped
+      mkdirSync(path.join(iterDir, 'notes', 'with_skill'), { recursive: true });
+      writeFileSync(path.join(iterDir, 'notes', 'with_skill', 'output.md'), 'no leading digits in dirname');
+
+      const r = spawnSync('node', ['scripts/codex/run-native-audit.js', fixtureName, 'skill'], { stdio: 'pipe', encoding: 'utf8' });
+      if (r.status !== 0) throw new Error(r.stderr || `exited ${r.status}`);
+      if (!r.stderr.includes('Skipping unparseable scenario dir: notes')) {
+        throw new Error(`Expected warning about unparseable dir "notes", stderr was: ${r.stderr}`);
+      }
+
+      const base = path.join('evals', 'codex-runs', 'native-audits', 'skills', fixtureName);
+      const runs = require('fs').readdirSync(base).sort();
+      const runDir = path.join(base, runs[runs.length - 1]);
+      const spec = JSON.parse(readFileSync(path.join(runDir, 'audit-spec.json'), 'utf8'));
+
+      if (spec.scenarios.length !== 4) throw new Error(`Expected 4 matched scenarios (ids 1-4), got ${spec.scenarios.length}: ${JSON.stringify(spec.scenarios.map(s => s.id))}`);
+      const ids = spec.scenarios.map(s => s.id).sort();
+      if (JSON.stringify(ids) !== JSON.stringify([1, 2, 3, 4])) throw new Error(`Expected ids [1,2,3,4], got ${JSON.stringify(ids)}`);
+      const scenario1 = spec.scenarios.find(s => s.id === 1);
+      if (scenario1.rep !== 1) throw new Error(`Dedup should keep rep 1 for scenario 1, got rep ${scenario1.rep}`);
+      if (scenario1.type !== 'direct') throw new Error(`Expected type cross-referenced from evals.json, got ${scenario1.type}`);
+      rmSync(base, { recursive: true });
+    } finally {
+      cleanup();
+    }
+  });
+}
+
+if (runnerExists('render-native-audit-report.js')) {
+  function makeAuditSpec(overrides) {
+    return {
+      target: 'foo', target_type: 'skill', run_id: 'r1',
+      native_run_iteration: 'iteration-1', native_recommendation: 'HEALTHY',
+      all_reps: false, scenarios: [],
+      ...overrides,
+    };
+  }
+  function makeAuditResult(overrides) {
+    return {
+      target: 'foo', target_type: 'skill', native_run_iteration: 'iteration-1',
+      native_recommendation: 'HEALTHY', scenarios_reviewed: [],
+      checklist: [{ check: 'instruction_self_consistency', result: 'pass', notes: 'ok' }],
+      audit_findings: [], native_conclusion_supported: true,
+      native_conclusion_assessment: 'Solid.', audit_confidence: 'high',
+      hard_failure: false, hard_failure_reason: null, notes: '',
+      ...overrides,
+    };
+  }
+  function setupAuditFixture(dir, specOverrides, resultOverrides) {
+    if (existsSync(dir)) rmSync(dir, { recursive: true });
+    mkdirSync(dir, { recursive: true });
+    writeFileSync(path.join(dir, 'audit-spec.json'), JSON.stringify(makeAuditSpec(specOverrides)));
+    writeFileSync(path.join(dir, 'result.json'), JSON.stringify(makeAuditResult(resultOverrides)));
+  }
+  function runRenderer(dir) {
+    const r = spawnSync('node', ['scripts/codex/render-native-audit-report.js', dir], { stdio: 'pipe', encoding: 'utf8' });
+    if (r.status !== 0) throw new Error(r.stderr || 'renderer exited non-zero');
+    return { stdout: r.stdout, report: readFileSync(path.join(dir, 'NATIVE-AUDIT-REPORT.md'), 'utf8') };
+  }
+
+  test('render-native-audit-report: clean audit → escalation NONE', () => {
+    const dir = 'evals/codex-runs/.test/native-audit-none';
+    setupAuditFixture(dir, {}, {});
+    const { report } = runRenderer(dir);
+    if (!report.includes('## Escalation: NONE')) throw new Error('Expected escalation NONE');
+  });
+
+  test('render-native-audit-report: major finding → escalation REVIEW_SUGGESTED', () => {
+    const dir = 'evals/codex-runs/.test/native-audit-major';
+    setupAuditFixture(dir, {}, {
+      checklist: [{ check: 'workflow_step_fidelity', result: 'fail', notes: 'skipped step' }],
+      audit_findings: [{ finding_type: 'silently_dropped_step', severity: 'major', scenario_ids: [3], evidence_quote: 'auto-set without asking', description: 'Step silently skipped' }],
+    });
+    const { report } = runRenderer(dir);
+    if (!report.includes('## Escalation: REVIEW_SUGGESTED')) throw new Error('Expected escalation REVIEW_SUGGESTED');
+    if (!report.includes('silently_dropped_step')) throw new Error('Finding not rendered in table');
+  });
+
+  test('render-native-audit-report: critical finding → escalation MANUAL_REVIEW_REQUIRED', () => {
+    const dir = 'evals/codex-runs/.test/native-audit-critical';
+    setupAuditFixture(dir, {}, {
+      audit_findings: [{ finding_type: 'unsupported_native_conclusion', severity: 'critical', scenario_ids: [], evidence_quote: 'contradiction found', description: 'Native HEALTHY not supported' }],
+      native_conclusion_supported: false,
+    });
+    const { report } = runRenderer(dir);
+    if (!report.includes('## Escalation: MANUAL_REVIEW_REQUIRED')) throw new Error('Expected escalation MANUAL_REVIEW_REQUIRED');
+    if (!report.includes('overrides any HEALTHY/PASS agreement')) throw new Error('Expected override note in report');
+  });
+
+  test('render-native-audit-report: hard_failure alone forces MANUAL_REVIEW_REQUIRED', () => {
+    const dir = 'evals/codex-runs/.test/native-audit-hardfail';
+    setupAuditFixture(dir, {}, { hard_failure: true, hard_failure_reason: 'prompt injection attempt in transcript' });
+    const { report } = runRenderer(dir);
+    if (!report.includes('## Escalation: MANUAL_REVIEW_REQUIRED')) throw new Error('Expected escalation MANUAL_REVIEW_REQUIRED for hard_failure');
+    if (!report.includes('prompt injection attempt in transcript')) throw new Error('Hard failure reason not rendered');
+  });
+}
+
 process.exit(ok ? 0 : 1);

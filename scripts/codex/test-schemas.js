@@ -18,5 +18,6 @@ ok = [
   check('schemas/codex/codex-agent-scenario-result.schema.json'),
   check('schemas/codex/codex-aggregate-result.schema.json'),
   check('schemas/codex/execution-result.schema.json'),
+  check('schemas/codex/codex-native-audit-result.schema.json'),
 ].every(Boolean);
 process.exit(ok ? 0 : 1);

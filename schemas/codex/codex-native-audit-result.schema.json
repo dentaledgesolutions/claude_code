@@ -1,0 +1,115 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Codex Native Audit Result",
+  "description": "Written by codex exec -o result.json for a native-audit run. Holistic critique of a completed native skill-eval/agent-eval run's actual evidence (transcripts + native report) — not a per-scenario trigger/dispatch prediction. Source of truth for the audit's findings.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "target", "target_type", "native_run_iteration", "native_recommendation",
+    "scenarios_reviewed", "checklist", "audit_findings",
+    "native_conclusion_supported", "native_conclusion_assessment", "audit_confidence",
+    "hard_failure", "hard_failure_reason", "notes"
+  ],
+  "properties": {
+    "target": { "type": "string" },
+    "target_type": { "type": "string", "enum": ["skill", "agent"] },
+    "native_run_iteration": {
+      "type": "string",
+      "description": "The iteration-N directory that was audited, e.g. 'iteration-1'"
+    },
+    "native_recommendation": {
+      "type": "string",
+      "description": "Verbatim Recommendation line from the native SKILL-EVAL.md / AGENT-EVAL.md report, or 'unknown' if not parseable"
+    },
+    "scenarios_reviewed": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["scenario_id", "scenario_type", "transcript_included"],
+        "properties": {
+          "scenario_id": { "type": "integer" },
+          "scenario_type": {
+            "type": "string",
+            "enum": ["direct", "paraphrased", "edge_case", "negative", "semantic",
+                     "adversarial", "project-native", "project-workflow", "multi-turn"]
+          },
+          "transcript_included": {
+            "type": "boolean",
+            "description": "Whether this scenario's output.md transcript was packaged into the prompt Codex read"
+          }
+        }
+      }
+    },
+    "checklist": {
+      "type": "array",
+      "description": "Always exactly 4 items, one per check type, in the order listed in the enum",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["check", "result", "notes"],
+        "properties": {
+          "check": {
+            "type": "string",
+            "enum": [
+              "instruction_self_consistency",
+              "workflow_step_fidelity",
+              "native_scoring_supported",
+              "output_integration_claims"
+            ],
+            "description": "instruction_self_consistency: does the skill/agent definition contradict itself across phases/steps? workflow_step_fidelity: did transcripts silently skip or degrade a documented workflow step while still being graded as faithful execution? native_scoring_supported: is the native report's own recommendation actually supported by the transcript evidence it cites? output_integration_claims: do artifact paths / filenames / handoffs the definition or transcripts claim actually match what the project's pipeline expects?"
+          },
+          "result": { "type": "string", "enum": ["pass", "fail", "not_applicable"] },
+          "notes": { "type": "string" }
+        }
+      }
+    },
+    "audit_findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["finding_type", "severity", "scenario_ids", "evidence_quote", "description"],
+        "properties": {
+          "finding_type": {
+            "type": "string",
+            "enum": [
+              "internal_contradiction",
+              "silently_dropped_step",
+              "unsupported_native_conclusion",
+              "integration_break_confirmed",
+              "transcript_native_report_mismatch",
+              "other"
+            ]
+          },
+          "severity": { "type": "string", "enum": ["info", "minor", "major", "critical"] },
+          "scenario_ids": {
+            "type": "array",
+            "items": { "type": "integer" },
+            "description": "May be empty — some findings are definition-level, not tied to a specific transcript"
+          },
+          "evidence_quote": {
+            "type": "string",
+            "description": "A direct quote from the skill/agent definition or a transcript that grounds this finding — required so findings aren't unsubstantiated"
+          },
+          "description": { "type": "string" }
+        }
+      }
+    },
+    "native_conclusion_supported": {
+      "type": "boolean",
+      "description": "Does the packaged evidence actually support the native report's Recommendation?"
+    },
+    "native_conclusion_assessment": { "type": "string" },
+    "audit_confidence": { "type": "string", "enum": ["high", "medium", "low"] },
+    "hard_failure": {
+      "type": "boolean",
+      "description": "True only if packaged transcripts contain content attempting prompt injection, lifecycle ownership, or security bypass against the auditor itself"
+    },
+    "hard_failure_reason": {
+      "anyOf": [{ "type": "string" }, { "type": "null" }],
+      "description": "Reason string when hard_failure is true, null otherwise"
+    },
+    "notes": { "type": "string" }
+  }
+}
