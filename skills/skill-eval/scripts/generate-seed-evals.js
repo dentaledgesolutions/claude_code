@@ -52,6 +52,8 @@ if (contextFile && fs.existsSync(contextFile)) {
 }
 
 // ── Synonym table for common action verbs ────────────────────────────────────
+// Keys are matched as whole words (with any suffix, e.g. "run" matches "running").
+// Covers the verb vocabulary actually used across this repo's skill descriptions.
 const VERB_SYNONYMS = {
   evaluate: ['assess', 'measure', 'benchmark', 'test', 'check'],
   find:     ['search for', 'locate', 'look for', 'discover'],
@@ -61,17 +63,41 @@ const VERB_SYNONYMS = {
   create:   ['build', 'write', 'generate', 'make'],
   install:  ['add', 'set up', 'deploy'],
   run:      ['execute', 'launch', 'trigger'],
+  start:    ['begin', 'kick off', 'set up'],
+  set:      ['configure', 'establish', 'stand up'],
+  scan:     ['sweep', 'check over', 'examine'],
+  extract:  ['pull out', 'derive', 'surface'],
+  clarify:  ['pin down', 'nail down', 'work out'],
 };
 
 function synonymOf(phrase) {
   const lower = verbPhrase(phrase);
+  // Find the earliest-occurring verb match across the whole table, not the first
+  // table entry with a match anywhere in the string — trigger phrases name the lead
+  // verb first, but later text often mentions other skills by name (e.g. "agent-audit",
+  // "skill-refine"), and those verb-shaped substrings must not win over the real one.
+  let best = null;
   for (const [verb, syns] of Object.entries(VERB_SYNONYMS)) {
-    if (lower.includes(verb)) {
-      const s = syns[Math.floor(Math.random() * syns.length)];
-      return `I want to ${lower.replace(verb, s)}`;
+    // Match the whole inflected word (e.g. verb "run" matches "running", not just "run").
+    // Verbs ending in a silent "e" (evaluate, create, refine) drop it before "-ing"
+    // ("evaluating"), so the literal verb string alone would never match — strip a
+    // trailing "e" from the match stem while keeping the full word as the dictionary key.
+    const stem  = verb.endsWith('e') ? verb.slice(0, -1) : verb;
+    const match = lower.match(new RegExp(`\\b${stem}\\w*\\b`, 'i'));
+    if (match && (!best || match.index < best.index)) {
+      best = { index: match.index, length: match[0].length, syns };
     }
   }
-  return null;
+  if (!best) return null;
+  // Absorb a separable phrasal-verb particle right after the match (e.g. "Setting up"
+  // is one verb, not "Setting" + a leftover "up") so the synonym replaces the whole
+  // phrase instead of leaving the particle dangling ("stand up up" / "establish up").
+  const particleMatch = lower.slice(best.index + best.length).match(/^\s+(up|out|down|off|over|back)\b/i);
+  if (particleMatch) best.length += particleMatch[0].length;
+  const s = best.syns[Math.floor(Math.random() * best.syns.length)];
+  const result = `I want to ${lower.slice(0, best.index)}${s}${lower.slice(best.index + best.length)}`;
+  // Belt-and-suspenders: collapse any immediately-repeated word left over from other cases.
+  return result.replace(/\b(\w+)(\s+\1)+\b/gi, '$1');
 }
 
 // Strip common first-person/polite prefixes so helper functions can re-frame cleanly
@@ -111,12 +137,21 @@ function adversarialOf(primary, description) {
 // ── Parse SKILL.md ───────────────────────────────────────────────────────────
 if (fileName === 'skill.md') {
   const descMatch = content.match(/^description:\s*(.+)/m);
-  const description = descMatch ? descMatch[1].trim() : '';
+  // Strip a single matching pair of surrounding quotes from the raw YAML value
+  // (frontmatter descriptions are often written as one quoted line) so neither
+  // quote character leaks into generated prompts below.
+  const description = descMatch
+    ? descMatch[1].trim().replace(/^(["'])(.*)\1$/, '$2')
+    : '';
   const useWhenMatch = description.match(/[Uu]se when:?\s+(.+)/);
-  const triggerText  = useWhenMatch ? useWhenMatch[1] : description.replace(/^["']/, '');
+  const triggerText  = useWhenMatch ? useWhenMatch[1] : description;
   // Split on semicolons only — commas within a clause are synonym lists, not separate triggers
   const triggers     = triggerText.split(/;/).map(t => t.trim()).filter(Boolean);
-  const rawPrimary   = triggers[0] || 'invoke this skill';
+  // Cap to the first sentence: when a description leads with "Use when: ..." and
+  // has no semicolons, everything after the trigger list's closing period (behavior,
+  // outputs, ordering notes) would otherwise be swallowed into the "primary" trigger
+  // phrase along with the real trigger conditions.
+  const rawPrimary   = (triggers[0] || 'invoke this skill').split(/\.\s+/)[0].replace(/\.$/, '');
   // Convert third-person description to first-person command ("user wants to X" → "I want to X")
   const primary      = rawPrimary
     .replace(/^(the\s+)?user\s+wants?\s+to\s+/i, 'I want to ')
