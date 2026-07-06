@@ -57,7 +57,7 @@ User: check how well skill-refine-agent is working
 
 5. **Run parallel evaluations** — for each scenario, spawn two subagents **in the same turn** via `agent-eval-agent`:
    - **With-agent**: dispatch the named agent, execute the prompt, save output to `evals/agents/<agent-name>/iteration-<N>/<id>/with_agent/`
-   - **Baseline**: no agent dispatched (general capabilities only), same prompt, save to `evals/agents/<agent-name>/iteration-<N>/<id>/without_agent/`
+   - **Baseline**: use whichever baseline was established in step 4 — **new agent**: no agent dispatched (general capabilities only); **existing agent being improved**: dispatch the `.eval-snapshot` version instead of the current one — same prompt either way, save to `evals/agents/<agent-name>/iteration-<N>/<id>/without_agent/`
 
    Run dispatch-type scenarios (direct, paraphrased, semantic, negative, adversarial) 3 times each to measure dispatch consistency. Record `total_tokens` and `duration_ms` from each run — save to `timing.json` in the run directory.
 
