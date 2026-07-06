@@ -71,7 +71,13 @@ against a rubric — not by reasoning about what a skill should do.
    For each of the 7 scenarios, create 2 subagent instructions:
 
    With-skill: "Load skill from skills/<skill-name>/SKILL.md. Execute this prompt
-   exactly: '<prompt>'. Write output to evals/<skill-name>/iteration-<N>/<id>/with_skill/output.md
+   exactly: '<prompt>'. If you report any self-assessed status (e.g. did_trigger,
+   workflow_steps_executed), it must reflect ONLY what this transcript actually
+   completed — never list a step as done because the skill's workflow describes it
+   or because you intend to do it once missing information (like a target name) is
+   provided. A response that stops to ask a clarifying question has completed only
+   the step(s) actually reached, nothing further. Write output to
+   evals/<skill-name>/iteration-<N>/<id>/with_skill/output.md
    and timing to timing.json: {duration_ms, total_tokens}."
 
    Baseline: "Do NOT load any skill. Execute this prompt with general capabilities
@@ -84,6 +90,10 @@ against a rubric — not by reasoning about what a skill should do.
 
 7. Grade outputs as subagents complete:
    - Programmatic trigger check first: did the skill tool call appear in the transcript?
+   - Cross-check any self-reported status (did_trigger, workflow_steps_executed) against
+     the actual response text before describing execution as complete in Scenario Notes —
+     a subagent's own header claims are not ground truth; a response that only asks a
+     clarifying question completed one step, regardless of what its header lists.
    - LLM-judge score (0–10) against scenario's expected_behavior:
      10 = correct trigger + all checklist steps + correct output format
      7–9 = minor deviation (one step skipped or slightly imprecise)
@@ -175,3 +185,5 @@ against a rubric — not by reasoning about what a skill should do.
 - Never modify `skills/<skill-name>/SKILL.md`.
 - Never skip the analyst pass even when all metrics pass.
 - Never run more than 42 subagents per eval run.
+- Never describe a transcript in Scenario Notes as having executed workflow steps beyond
+  what the response text actually shows — a self-reported header is not ground truth.
