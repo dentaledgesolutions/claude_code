@@ -314,9 +314,9 @@ if (runnerExists('run-native-audit.js')) {
     if (!r.stderr.includes('skill') || !r.stderr.includes('agent')) throw new Error('Expected usage hint in stderr');
   });
 
-  test('run-native-audit dry-run against real fixture (evals/agent-eval/iteration-1) creates artifacts', () => {
-    if (!existsSync('evals/agent-eval/iteration-1')) {
-      console.log('  (skipped — evals/agent-eval/iteration-1 fixture not present)');
+  test('run-native-audit dry-run against real fixture (evals/agent-eval) creates artifacts', () => {
+    if (!existsSync('evals/agent-eval')) {
+      console.log('  (skipped — evals/agent-eval fixture not present)');
       return;
     }
     const r = spawnSync('node', ['scripts/codex/run-native-audit.js', 'agent-eval', 'skill'], { stdio: 'pipe', encoding: 'utf8' });
@@ -331,14 +331,14 @@ if (runnerExists('run-native-audit.js')) {
     if (existsSync(path.join(runDir, 'result.json'))) throw new Error('dry-run must not call Codex — result.json should not exist');
     const spec = JSON.parse(readFileSync(path.join(runDir, 'audit-spec.json'), 'utf8'));
     if (spec.live_run !== false) throw new Error('dry-run default: live_run should be false');
-    if (spec.native_run_iteration !== 'iteration-1') throw new Error(`Expected iteration-1, got ${spec.native_run_iteration}`);
+    if (!/^iteration-\d+$/.test(spec.native_run_iteration)) throw new Error(`Expected an iteration-N dir, got ${spec.native_run_iteration}`);
     if (spec.scenarios.length !== 9) throw new Error(`Expected 9 deduped scenarios, got ${spec.scenarios.length}`);
     if (spec.scenarios.some(s => s.rep !== 1)) throw new Error('Dedup should keep only rep 1 by default');
   });
 
   test('run-native-audit --all-reps includes every rep found', () => {
-    if (!existsSync('evals/agent-eval/iteration-1')) {
-      console.log('  (skipped — evals/agent-eval/iteration-1 fixture not present)');
+    if (!existsSync('evals/agent-eval')) {
+      console.log('  (skipped — evals/agent-eval fixture not present)');
       return;
     }
     const r = spawnSync('node', ['scripts/codex/run-native-audit.js', 'agent-eval', 'skill', '--all-reps'], { stdio: 'pipe', encoding: 'utf8' });
