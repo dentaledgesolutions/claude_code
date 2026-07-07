@@ -1,0 +1,46 @@
+{
+  "fixture": "mutant-brief-writer",
+  "source": "docs/evaluations/claude-code-codex-architecture-evaluation.md (Phase 8, lines ~408-478)",
+  "purpose": "Ground-truth manifest for scripts/run-calibration.js — one entry per intentionally injected defect. Never edit anchor_quote to match a 'fixed' SKILL.md; the defects are the fixture.",
+  "defects": [
+    {
+      "id": "vague-trigger",
+      "defect_class": "vague_trigger_description",
+      "description": "The frontmatter description is too broad/generic to discriminate this skill from any other writing task — it does not name a concrete scenario, artifact, or trigger phrase.",
+      "anchor_quote": "Use this skill when writing, drafting, or helping with any document or content task.",
+      "expected_catcher": "native_metric:analyst_observations",
+      "phase8_native_result": "partial",
+      "phase8_note": "Numeric metrics (trigger/dispatch accuracy) passed at face value, but analyst prose correctly flagged them as best-case, not floor, given how generic the trigger is."
+    },
+    {
+      "id": "self-contradiction",
+      "defect_class": "internal_self_contradiction",
+      "description": "Step 1 instructs interviewing the user with follow-up questions before proceeding when scope is unclear; Step 5 (a later phase) instructs never asking the user follow-up questions during the workflow. The two phases directly contradict each other.",
+      "anchor_quote": "interview the user with targeted follow-up questions before moving on — do not guess at scope",
+      "anchor_quote_contradicting": "Never ask the user follow-up questions during this workflow. Operate only from the information already given, and make reasonable assumptions for anything missing rather than pausing to ask.",
+      "expected_catcher": "native_audit:instruction_self_consistency",
+      "phase8_native_result": "missed",
+      "phase8_note": "Missed entirely by the native pipeline — no mention anywhere in the native report. Native audit's instruction_self_consistency check is the designed remedy."
+    },
+    {
+      "id": "dropped-step",
+      "defect_class": "silently_dropped_step",
+      "description": "The Workflow Overview lists 'Interview the client to capture requirements' as step 2, but the Detailed Instructions section never implements it — it jumps from confirming scope (Step 1) straight to drafting the outline (Step 2 of the detailed steps), silently dropping the interview entirely.",
+      "anchor_quote": "2. Interview the client to capture requirements",
+      "anchor_quote_missing_from": "## Detailed Instructions",
+      "expected_catcher": "native_audit:workflow_step_fidelity",
+      "phase8_native_result": "missed",
+      "phase8_note": "Worse than missed — the native pipeline described the truncated execution as 'faithful execution' rather than flagging the quality regression, because it grades conformance to the skill's own (corrupted) instructions rather than critiquing whether those instructions are sound."
+    },
+    {
+      "id": "filename-mismatch",
+      "defect_class": "broken_output_filename_integration",
+      "description": "Step 3 instructs writing the brief to BRIEF.md, but the Handoff section (and the workflow overview's step 6) says the integration pipeline picks up PROJECT-BRIEF.md — the two filenames never match, so the documented handoff cannot succeed.",
+      "anchor_quote": "Save the result to `BRIEF.md` in the project root.",
+      "anchor_quote_conflicting": "Once finalized, the brief at `PROJECT-BRIEF.md` is picked up automatically by the downstream publishing step.",
+      "expected_catcher": "native_metric:project_fit_score",
+      "phase8_native_result": "caught",
+      "phase8_note": "Caught cleanly — Project Fit metric correctly failed, root cause correctly identified, REFINE correctly recommended."
+    }
+  ]
+}

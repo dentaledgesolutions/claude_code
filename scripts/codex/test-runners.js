@@ -423,6 +423,69 @@ if (runnerExists('run-native-audit.js')) {
       cleanup();
     }
   });
+
+  // --def-path/--evals-path overrides: prove a fixture target that lives entirely
+  // outside skills/ and evals/<target>/ (e.g. fixtures/mutant-brief-writer) can be
+  // audited without ever being copied into skills/. The definition + report live
+  // together under a throwaway "src" dir; evals.json + the native iteration-1 dir
+  // live together under a separate throwaway "evals" dir — mirroring how the real
+  // fixtures/ + evals/fixtures/ split works.
+  test('run-native-audit --def-path/--evals-path resolve a fixture target outside skills/', () => {
+    const target = '.test-defpath-fixture';
+    const defDir = path.join('evals', '.test-native-audit-defpath-src');
+    const evalsDir = path.join('evals', '.test-native-audit-defpath-evals');
+    const iterDir = path.join(evalsDir, 'iteration-1');
+    const outBase = path.join('evals', 'codex-runs', 'native-audits', 'skills', target);
+
+    function cleanup() {
+      if (existsSync(defDir)) rmSync(defDir, { recursive: true });
+      if (existsSync(evalsDir)) rmSync(evalsDir, { recursive: true });
+      if (existsSync(outBase)) rmSync(outBase, { recursive: true });
+    }
+
+    cleanup();
+    try {
+      mkdirSync(defDir, { recursive: true });
+      const defPath = path.join(defDir, 'SKILL.md');
+      const reportPath = path.join(defDir, 'SKILL-EVAL.md');
+      writeFileSync(defPath, '---\nname: fixture\ndescription: "Use when: testing def-path override."\n---\n# Fixture def-path override marker\n');
+      writeFileSync(reportPath, '# Skill Eval: fixture\n\n## Recommendation\n\nHEALTHY\n');
+
+      mkdirSync(evalsDir, { recursive: true });
+      const evalsPath = path.join(evalsDir, 'evals.json');
+      writeFileSync(evalsPath, JSON.stringify({
+        skill_name: target,
+        evals: [{ id: 1, type: 'direct', prompt: 'p1', expected: { triggers: true } }],
+      }));
+
+      mkdirSync(path.join(iterDir, 's1-direct-r1', 'with_skill'), { recursive: true });
+      writeFileSync(path.join(iterDir, 's1-direct-r1', 'with_skill', 'output.md'), 'override transcript');
+
+      // Confirm skills/<target> genuinely does not exist — the whole point of the test.
+      if (existsSync(path.join('skills', target))) throw new Error(`Test setup invalid: skills/${target} exists`);
+
+      const r = spawnSync('node', [
+        'scripts/codex/run-native-audit.js', target, 'skill',
+        '--def-path', defPath, '--evals-path', evalsPath,
+      ], { stdio: 'pipe', encoding: 'utf8' });
+      if (r.status !== 0) throw new Error(r.stderr || `exited ${r.status}`);
+
+      if (!existsSync(outBase)) throw new Error('output dir not created');
+      const runs = require('fs').readdirSync(outBase).sort();
+      const runDir = path.join(outBase, runs[runs.length - 1]);
+      const spec = JSON.parse(readFileSync(path.join(runDir, 'audit-spec.json'), 'utf8'));
+      if (spec.def_path !== defPath) throw new Error(`Expected def_path=${defPath}, got ${spec.def_path}`);
+      if (spec.report_path !== reportPath) throw new Error(`Expected report_path derived from --def-path's dir (${reportPath}), got ${spec.report_path}`);
+      if (spec.evals_path !== evalsPath) throw new Error(`Expected evals_path=${evalsPath}, got ${spec.evals_path}`);
+      if (spec.scenarios.length !== 1) throw new Error(`Expected 1 scenario, got ${spec.scenarios.length}`);
+
+      const prompt = readFileSync(path.join(runDir, 'prompt.txt'), 'utf8');
+      if (!prompt.includes('testing def-path override')) throw new Error('prompt.txt missing overridden definition content');
+      if (!prompt.includes('override transcript')) throw new Error('prompt.txt missing overridden transcript content');
+    } finally {
+      cleanup();
+    }
+  });
 }
 
 if (runnerExists('render-native-audit-report.js')) {
@@ -492,6 +555,193 @@ if (runnerExists('render-native-audit-report.js')) {
     const { report } = runRenderer(dir);
     if (!report.includes('## Escalation: MANUAL_REVIEW_REQUIRED')) throw new Error('Expected escalation MANUAL_REVIEW_REQUIRED for hard_failure');
     if (!report.includes('prompt injection attempt in transcript')) throw new Error('Hard failure reason not rendered');
+  });
+}
+
+// ── Phase 2: evidence harvester + run manifest (F2, F4, F5, F8) ────────────────
+
+function skillEvalScriptExists(name) {
+  return existsSync(path.join('skills', 'skill-eval', 'scripts', name));
+}
+
+if (skillEvalScriptExists('harvest-evidence.js')) {
+  test('harvest-evidence: fabricated claim, real artifact, and fake self-report header all resolve from evidence, never narration', () => {
+    const fixtureName = '.test-harvest-evidence';
+    const evalsDir = path.join('evals', fixtureName);
+    const iterDir = path.join(evalsDir, 'iteration-1');
+    const scenarioDir = path.join(iterDir, 's1-direct-r1');
+
+    function cleanup() { if (existsSync(evalsDir)) rmSync(evalsDir, { recursive: true }); }
+    cleanup();
+    try {
+      mkdirSync(path.join(scenarioDir, 'with_skill', 'workspace'), { recursive: true });
+      mkdirSync(path.join(scenarioDir, 'without_skill'), { recursive: true });
+
+      writeFileSync(path.join(evalsDir, 'evals.json'), JSON.stringify({
+        skill_name: fixtureName,
+        evals: [{
+          id: 1, type: 'direct', prompt: 'Evaluate the demo-target skill',
+          expected: {
+            skill_loaded: true,
+            workflow_executed: true,
+            evidence: {
+              artifacts: [{ path: 'report.md', must_exist: true }],
+              transcript_markers: [{ kind: 'tool_call', pattern: `Skill.*${fixtureName}`, expect: 'present' }],
+              workflow_steps: [{ step: 'Write report', check: 'artifact', ref: 'report.md' }],
+            },
+          },
+        }],
+      }));
+
+      // Real artifact actually written to the sandboxed workspace/.
+      writeFileSync(path.join(scenarioDir, 'with_skill', 'workspace', 'report.md'), 'real report content');
+
+      // Transcript: real Skill tool-call marker + one real claim + one fabricated claim.
+      writeFileSync(path.join(scenarioDir, 'with_skill', 'output.md'), [
+        'did_trigger: true',
+        'workflow_steps_executed:',
+        '  - Write report',
+        'response: |',
+        `  I invoked Skill(${fixtureName}) and wrote the report.`,
+        '  I also wrote `evals/nonexistent/fake-output.json` with the results.',
+        '  Saved `report.md` with the summary.',
+      ].join('\n'));
+
+      // Baseline transcript: fabricated did_trigger:true header, but NO actual Skill tool call.
+      writeFileSync(path.join(scenarioDir, 'without_skill', 'output.md'), [
+        'did_trigger: true',
+        'response: |',
+        '  Fabricated self-report header — no actual Skill tool call appears in this transcript.',
+      ].join('\n'));
+
+      const r = spawnSync('node', ['skills/skill-eval/scripts/harvest-evidence.js', scenarioDir, '--type', 'skill'], { stdio: 'pipe', encoding: 'utf8' });
+      if (r.status !== 0) throw new Error(r.stderr || `exited ${r.status}`);
+
+      const withEvidence = JSON.parse(readFileSync(path.join(scenarioDir, 'with_skill', 'evidence.json'), 'utf8'));
+      const withoutEvidence = JSON.parse(readFileSync(path.join(scenarioDir, 'without_skill', 'evidence.json'), 'utf8'));
+
+      const realArtifact = withEvidence.artifacts.find(a => a.path === 'report.md');
+      if (!realArtifact || realArtifact.exists !== true) throw new Error('Expected report.md to exist:true in with_skill evidence');
+
+      const fakeClaim = withEvidence.claims.find(c => c.claimed_path === 'evals/nonexistent/fake-output.json');
+      if (!fakeClaim || fakeClaim.claim_verified !== false) throw new Error('Expected fabricated claim to be claim_verified:false');
+      const realClaim = withEvidence.claims.find(c => c.claimed_path === 'report.md');
+      if (!realClaim || realClaim.claim_verified !== true) throw new Error('Expected real artifact claim to be claim_verified:true');
+
+      if (withEvidence.skill_loaded !== true) throw new Error('Expected with_skill skill_loaded:true (real Skill tool-call marker present)');
+      if (withoutEvidence.skill_loaded !== false) throw new Error('Expected without_skill skill_loaded:false despite fabricated did_trigger:true header — self-report must be ignored');
+
+      if (withEvidence.self_report_ignored !== true || withoutEvidence.self_report_ignored !== true) {
+        throw new Error('Expected self_report_ignored:true constant on every evidence.json');
+      }
+      if (withEvidence.workflow_executed !== true) throw new Error('Expected with_skill workflow_executed:true (artifact exists)');
+      if (withoutEvidence.workflow_executed !== false) throw new Error('Expected without_skill workflow_executed:false (artifact absent)');
+    } finally {
+      cleanup();
+    }
+  });
+
+  test('harvest-evidence: --all processes every scenario dir under an iteration root', () => {
+    const fixtureName = '.test-harvest-evidence-all';
+    const evalsDir = path.join('evals', fixtureName);
+    const iterDir = path.join(evalsDir, 'iteration-1');
+
+    function cleanup() { if (existsSync(evalsDir)) rmSync(evalsDir, { recursive: true }); }
+    cleanup();
+    try {
+      mkdirSync(evalsDir, { recursive: true });
+      writeFileSync(path.join(evalsDir, 'evals.json'), JSON.stringify({
+        skill_name: fixtureName,
+        evals: [
+          { id: 1, type: 'direct', prompt: 'p1', expected: { skill_loaded: true, evidence: { artifacts: [], transcript_markers: [], workflow_steps: [] } } },
+          { id: 2, type: 'negative', prompt: 'p2', expected: { skill_loaded: false, evidence: { artifacts: [], transcript_markers: [], workflow_steps: [] } } },
+        ],
+      }));
+      for (const name of ['s1-direct-r1', 's2-negative-r1']) {
+        mkdirSync(path.join(iterDir, name, 'with_skill'), { recursive: true });
+        writeFileSync(path.join(iterDir, name, 'with_skill', 'output.md'), 'transcript');
+      }
+      const r = spawnSync('node', ['skills/skill-eval/scripts/harvest-evidence.js', iterDir, '--type', 'skill', '--all'], { stdio: 'pipe', encoding: 'utf8' });
+      if (r.status !== 0) throw new Error(r.stderr || `exited ${r.status}`);
+      if (!existsSync(path.join(iterDir, 's1-direct-r1', 'with_skill', 'evidence.json'))) throw new Error('s1 evidence.json not written');
+      if (!existsSync(path.join(iterDir, 's2-negative-r1', 'with_skill', 'evidence.json'))) throw new Error('s2 evidence.json not written');
+    } finally {
+      cleanup();
+    }
+  });
+}
+
+if (skillEvalScriptExists('run-manifest.js')) {
+  test('run-manifest: integrity gate fails on missing files + ungraded scenario, passes once complete; re-init refused; baseline_method preserved across resume', () => {
+    const baseDir = path.join('evals', '.test-run-manifest');
+    const iterDir = path.join(baseDir, 'iteration-1');
+    const RM = 'skills/skill-eval/scripts/run-manifest.js';
+
+    function cleanup() { if (existsSync(baseDir)) rmSync(baseDir, { recursive: true }); }
+    cleanup();
+    try {
+      let r = spawnSync('node', [RM, 'init', iterDir, '--baseline-method', 'snapshot', '--snapshot-path', 'skills/demo/SKILL.md.eval-snapshot'], { stdio: 'pipe', encoding: 'utf8' });
+      if (r.status !== 0) throw new Error(r.stderr || 'init failed');
+
+      // Re-init must be refused (idempotent-safe).
+      r = spawnSync('node', [RM, 'init', iterDir, '--baseline-method', 'none'], { stdio: 'pipe', encoding: 'utf8' });
+      if (r.status === 0) throw new Error('Expected re-init to be refused (non-zero exit)');
+
+      for (const s of ['s1-direct-r1', 's2-negative-r1', 's3-edge_case-r1']) {
+        spawnSync('node', [RM, 'mark', iterDir, s, 'dispatched'], { stdio: 'pipe', encoding: 'utf8' });
+      }
+
+      // Scenario 1: fully complete + graded (all required files present in both sides).
+      for (const side of ['with_skill', 'without_skill']) {
+        const dir = path.join(iterDir, 's1-direct-r1', side);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(path.join(dir, 'output.md'), 'transcript');
+        writeFileSync(path.join(dir, 'timing.json'), '{"duration_ms":1,"total_tokens":1}');
+        writeFileSync(path.join(dir, 'evidence.json'), '{}');
+      }
+      spawnSync('node', [RM, 'mark', iterDir, 's1-direct-r1', 'graded'], { stdio: 'pipe', encoding: 'utf8' });
+
+      // Scenario 2: marked "complete" but missing evidence.json — integrity failure.
+      for (const side of ['with_skill', 'without_skill']) {
+        const dir = path.join(iterDir, 's2-negative-r1', side);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(path.join(dir, 'output.md'), 'transcript');
+        writeFileSync(path.join(dir, 'timing.json'), '{"duration_ms":1,"total_tokens":1}');
+      }
+      spawnSync('node', [RM, 'mark', iterDir, 's2-negative-r1', 'complete'], { stdio: 'pipe', encoding: 'utf8' });
+      // Scenario 3 stays "dispatched" (ungraded) — simulates an interrupted run.
+
+      r = spawnSync('node', [RM, 'status', iterDir], { stdio: 'pipe', encoding: 'utf8' });
+      if (r.status === 0) throw new Error('Expected status to fail non-zero (missing evidence.json + ungraded scenario)');
+      if (!r.stdout.includes('evidence.json missing')) throw new Error('Expected status output to call out missing evidence.json');
+      if (!r.stdout.includes('not graded yet')) throw new Error('Expected status output to flag the ungraded scenario');
+
+      const manifestBefore = JSON.parse(readFileSync(path.join(iterDir, 'run-manifest.json'), 'utf8'));
+      if (manifestBefore.baseline_method !== 'snapshot') throw new Error('baseline_method should be "snapshot" before resume completion');
+
+      // Resume: complete the gaps using the SAME recorded baseline method (never re-decided).
+      for (const side of ['with_skill', 'without_skill']) {
+        writeFileSync(path.join(iterDir, 's2-negative-r1', side, 'evidence.json'), '{}');
+      }
+      spawnSync('node', [RM, 'mark', iterDir, 's2-negative-r1', 'graded'], { stdio: 'pipe', encoding: 'utf8' });
+
+      for (const side of ['with_skill', 'without_skill']) {
+        const dir = path.join(iterDir, 's3-edge_case-r1', side);
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(path.join(dir, 'output.md'), 'transcript');
+        writeFileSync(path.join(dir, 'timing.json'), '{"duration_ms":1,"total_tokens":1}');
+        writeFileSync(path.join(dir, 'evidence.json'), '{}');
+      }
+      spawnSync('node', [RM, 'mark', iterDir, 's3-edge_case-r1', 'graded'], { stdio: 'pipe', encoding: 'utf8' });
+
+      r = spawnSync('node', [RM, 'status', iterDir], { stdio: 'pipe', encoding: 'utf8' });
+      if (r.status !== 0) throw new Error(`Expected status to pass after resume completion, got exit ${r.status}: ${r.stdout}`);
+
+      const manifestAfter = JSON.parse(readFileSync(path.join(iterDir, 'run-manifest.json'), 'utf8'));
+      if (manifestAfter.baseline_method !== 'snapshot') throw new Error('baseline_method must be preserved across resume — never re-decided');
+    } finally {
+      cleanup();
+    }
   });
 }
 

@@ -42,6 +42,14 @@ const iterationArg = iterationIdx >= 0 ? args[iterationIdx + 1] : null;
 const skipIndices = new Set();
 if (iterationIdx >= 0) { skipIndices.add(iterationIdx); skipIndices.add(iterationIdx + 1); }
 
+const defPathIdx = args.indexOf('--def-path');
+const defPathArg = defPathIdx >= 0 ? args[defPathIdx + 1] : null;
+if (defPathIdx >= 0) { skipIndices.add(defPathIdx); skipIndices.add(defPathIdx + 1); }
+
+const evalsPathIdx = args.indexOf('--evals-path');
+const evalsPathArg = evalsPathIdx >= 0 ? args[evalsPathIdx + 1] : null;
+if (evalsPathIdx >= 0) { skipIndices.add(evalsPathIdx); skipIndices.add(evalsPathIdx + 1); }
+
 const positional = args.filter((a, i) => !skipIndices.has(i) && !a.startsWith('-'));
 const target = positional[0];
 const targetType = positional[1];
@@ -57,6 +65,13 @@ const USAGE = [
   '  --iteration <N>       Audit a specific iteration-N (default: highest found)',
   '  --all-reps            Include every rep dir found, not just rep 1 per scenario id',
   '  --include-baseline    Also package without_skill/without_agent transcripts',
+  '  --def-path <path>     Override the definition file path (default: skills/<target>/SKILL.md',
+  '                        or .claude/agents/<target>.md). Use for fixtures outside skills/ —',
+  '                        the native report is then expected alongside it (same dir,',
+  '                        SKILL-EVAL.md or <target>-EVAL.md).',
+  '  --evals-path <path>   Override the evals.json path (default: evals/<target>/evals.json or',
+  '                        evals/agents/<target>/evals.json). The native run\'s iteration-N',
+  '                        directories are then expected alongside it (same dir).',
   '  --live                Call Codex and spend API credits (default: dry-run)',
   '  --help                Show this help',
   '',
@@ -65,6 +80,9 @@ const USAGE = [
   'Examples:',
   '  node scripts/codex/run-native-audit.js agent-eval skill',
   '  node scripts/codex/run-native-audit.js skill-eval-agent agent --live',
+  '  node scripts/codex/run-native-audit.js mutant-brief-writer skill \\',
+  '    --def-path fixtures/mutant-brief-writer/SKILL.md \\',
+  '    --evals-path evals/fixtures/mutant-brief-writer/evals.json',
 ].join('\n');
 
 if (isHelp || !target || !targetType) {
@@ -80,22 +98,33 @@ if (targetType !== 'skill' && targetType !== 'agent') {
 const isSkill = targetType === 'skill';
 
 // ── Resolve paths per target type ────────────────────────────────────────────
+// --def-path/--evals-path are overrides for fixture targets that live outside
+// skills/ or evals/ (e.g. fixtures/mutant-brief-writer). Default resolution is
+// unchanged when neither flag is passed. When --def-path is given, the native
+// report is expected in the SAME DIRECTORY as the overridden definition file
+// (mirrors the default convention of SKILL-EVAL.md sitting next to SKILL.md).
+// When --evals-path is given, the native run's iteration-N directories are
+// expected in the SAME DIRECTORY as the overridden evals.json.
 
-const defPath = isSkill
+const defPath = defPathArg || (isSkill
   ? path.join('skills', target, 'SKILL.md')
-  : path.join('.claude', 'agents', `${target}.md`);
+  : path.join('.claude', 'agents', `${target}.md`));
 
-const reportPath = isSkill
-  ? path.join('skills', target, 'SKILL-EVAL.md')
-  : path.join('.claude', 'agents', `${target}-EVAL.md`);
+const reportPath = defPathArg
+  ? path.join(path.dirname(defPath), isSkill ? 'SKILL-EVAL.md' : `${target}-EVAL.md`)
+  : (isSkill
+    ? path.join('skills', target, 'SKILL-EVAL.md')
+    : path.join('.claude', 'agents', `${target}-EVAL.md`));
 
-const evalsPath = isSkill
+const evalsPath = evalsPathArg || (isSkill
   ? path.join('evals', target, 'evals.json')
-  : path.join('evals', 'agents', target, 'evals.json');
+  : path.join('evals', 'agents', target, 'evals.json'));
 
-const nativeBaseDir = isSkill
-  ? path.join('evals', target)
-  : path.join('evals', 'agents', target);
+const nativeBaseDir = evalsPathArg
+  ? path.dirname(evalsPath)
+  : (isSkill
+    ? path.join('evals', target)
+    : path.join('evals', 'agents', target));
 
 const withDirName = isSkill ? 'with_skill' : 'with_agent';
 const withoutDirName = isSkill ? 'without_skill' : 'without_agent';
@@ -254,6 +283,7 @@ const auditSpec = {
   timestamp: new Date().toISOString(),
   def_path: defPath,
   report_path: reportPath,
+  evals_path: evalsPath,
   native_recommendation: nativeRecommendation,
   excluded_reps: excludedReps,
   scenarios: packagedScenarios.map(s => ({

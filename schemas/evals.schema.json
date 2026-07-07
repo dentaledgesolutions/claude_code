@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Skill/Agent Eval Scenarios File",
+  "description": "Output of skills/skill-eval/scripts/generate-seed-evals.js (skill variant) or skills/agent-eval/scripts/generate-agent-evals.js (agent variant). 6 or 9 structured test scenarios with evidence-based expectations (Phase 1 ground-truth rebuild — see docs/evaluations for F3/F5/F9/F10 background).",
+  "oneOf": [
+    { "$ref": "#/definitions/skillEvalsFile" },
+    { "$ref": "#/definitions/agentEvalsFile" }
+  ],
+  "definitions": {
+    "skillEvalsFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["skill_name", "generated_from", "project_context", "evals"],
+      "properties": {
+        "skill_name": { "type": "string" },
+        "generated_from": { "type": "string", "description": "Path to the source SKILL.md or UAT.md" },
+        "project_context": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+        "target_selection": { "$ref": "#/definitions/targetSelection" },
+        "evals": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/scenario" }
+        }
+      }
+    },
+    "agentEvalsFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["agent_name", "agent_file", "project_context", "evals"],
+      "properties": {
+        "agent_name": { "type": "string" },
+        "agent_file": { "type": "string", "description": "Path to the source .claude/agents/<name>.md" },
+        "project_context": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+        "target_selection": { "$ref": "#/definitions/targetSelection" },
+        "evals": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/scenario" }
+        }
+      }
+    },
+    "targetSelection": {
+      "type": "object",
+      "description": "Records how the concrete positive-scenario target was chosen, for reproducibility/debugging.",
+      "properties": {
+        "target": { "type": "string" },
+        "source": { "type": "string", "enum": ["cli", "installed_skills", "skills-dir", "agents-dir", "fallback"] },
+        "domain": { "type": "string", "enum": ["skill", "agent"] }
+      }
+    },
+    "scenario": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "eval_name", "type", "prompt", "expected"],
+      "properties": {
+        "id": { "type": "integer", "minimum": 1 },
+        "eval_name": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": [
+            "direct", "paraphrased", "edge_case", "negative", "semantic", "adversarial",
+            "project-native", "project-workflow", "multi-turn",
+            "uat-acceptance", "uat-checkbox"
+          ]
+        },
+        "prompt": { "type": "string", "minLength": 1 },
+        "target": { "type": ["string", "null"] },
+        "expected": { "$ref": "#/definitions/expected" },
+        "project_context_used": { "type": "object" }
+      }
+    },
+    "expected": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["evidence", "judgment"],
+      "description": "triggers/dispatches are preserved for backward compat. skill_loaded/agent_dispatched are the programmatic split from workflow_executed (harvester-derived in Phase 2); negative and adversarial scenarios omit workflow_executed and assert on skill_loaded/agent_dispatched only.",
+      "properties": {
+        "triggers": { "type": "boolean" },
+        "dispatches": { "type": "boolean" },
+        "skill_loaded": { "type": "boolean" },
+        "agent_dispatched": { "type": "boolean" },
+        "workflow_executed": { "type": "boolean" },
+        "evidence": { "$ref": "#/definitions/evidence" },
+        "judgment": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["artifacts", "transcript_markers", "workflow_steps"],
+      "description": "Programmatically checkable evidence. Phase 1 populates this structurally from the skill/agent's own documented conventions; Phase 2's harvest-evidence.js is the authoritative consumer that checks these against real transcripts/filesystem state.",
+      "properties": {
+        "artifacts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["path", "must_exist"],
+            "properties": {
+              "path": { "type": "string", "description": "Path relative to the scenario workspace (Phase 2 sandboxing)" },
+              "must_exist": { "type": "boolean" }
+            }
+          }
+        },
+        "transcript_markers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind", "pattern"],
+            "properties": {
+              "kind": { "type": "string", "enum": ["tool_call", "text"] },
+              "pattern": { "type": "string", "description": "Regex-style substring to search for in the transcript" },
+              "expect": { "type": "string", "enum": ["present", "absent"], "default": "present" }
+            }
+          }
+        },
+        "workflow_steps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["step", "check", "ref"],
+            "properties": {
+              "step": { "type": "string" },
+              "check": { "type": "string", "enum": ["artifact", "marker"] },
+              "ref": { "type": "string", "description": "Artifact path (check=artifact) or marker text (check=marker)" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

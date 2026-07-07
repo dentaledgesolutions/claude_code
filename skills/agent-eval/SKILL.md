@@ -47,40 +47,67 @@ User: check how well skill-refine-agent is working
    | 8 | `project-workflow` | ✓ | Agent invoked after a sibling in the pipeline |
    | 9 | `multi-turn` | ✓ | Continuation framing from mid-session |
 
-4. **Establish baseline** — before running with-agent tests, determine what to compare against:
-   - **New agent**: no agent at all — run each scenario with general capabilities only, no Agent tool call
-   - **Existing agent being improved**: snapshot first:
+4. **Establish baseline** — before running with-agent tests, determine what to compare against, and record it as the `baseline_method` for the whole iteration:
+   - **New agent**: `none` — run each scenario with general capabilities only, no Agent tool call
+   - **Existing agent being improved**: `snapshot` first:
      ```bash
      cp .claude/agents/<name>.md .claude/agents/<name>.md.eval-snapshot
      ```
      then use the snapshot as the baseline version.
 
-5. **Run parallel evaluations** — for each scenario, spawn two subagents **in the same turn** via `agent-eval-agent`:
-   - **With-agent**: dispatch the named agent, execute the prompt, save output to `evals/agents/<agent-name>/iteration-<N>/<id>/with_agent/`
-   - **Baseline**: use whichever baseline was established in step 4 — **new agent**: no agent dispatched (general capabilities only); **existing agent being improved**: dispatch the `.eval-snapshot` version instead of the current one — same prompt either way, save to `evals/agents/<agent-name>/iteration-<N>/<id>/without_agent/`
+   **Resume check:** if `evals/agents/<agent-name>/iteration-N/run-manifest.json` already exists for the highest N, run `node skills/skill-eval/scripts/run-manifest.js status evals/agents/<agent-name>/iteration-N` first. If it reports incomplete scenarios, resume that iteration using its **recorded** `baseline_method` instead of re-deciding it here.
 
-   Run dispatch-type scenarios (direct, paraphrased, semantic, negative, adversarial) 3 times each to measure dispatch consistency. Record `total_tokens` and `duration_ms` from each run — save to `timing.json` in the run directory.
+5. **Create the iteration dir and initialize the run manifest** (once per iteration — skip on resume):
+   ```bash
+   mkdir -p evals/agents/<agent-name>/iteration-<N>
+   node skills/skill-eval/scripts/run-manifest.js init evals/agents/<agent-name>/iteration-<N> \
+     --baseline-method <none|snapshot> [--snapshot-path .claude/agents/<name>.md.eval-snapshot]
+   ```
+   Re-running `init` on an existing manifest is refused by design — that's the guard against re-deciding the baseline method mid-run.
 
-6. **Grade outputs** — score each with-agent run using the LLM judge rubric in REFERENCE.md. For dispatch scenarios, use programmatic detection first (did an `Agent` tool call with this agent's `name` appear in the transcript?), then LLM judgment for quality.
+6. **Run parallel evaluations** — for each not-yet-`graded` scenario, spawn two subagents **in the same turn** via `agent-eval-agent`.
+   Canonical scenario-directory naming: `s<id>-<type>-r<rep>` (e.g. `s1-direct-r1`,
+   `s4-negative-r2`; single-rep scenarios still get `-r1`) — this is the one naming
+   convention going forward; do not use the legacy `<id>_rep<N>` or bare `<id>` forms.
+   - Mark each scenario `dispatched`: `node skills/skill-eval/scripts/run-manifest.js mark evals/agents/<agent-name>/iteration-<N> s<id>-<type>-r<rep> dispatched`
+   - **With-agent**: dispatch the named agent, execute the prompt, save output to `evals/agents/<agent-name>/iteration-<N>/s<id>-<type>-r<rep>/with_agent/`. Any file the prompt asks the subagent to produce must be written under that scenario's `with_agent/workspace/` subdirectory — never to the repo root or a real skill/agent directory.
+   - **Baseline**: use whichever baseline was established in step 4 — **new agent**: no agent dispatched (general capabilities only); **existing agent being improved**: dispatch the `.eval-snapshot` version instead of the current one — same prompt either way, save to `evals/agents/<agent-name>/iteration-<N>/s<id>-<type>-r<rep>/without_agent/`, with its own `without_agent/workspace/` sandbox.
+   - Mark each completed pair `complete`: `node skills/skill-eval/scripts/run-manifest.js mark evals/agents/<agent-name>/iteration-<N> s<id>-<type>-r<rep> complete`
 
-7. **Compute 5 metrics**:
-   - **Eval Pass Rate** = (scenarios scoring ≥ 7) / total × 100%. Threshold: ≥ 80%
-   - **Dispatch Accuracy** = (correct dispatch decisions across all dispatch-type scenarios, 3 reps each) / total checks × 100%. Threshold: ≥ 85%
-   - **Context Footprint** = total lines in agent file + estimated tokens (lines × 4 avg)
-   - **Project Fit Score** = average of project-native + project-workflow + multi-turn ProjectFit dimension scores × 10. Only reported when `--context` was used. Threshold: ≥ 7/10
-   - **Resilience Score** = (adversarial scenarios scoring > 0) / total adversarial × 10. Threshold: ≥ 8/10. An agent that dispatches on adversarial probes has an over-broad description — route to Lever A in agent-refine.
+   Run dispatch-type scenarios (direct, paraphrased, semantic, negative, adversarial) 3 times each to measure dispatch consistency. Record `total_tokens` and `duration_ms` from each run — save to `timing.json` in the run directory. A self-reported status header (`did_trigger`, `workflow_steps_executed`) in a transcript is narrative color only — it is never read for scoring.
 
-8. **Analyst pass** — before writing the report, review graded results for:
-   - Scenarios that pass whether or not the agent is dispatched (non-discriminating)
-   - High-variance scenarios (dispatched 1/3 or 2/3 times — unstable description)
-   - Large baseline delta (agent significantly outperforms or underperforms general capabilities)
-   - Adversarial false positives (agent dispatched when it should not — description too broad; route to Lever A)
-   - Tool violations (agent used a tool not listed in its frontmatter `tools:` field → TOOL_VIOLATION flag)
-   - Multi-turn redundancy (agent re-asked for context already in the preamble → MULTI_TURN_REDUNDANCY flag)
+7. **Harvest evidence** — after each dispatch batch finishes:
+   ```bash
+   node skills/skill-eval/scripts/harvest-evidence.js evals/agents/<agent-name>/iteration-<N> --type agent --all
+   ```
+   This writes `evidence.json` next to each `output.md`, deriving `agent_dispatched`, transcript markers, artifact existence/hash, claim verification, and `workflow_steps`/`workflow_executed` from the filesystem and transcript text — never from a self-reported header.
 
-9. **Write AGENT-EVAL.md** — save to `.claude/agents/<agent-name>-EVAL.md` using the template in REFERENCE.md.
+8. **Grade outputs** — dispatch accuracy and workflow-step scoring come **only** from `evidence.json`'s `agent_dispatched` and `workflow_steps[].satisfied` fields. The LLM judge scores only the scenario's `expected.judgment` items plus general output quality — it never re-derives dispatch/workflow results from the transcript, and a subagent's self-reported header is never substituted for evidence.json. Mark each scenario `graded` once scored: `node skills/skill-eval/scripts/run-manifest.js mark evals/agents/<agent-name>/iteration-<N> s<id>-<type>-r<rep> graded`
 
-10. **Agent-refine handoff** — if Eval Pass Rate < 80%, Dispatch Accuracy < 85%, Project Fit Score < 7, or Resilience Score < 8, write `evals/agents/<agent-name>/refine-input.json` with failing scenario names, root causes, and analyst observations. Then invoke `agent-refine`.
+9. **Confirm integrity before computing metrics**:
+   ```bash
+   node skills/skill-eval/scripts/run-manifest.js status evals/agents/<agent-name>/iteration-<N>
+   ```
+   Must exit 0. If it fails, close the gap (harvest, dispatch, or grade what's missing) before proceeding.
+
+10. **Compute 5 metrics**:
+    - **Eval Pass Rate** = (scenarios scoring ≥ 7) / total × 100%. Threshold: ≥ 80%
+    - **Dispatch Accuracy** = (correct dispatch decisions across all dispatch-type scenarios, 3 reps each, per evidence.json) / total checks × 100%. Threshold: ≥ 85%
+    - **Context Footprint** = total lines in agent file + estimated tokens (lines × 4 avg)
+    - **Project Fit Score** = average of project-native + project-workflow + multi-turn ProjectFit dimension scores × 10. Only reported when `--context` was used. Threshold: ≥ 7/10
+    - **Resilience Score** = (adversarial scenarios scoring > 0, per evidence.json) / total adversarial × 10. Threshold: ≥ 8/10. An agent that dispatches on adversarial probes has an over-broad description — route to Lever A in agent-refine.
+
+11. **Analyst pass** — before writing the report, review graded results for:
+    - Scenarios that pass whether or not the agent is dispatched (non-discriminating)
+    - High-variance scenarios (dispatched 1/3 or 2/3 times — unstable description)
+    - Large baseline delta (agent significantly outperforms or underperforms general capabilities)
+    - Adversarial false positives (agent dispatched when it should not — description too broad; route to Lever A)
+    - Tool violations (agent used a tool not listed in its frontmatter `tools:` field → TOOL_VIOLATION flag)
+    - Multi-turn redundancy (agent re-asked for context already in the preamble → MULTI_TURN_REDUNDANCY flag)
+
+12. **Write AGENT-EVAL.md** — save to `.claude/agents/<agent-name>-EVAL.md` using the template in REFERENCE.md.
+
+13. **Agent-refine handoff** — if Eval Pass Rate < 80%, Dispatch Accuracy < 85%, Project Fit Score < 7, or Resilience Score < 8, write `evals/agents/<agent-name>/refine-input.json` with failing scenario names, root causes, and analyst observations. Then invoke `agent-refine`.
 
 ## Scoring rubric (per scenario, 0–10)
 

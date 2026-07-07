@@ -468,13 +468,54 @@ or their subagent definitions. Findings go to a separate `NATIVE-AUDIT-REPORT.md
   `evals/agents/agent-eval-agent/iteration-1/` — `s<id>-<type>-r<N>`, which correctly hard-errored since
   no native report exists yet for that agent).
 
-### Not yet done — Phase 9
+### Phase 9 — live calibration gate: PASS 4/4 (2026-07-07)
 
-No real `--live` Codex call has been made against this mode yet. Acceptance bar for Phase 9: run
-`run-native-audit.js --live` against a native run with known ground-truth defects (recreate the
-calibration-test mutant, since its scratch artifacts weren't persisted) and confirm the
-`instruction_self_consistency`/`workflow_step_fidelity` checklist items actually catch what the native
-pipeline demonstrably missed above.
+First live run of native-audit mode, executed per `fixtures/GATE-RUNBOOK.md` against the committed
+mutant (`fixtures/mutant-brief-writer/`, iteration-1 native eval resumed after a session interruption;
+all 19 scenarios graded, manifest integrity OK). `run-calibration.js check` exits 0 —
+**all 4 defect classes caught**, each with anchor-quote or keyword evidence
+(`evals/fixtures/CALIBRATION-REPORT.md`):
+
+| Defect | Catcher | Match |
+|--------|---------|-------|
+| vague-trigger | native metric: analyst observations (SKILL-EVAL.md) | anchor-quote |
+| self-contradiction | native audit: `instruction_self_consistency` (fail) | anchor-quote |
+| dropped-step | native audit: `workflow_step_fidelity` (fail) | anchor-quote |
+| filename-mismatch | native metric: Project Fit (SKILL-EVAL.md) | keyword |
+
+Audit run: `evals/codex-runs/native-audits/skills/mutant-brief-writer/2026-07-07T19-04-46-556Z/`.
+Escalation `MANUAL_REVIEW_REQUIRED` (critical `internal_contradiction` finding — the Step 1 / Step 5
+follow-up-questions contradiction), `audit_confidence: high`, `hard_failure: false`,
+`native_conclusion_supported: true`. Checklist: `instruction_self_consistency` fail,
+`workflow_step_fidelity` fail, `output_integration_claims` fail, `native_scoring_supported` pass.
+The acceptance bar above is met exactly: the two checklist items caught what the native pipeline
+missed — the native SKILL-EVAL.md surfaced the self-contradiction and dropped step only incidentally
+(one rep's transcript narrated them), while the audit flagged both as primary findings with direct
+definition quotes.
+
+**Actual cost (acceptance input):** single holistic Codex call — 32,525 input tokens (2,432 cached)
++ 1,978 output tokens (516 reasoning) ≈ 34.5k total. Auth was ChatGPT-subscription login
+(`codex-cli 0.136.0`), so no metered per-token dollar charge; on metered API pricing this volume is
+on the order of a few cents per audit.
+
+Deviations and pipeline findings recorded from the gate run:
+
+- **Project Fit passed (8.3/10) instead of failing** as the runbook predicted for the
+  filename-integration defect — the defect was still caught because SKILL-EVAL.md names the
+  `BRIEF.md`/`PROJECT-BRIEF.md` mismatch in analyst prose (keyword match). The runbook's expected-
+  catcher table remains valid; the expectation about *how* Project Fit reflects the defect was wrong.
+- **Trigger-marker false positive (real pipeline defect, pre-existing):** the generated marker regex
+  (`Skill.*<name>`, single line) matches transcripts that merely narrate the skill's name, inflating
+  `skill_loaded: true` (12/19 with-skill reps flagged true; only 2 actually executed the workflow).
+  It drove 0/3 adversarial and 2/3 negative trigger reads despite correct decline behavior in every
+  transcript. Codex independently flagged this (minor `unsupported_native_conclusion` on scenario 6)
+  while correctly noting the native report had disclosed it. Fix belongs in marker
+  generation/harvesting, not the fixture.
+- **`workflow_steps` empty in the generated `evals.json`** for all 9 mutant scenarios, so per-step
+  evidence scoring was unavailable; the native grader folded workflow quality into the LLM-judge
+  component. Second pipeline gap to address in scenario generation.
+
+Phases 4+ are unblocked.
 
 ---
 

@@ -66,7 +66,7 @@ while IFS= read -r dir; do
 done < <(find "${REPO_DIR}/skills" -mindepth 1 -maxdepth 1 -type d | sort)
 
 # ── 1. Project-scoped skills (source of truth) ───────────────────────────────
-echo "→ [1/6] Copying skills to project"
+echo "→ [1/7] Copying skills to project"
 if ! ${DRY_RUN}; then mkdir -p "${TARGET}/skills" && cp -R "${REPO_DIR}/skills/." "${TARGET}/skills/"; fi
 for skill in "${SKILL_NAMES[@]}"; do
     ${DRY_RUN} && dryrun "${skill}  →  ${TARGET}/skills/${skill}" || ok "${skill}  →  ${TARGET}/skills/${skill}"
@@ -74,7 +74,7 @@ done
 echo ""
 
 # ── 2. Runtime sync (~/.claude/skills/) ─────────────────────────────────────
-echo "→ [2/6] Syncing skills to runtime"
+echo "→ [2/7] Syncing skills to runtime"
 if ! ${DRY_RUN}; then mkdir -p "${GLOBAL_SKILLS}"; fi
 for skill in "${SKILL_NAMES[@]}"; do
     if ! ${DRY_RUN}; then cp -R "${REPO_DIR}/skills/${skill}" "${GLOBAL_SKILLS}/"; fi
@@ -83,7 +83,7 @@ done
 echo ""
 
 # ── 3. Agents (project-scoped only) ─────────────────────────────────────────
-echo "→ [3/6] Installing agents"
+echo "→ [3/7] Installing agents"
 if ! ${DRY_RUN}; then mkdir -p "${TARGET}/.claude/agents"; fi
 for agent_file in "${REPO_DIR}/.claude/agents/"*.md; do
     agent_name="$(basename "${agent_file}")"
@@ -93,7 +93,7 @@ done
 echo ""
 
 # ── 4. Codex eval scripts + schemas ─────────────────────────────────────────
-echo "→ [4/6] Installing Codex external eval scripts and schemas"
+echo "→ [4/7] Installing Codex external eval scripts and schemas"
 if ! ${DRY_RUN}; then
     mkdir -p "${TARGET}/scripts/codex" "${TARGET}/schemas/codex"
     cp -R "${REPO_DIR}/scripts/codex/." "${TARGET}/scripts/codex/"
@@ -110,7 +110,7 @@ done
 echo ""
 
 # ── 5. Evals workspace + .gitignore ─────────────────────────────────────────
-echo "→ [5/6] Setting up evals/ workspace and .gitignore"
+echo "→ [5/7] Setting up evals/ workspace and .gitignore"
 if ! ${DRY_RUN}; then
     mkdir -p "${TARGET}/evals"
     ok "created  ${TARGET}/evals/"
@@ -148,7 +148,7 @@ fi
 echo ""
 
 # ── 6. CLAUDE.md pipeline section ────────────────────────────────────────────
-echo "→ [6/6] Writing pipeline rules to CLAUDE.md"
+echo "→ [6/7] Writing pipeline rules to CLAUDE.md"
 CLAUDE_MD="${TARGET}/CLAUDE.md"
 MARKER_START="# >>> skill-builder >>>"
 
@@ -195,6 +195,78 @@ PIPELINE_SECTION
     else
         dryrun "would add pipeline section to ${CLAUDE_MD}"
     fi
+fi
+echo ""
+
+# ── 7. Telemetry (Level 4 real-usage hooks) ─────────────────────────────────
+echo "→ [7/7] Installing telemetry hooks"
+if ! ${DRY_RUN}; then
+    mkdir -p "${TARGET}/scripts/telemetry" "${TARGET}/schemas/telemetry"
+    cp -R "${REPO_DIR}/scripts/telemetry/." "${TARGET}/scripts/telemetry/"
+    cp -R "${REPO_DIR}/schemas/telemetry/." "${TARGET}/schemas/telemetry/"
+fi
+for f in "${REPO_DIR}/scripts/telemetry/"*.js; do
+    ${DRY_RUN} && dryrun "$(basename "${f}")  →  ${TARGET}/scripts/telemetry/$(basename "${f}")" \
+               || ok "$(basename "${f}")  →  ${TARGET}/scripts/telemetry/$(basename "${f}")"
+done
+for f in "${REPO_DIR}/schemas/telemetry/"*.json; do
+    ${DRY_RUN} && dryrun "$(basename "${f}")  →  ${TARGET}/schemas/telemetry/$(basename "${f}")" \
+               || ok "$(basename "${f}")  →  ${TARGET}/schemas/telemetry/$(basename "${f}")"
+done
+
+# Merge (never clobber) telemetry hook entries into the target's .claude/settings.json.
+# Surgical: only appends our own matcher/command combos if they aren't already present;
+# every other hook the target project already has is left untouched.
+if ! ${DRY_RUN}; then
+    if command -v node &>/dev/null; then
+        TELEMETRY_HOOKS_ADDED="$(node -e '
+const fs = require("fs");
+const path = require("path");
+const target = process.argv[1];
+const file = path.join(target, ".claude", "settings.json");
+fs.mkdirSync(path.dirname(file), { recursive: true });
+let settings = {};
+if (fs.existsSync(file)) {
+    try { settings = JSON.parse(fs.readFileSync(file, "utf8")); } catch { settings = {}; }
+}
+settings.hooks = settings.hooks || {};
+
+function ensureHookEntry(eventName, matcher, command) {
+    settings.hooks[eventName] = settings.hooks[eventName] || [];
+    const list = settings.hooks[eventName];
+    const already = list.some((entry) =>
+        (entry.matcher || null) === (matcher || null) &&
+        Array.isArray(entry.hooks) &&
+        entry.hooks.some((h) => h && h.command === command)
+    );
+    if (already) return false;
+    list.push({ ...(matcher ? { matcher } : {}), hooks: [{ type: "command", command }] });
+    return true;
+}
+
+const invCmd = "node \"$CLAUDE_PROJECT_DIR/scripts/telemetry/log-invocation.js\"";
+const corrCmd = "node \"$CLAUDE_PROJECT_DIR/scripts/telemetry/log-outcome.js\" --mode correction";
+const endCmd = "node \"$CLAUDE_PROJECT_DIR/scripts/telemetry/log-outcome.js\" --mode session-end";
+
+let added = 0;
+if (ensureHookEntry("PostToolUse", "Skill|Task", invCmd)) added++;
+if (ensureHookEntry("UserPromptSubmit", null, corrCmd)) added++;
+if (ensureHookEntry("Stop", null, endCmd)) added++;
+if (ensureHookEntry("SessionEnd", null, endCmd)) added++;
+
+fs.writeFileSync(file, JSON.stringify(settings, null, 2) + "\n");
+process.stdout.write(String(added));
+' "${TARGET}")"
+        if [ "${TELEMETRY_HOOKS_ADDED}" != "0" ]; then
+            ok "merged ${TELEMETRY_HOOKS_ADDED} telemetry hook entr$([ "${TELEMETRY_HOOKS_ADDED}" = "1" ] && echo y || echo ies) into ${TARGET}/.claude/settings.json"
+        else
+            ok "telemetry hook entries already present in ${TARGET}/.claude/settings.json"
+        fi
+    else
+        warn "Node.js not found — skipping .claude/settings.json hook merge for telemetry"
+    fi
+else
+    dryrun "would merge telemetry hook entries into ${TARGET}/.claude/settings.json"
 fi
 echo ""
 

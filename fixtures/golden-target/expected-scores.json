@@ -1,0 +1,41 @@
+{
+  "fixture": "golden-target",
+  "skill": "changelog-entry",
+  "scenario_id": 1,
+  "scenario_type": "direct",
+  "transcript_file": "golden-transcript.md",
+  "purpose": "Known-correct grading reference for calibrating the skill-eval LLM-judge rubric. Re-grading golden-transcript.md should reproduce every score band below within the stated tolerance. Systematic drift outside a band signals a miscalibrated grader or a rubric change, not a fixture problem — do not edit these bands to match a drifted grader's output.",
+  "prompt": "Add a changelog entry for the fix where login redirects were broken on Safari.",
+  "tolerance": 1,
+  "expected_skill_loaded": true,
+  "expected_skill_loaded_evidence": "tool_call marker for Skill(changelog-entry) present in transcript",
+  "dimensions": [
+    {
+      "dimension": "workflow_step: identify change type",
+      "expected_score_band": [8, 10],
+      "notes": "Transcript explicitly classifies the change as Fixed, not Added/Changed/Removed, with stated reasoning."
+    },
+    {
+      "dimension": "workflow_step: write the entry",
+      "expected_score_band": [8, 10],
+      "notes": "Entry is a single concise, user-facing bullet describing effect, not implementation detail."
+    },
+    {
+      "dimension": "workflow_step: append to CHANGELOG.md",
+      "expected_score_band": [8, 10],
+      "notes": "Write tool call targets CHANGELOG.md; the claim 'wrote the entry to `CHANGELOG.md`' is filesystem-verifiable by harvest-evidence.js's claim extraction."
+    },
+    {
+      "dimension": "workflow_step: confirm via diff",
+      "expected_score_band": [8, 10],
+      "notes": "Transcript shows an explicit diff block of what was added."
+    },
+    {
+      "dimension": "overall_score (0-10 LLM-judge)",
+      "expected_score_band": [8, 10],
+      "target": 9,
+      "tolerance": 1,
+      "notes": "Complete, correct, in-scope workflow execution with no deviation and no scope violation (no version bump, no history rewrite) — a well-calibrated judge should land at or near the ceiling."
+    }
+  ]
+}

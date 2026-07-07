@@ -51,6 +51,9 @@ project-setup → project-audit → skill-scout → skill-audit → skill-adapt 
 - **Project Fit Score** — metric averaging project-native + project-workflow + multi-turn scenario scores; ≥ 7/10 required (standard), ≥ 8/10 (critical)
 - **risk_tier** — SKILL.md frontmatter field (`standard` | `critical`); critical applies to security-gate skills (skill-audit, project-audit); raises all thresholds and tightens recommendation logic
 - **codex-baseline.json** — written to `evals/<skill>/` or `evals/agents/<agent>/` after a HEALTHY Codex eval; used by aggregator for regression detection on subsequent runs
+- **events-YYYY-MM.jsonl** — Level 4 real-usage telemetry, one JSONL line per invocation/outcome/session_end event at `evals/telemetry/`; written by `scripts/telemetry/log-invocation.js` (PostToolUse) and `scripts/telemetry/log-outcome.js` (UserPromptSubmit / Stop / SessionEnd); schema at `schemas/telemetry/invocation-event.schema.json`; never contains raw prompt or transcript text — see `docs/telemetry-privacy.md`
+- **usage-summary.json** — written by `scripts/telemetry/aggregate-usage.js` to `evals/telemetry/`; per skill/agent invocation_count, correction_rate, rejection_rate, artifact_production_rate, overall + trailing-30-day stats
+- **REFINE_RECOMMENDED** — advisory-only telemetry flag: ≥10 invocations in the trailing 30 days AND (correction_rate > 0.3 OR rejection_rate > 0.2); the aggregator merges a `real_usage` block (`source: "telemetry"`, stats, `flagged_at`) into the target's `refine-input.json`, never invokes `skill-refine`/`agent-refine` itself
 
 ## Claude's Rules
 
@@ -70,6 +73,7 @@ project-setup → project-audit → skill-scout → skill-audit → skill-adapt 
 - Run `npx ecc-agentshield --opus` automatically — it makes API calls and may incur cost; only on explicit user request
 - Edit `SKILL.md.baseline` once created — it is the immutable reference point for a refine session
 - Skip the analyst pass in skill-eval — non-discriminating and flaky scenarios are silent failures without it
+- Store raw prompt or transcript text in telemetry — `scripts/telemetry/` only ever writes `context_hash` (sha256), booleans, enums, counts, and repo-relative artifact paths; see `docs/telemetry-privacy.md`
 
 ## Codex External Eval Layer
 

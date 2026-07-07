@@ -12,3 +12,10 @@
 
 # Codex external eval run artifacts (generated, not versioned)
 evals/codex-runs/
+
+# fixtures/ itself is COMMITTED (calibration test assets — see fixtures/README.md),
+# but eval runs against the mutant generate a report next to its definition
+# (run-native-audit.js --def-path convention); those generated files stay out of git.
+fixtures/*/SKILL-EVAL.md
+fixtures/*/SKILL.md.eval-snapshot
+fixtures/*/SKILL.md.baseline

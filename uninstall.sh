@@ -52,7 +52,7 @@ read -r -p "Proceed? [y/N] " confirm
 echo ""
 
 # ── 1. Project skills ────────────────────────────────────────────────────────
-echo "→ [1/6] Removing project skills"
+echo "→ [1/7] Removing project skills"
 if [ -d "${TARGET}/skills" ]; then
     rm -rf "${TARGET}/skills"
     ok "removed  ${TARGET}/skills/"
@@ -62,7 +62,7 @@ fi
 echo ""
 
 # ── 2. Runtime skills (~/.claude/skills/) ───────────────────────────────────
-echo "→ [2/6] Removing runtime skills"
+echo "→ [2/7] Removing runtime skills"
 for skill in "${SKILL_NAMES[@]}"; do
     runtime_skill="${GLOBAL_SKILLS}/${skill}"
     if [ -d "${runtime_skill}" ]; then
@@ -75,7 +75,7 @@ done
 echo ""
 
 # ── 3. Agents (project-scoped only) ─────────────────────────────────────────
-echo "→ [3/6] Removing agents"
+echo "→ [3/7] Removing agents"
 for agent_file in "${AGENT_FILES[@]}"; do
     project_agent="${TARGET}/.claude/agents/${agent_file}"
     if [ -f "${project_agent}" ]; then
@@ -88,7 +88,7 @@ done
 echo ""
 
 # ── 4. Codex eval scripts + schemas ─────────────────────────────────────────
-echo "→ [4/6] Removing Codex external eval scripts and schemas"
+echo "→ [4/7] Removing Codex external eval scripts and schemas"
 for d in scripts/codex schemas/codex; do
     target_dir="${TARGET}/${d}"
     if [ -d "${target_dir}" ]; then
@@ -101,7 +101,7 @@ done
 echo ""
 
 # ── 5. CLAUDE.md pipeline section ────────────────────────────────────────────
-echo "→ [5/6] Removing pipeline section from CLAUDE.md"
+echo "→ [5/7] Removing pipeline section from CLAUDE.md"
 CLAUDE_MD="${TARGET}/CLAUDE.md"
 if [ -f "${CLAUDE_MD}" ] && grep -qF "# >>> skill-builder >>>" "${CLAUDE_MD}" 2>/dev/null; then
     sed -i '' '/^# >>> skill-builder >>>/,/^# <<< skill-builder <<</d' "${CLAUDE_MD}"
@@ -111,7 +111,7 @@ else
 fi
 echo ""
 
-echo "→ [6/6] Evals workspace"
+echo "→ [6/7] Evals workspace"
 if [ -d "${TARGET}/evals" ]; then
     echo "  evals/ contains generated data: scenario runs, timing, project-context.json."
     read -r -p "  Remove evals/ too? [y/N] " confirm_evals
@@ -123,6 +123,62 @@ if [ -d "${TARGET}/evals" ]; then
     fi
 else
     skip "evals/ not found"
+fi
+echo ""
+
+# ── 7. Telemetry (Level 4 real-usage hooks) ─────────────────────────────────
+echo "→ [7/7] Removing telemetry hooks"
+for d in scripts/telemetry schemas/telemetry; do
+    target_dir="${TARGET}/${d}"
+    if [ -d "${target_dir}" ]; then
+        rm -rf "${target_dir}"
+        ok "removed  ${target_dir}"
+    else
+        skip "${d} not found in project"
+    fi
+done
+
+# Surgical un-merge: remove ONLY the exact matcher/command entries install.sh
+# added to .claude/settings.json. Any other hooks (or other settings keys) the
+# target project already had are left untouched. Never deletes the file itself.
+SETTINGS_FILE="${TARGET}/.claude/settings.json"
+if [ -f "${SETTINGS_FILE}" ] && command -v node &>/dev/null; then
+    TELEMETRY_HOOKS_REMOVED="$(node -e '
+const fs = require("fs");
+const file = process.argv[1];
+let settings;
+try { settings = JSON.parse(fs.readFileSync(file, "utf8")); } catch { process.stdout.write("0"); process.exit(0); }
+if (!settings.hooks) { process.stdout.write("0"); process.exit(0); }
+
+const invCmd = "node \"$CLAUDE_PROJECT_DIR/scripts/telemetry/log-invocation.js\"";
+const corrCmd = "node \"$CLAUDE_PROJECT_DIR/scripts/telemetry/log-outcome.js\" --mode correction";
+const endCmd = "node \"$CLAUDE_PROJECT_DIR/scripts/telemetry/log-outcome.js\" --mode session-end";
+const ours = new Set([invCmd, corrCmd, endCmd]);
+
+let removed = 0;
+for (const eventName of Object.keys(settings.hooks)) {
+    const list = settings.hooks[eventName];
+    if (!Array.isArray(list)) continue;
+    const kept = list.filter((entry) => {
+        if (!Array.isArray(entry.hooks)) return true;
+        const isOurs = entry.hooks.length > 0 && entry.hooks.every((h) => h && ours.has(h.command));
+        if (isOurs) removed++;
+        return !isOurs;
+    });
+    if (kept.length) settings.hooks[eventName] = kept;
+    else delete settings.hooks[eventName];
+}
+
+fs.writeFileSync(file, JSON.stringify(settings, null, 2) + "\n");
+process.stdout.write(String(removed));
+' "${SETTINGS_FILE}")"
+    if [ "${TELEMETRY_HOOKS_REMOVED}" != "0" ]; then
+        ok "removed ${TELEMETRY_HOOKS_REMOVED} telemetry hook entr$([ "${TELEMETRY_HOOKS_REMOVED}" = "1" ] && echo y || echo ies) from ${SETTINGS_FILE}"
+    else
+        skip "no telemetry hook entries found in ${SETTINGS_FILE}"
+    fi
+else
+    skip "${SETTINGS_FILE} not found"
 fi
 echo ""
 
