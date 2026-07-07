@@ -2,19 +2,36 @@
   "agent_name": "agent-eval-agent",
   "agent_file": ".claude/agents/agent-eval-agent.md",
   "project_context": "evals/project-context.json",
+  "target_selection": {
+    "target": "repo-audit-database",
+    "source": "agents-dir",
+    "domain": "agent"
+  },
   "evals": [
     {
       "id": 1,
       "eval_name": "direct-primary-dispatch",
       "type": "direct",
-      "prompt": "Dispatch the agent-eval-agent to evaluating a Claude Code agent definition's effectiveness, measuring agent quality before refining, running agent dispatch tests, or when agent-refine-agent needs a mid-loop re-evaluation. Spawns parallel with-agent and baseline subagents for each scenario, grades with LLM-judge scoring, and computes 5 metrics (eval pass rate, dispatch accuracy, context footprint, project fit, resilience score).",
+      "prompt": "Dispatch the agent-eval-agent to evaluate the repo-audit-database agent and tell me if it's ready to refine.",
+      "target": "repo-audit-database",
       "expected": {
         "dispatches": true,
-        "assertions": [
-          "Agent agent-eval-agent is dispatched (Agent tool call appears in transcript)",
-          "Executes workflow step: Generate structured dispatch scenarios from the agent's definition",
-          "Executes workflow step: Spawn all with-agent AND baseline subagents in a single parallel batch",
-          "Executes workflow step: Grade outputs using the LLM-judge rubric (with type-specific rules for adversarial and multi-turn)"
+        "agent_dispatched": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?agent-eval-agent[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Dispatches the agent-eval-agent agent (Agent tool call appears in the transcript) against the named target (repo-audit-database)",
+          "Completes the workflow before stopping"
         ]
       }
     },
@@ -22,24 +39,51 @@
       "id": 2,
       "eval_name": "paraphrased-reword",
       "type": "paraphrased",
-      "prompt": "I need you to use the agent-eval-agent — specifically to evaluating a Claude Code agent definition's effectiveness, measuring agent quality before refining, running agent dispatch tests, or when agent-refine-agent needs a mid-loop re-evaluation. Spawns parallel with-agent and baseline subagents for each scenario, grades with LLM-judge scoring, and computes 5 metrics (eval pass rate, dispatch accuracy, context footprint, project fit, resilience score).",
+      "prompt": "I need you to use the agent-eval-agent — specifically to evaluate the repo-audit-database agent and tell me if it's ready to refine.",
+      "target": "repo-audit-database",
       "expected": {
         "dispatches": true,
-        "assertions": [
-          "Produces same outcome as direct dispatch"
+        "agent_dispatched": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?agent-eval-agent[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Produces the same outcome as the direct-dispatch scenario despite reworded phrasing"
         ]
       }
     },
     {
       "id": 3,
-      "eval_name": "edge-case-refine-loop-invocation",
+      "eval_name": "edge-case-mid-workflow",
       "type": "edge_case",
-      "prompt": "[Internal invocation from agent-refine-agent] Running mid-loop evaluation on agent-eval-agent — training set scenarios only.",
+      "prompt": "I've already had the agent-eval-agent evaluating the repo-audit-database agent — it completed the \"Generate structured dispatch scenarios from the agent's definition\" step. Can you have it resume from the \"Print one-paragraph summary. If invoked from agent-refine-agent, print\" step?",
+      "target": "repo-audit-database",
       "expected": {
         "dispatches": true,
-        "assertions": [
-          "Agent dispatches in programmatic mid-refine-loop mode",
-          "Restricts evaluation to training set scenarios only (does not run full 9-scenario suite)"
+        "agent_dispatched": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?agent-eval-agent[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Handles partial workflow entry without restarting from scratch"
         ]
       }
     },
@@ -47,21 +91,50 @@
       "id": 4,
       "eval_name": "negative-explain-only",
       "type": "negative",
-      "prompt": "Can you explain what the agent-eval-agent does and how it works? I'm not asking you to run it — I just want to understand it.",
+      "prompt": "Can you explain what the agent-eval-agent does when asked to evaluate the repo-audit-database agent and tell me if it's ready to refine? I'm not asking you to run it — I just want to understand it.",
+      "target": "repo-audit-database",
       "expected": {
         "dispatches": false,
-        "note": "Explanation request — should answer conversationally without dispatching the agent"
+        "agent_dispatched": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?agent-eval-agent[\"'`]?\\s*\\)",
+              "expect": "absent"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Explanation request — answers conversationally without dispatching the agent"
+        ]
       }
     },
     {
       "id": 5,
       "eval_name": "semantic-synonym-dispatch",
       "type": "semantic",
-      "prompt": "Have the agent-eval-agent evaluating a Claude Code agent definition's effectiveness, measuring agent quality before refining, running agent dispatch tests, or when agent-refine-agent needs a mid-loop re-evaluation. Spawns parallel with-agent and baseline subagents for each scenario, grades with LLM-judge scoring, and computes 5 metrics (eval pass rate, dispatch accuracy, context footprint, project fit, resilience score).",
+      "prompt": "Have the agent-eval-agent assess the repo-audit-database agent and report back what it finds.",
+      "target": "repo-audit-database",
       "expected": {
         "dispatches": true,
-        "assertions": [
-          "Synonym phrasing dispatches the correct agent"
+        "agent_dispatched": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?agent-eval-agent[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Synonym phrasing dispatches the correct agent despite not using the literal trigger verb"
         ]
       }
     },
@@ -69,23 +142,52 @@
       "id": 6,
       "eval_name": "adversarial-wrong-scope",
       "type": "adversarial",
-      "prompt": "Can you evaluating a Claude Code component definition's effectiveness, measuring component quality before refining, running component analyze tests, or when component-refine-component needs a mid-loop re-evaluation. Spawns parallel with-component and baseline subagents for each scenario, grades with LLM-judge scoring, and computes 5 metrics (code review pass rate, analyze accuracy, context footprint, project fit, resilience score)? I need help understanding the approach.",
+      "prompt": "Analyze the agent-eval-agent to evaluate the repo-audit-database component and tell me if it's ready to refine.",
+      "target": "repo-audit-database",
       "expected": {
         "dispatches": false,
-        "note": "Adversarial probe — agent vocabulary used in wrong scope. Agent must NOT be dispatched. Score 10 if not dispatched, 0 if dispatched. No partial credit."
+        "agent_dispatched": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?agent-eval-agent[\"'`]?\\s*\\)",
+              "expect": "absent"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe — agent vocabulary used in wrong scope. Agent must NOT be dispatched. Score 10 if not dispatched, 0 if dispatched — no partial credit."
+        ]
       }
     },
     {
       "id": 7,
       "eval_name": "project-native-terminology",
       "type": "project-native",
-      "prompt": "Dispatch the agent-eval-agent to evaluating a Claude Code agent definition's effectiveness, measuring agent quality before refining, running agent dispatch tests, or when agent-refine-agent needs a mid-loop re-evaluation. Spawns parallel with-agent and baseline subagents for each scenario, grades with LLM-judge scoring, and computes 5 metrics (eval pass rate, dispatch accuracy, context footprint, project fit, resilience score) for our Node.js project — we use SKILL and store outputs in ./install.sh.",
+      "prompt": "Dispatch the agent-eval-agent to evaluate the repo-audit-database agent and tell me if it's ready to refine for our Node.js project — we use SKILL and store outputs in ./install.sh.",
+      "target": "repo-audit-database",
       "expected": {
         "dispatches": true,
-        "assertions": [
+        "agent_dispatched": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?agent-eval-agent[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
           "Output references project-specific terminology (SKILL)",
-          "Output references correct artifact path (./install.sh)",
-          "Agent aligns with project stack (Node.js)"
+          "Output references the correct artifact path (./install.sh)",
+          "Aligns with the project's stack (Node.js)"
         ]
       },
       "project_context_used": {
@@ -100,20 +202,37 @@
       "id": 8,
       "eval_name": "project-workflow-integration",
       "type": "project-workflow",
-      "prompt": "After agent-adapt finished its run, dispatch the agent-eval-agent to evaluating a Claude Code agent definition's effectiveness, measuring agent quality before refining, running agent dispatch tests, or when agent-refine-agent needs a mid-loop re-evaluation. Spawns parallel with-agent and baseline subagents for each scenario, grades with LLM-judge scoring, and computes 5 metrics (eval pass rate, dispatch accuracy, context footprint, project fit, resilience score) for our Node.js project.",
+      "prompt": "After agent-adapt finished its run, dispatch the agent-eval-agent to evaluate the repo-audit-database agent and tell me if it's ready to refine for our Node.js project.",
+      "target": "repo-audit-database",
       "expected": {
         "dispatches": true,
-        "assertions": [
-          "Agent dispatches correctly within the project workflow context",
-          "Output does not duplicate or conflict with agent-adapt"
+        "agent_dispatched": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?agent-eval-agent[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Dispatches correctly within the project workflow context",
+          "Does not duplicate or conflict with agent-adapt"
         ]
       },
       "project_context_used": {
         "installed_skills": [
           "agent-adapt",
           "agent-audit",
+          "agent-eval",
+          "agent-refine",
           "agent-scout",
           "project-audit",
+          "project-idea",
           "project-setup",
           "repo-audit",
           "skill-adapt",
@@ -130,11 +249,25 @@
       "id": 9,
       "eval_name": "multi-turn-resumed-context",
       "type": "multi-turn",
-      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed to dispatch the agent-eval-agent to evaluating a Claude Code agent definition's effectiveness, measuring agent quality before refining, running agent dispatch tests, or when agent-refine-agent needs a mid-loop re-evaluation. Spawns parallel with-agent and baseline subagents for each scenario, grades with LLM-judge scoring, and computes 5 metrics (eval pass rate, dispatch accuracy, context footprint, project fit, resilience score). We're using SKILL (hooks: gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and dispatch it now.",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed to dispatch the agent-eval-agent to evaluate the repo-audit-database agent and tell me if it's ready to refine. We're using SKILL (hooks: gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and dispatch it now.",
+      "target": "repo-audit-database",
       "expected": {
         "dispatches": true,
-        "assertions": [
-          "Agent dispatches correctly despite continuation/resumption framing",
+        "agent_dispatched": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?agent-eval-agent[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Dispatches correctly despite continuation/resumption framing",
           "Does not ask for information already established in context",
           "Incorporates established context (SKILL) without re-asking"
         ]

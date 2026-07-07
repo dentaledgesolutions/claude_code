@@ -1,4 +1,4 @@
-// skills/agent-eval/scripts/generate-agent-evals.test.js
+// skills/skill-eval/scripts/generate-seed-evals.test.js
 'use strict';
 const { execSync } = require('child_process');
 const fs   = require('fs');
@@ -6,53 +6,42 @@ const path = require('path');
 const assert = require('assert');
 
 const TMP = path.join(__dirname, '__test_tmp__');
-const AGENT_DIR = path.join(TMP, '.claude', 'agents');
-const EVALS_DIR = path.join(TMP, 'evals', 'agents', 'test-agent');
-const AGENT_FILE = path.join(AGENT_DIR, 'test-agent.md');
-const SCRIPT = path.join(__dirname, 'generate-agent-evals.js');
+const SKILL_DIR = path.join(TMP, 'skills', 'test-skill');
+const EVALS_DIR = path.join(TMP, 'evals', 'test-skill');
+const SKILL_FILE = path.join(SKILL_DIR, 'SKILL.md');
+const SCRIPT = path.join(__dirname, 'generate-seed-evals.js');
 
-// Sample agent file content
-const AGENT_CONTENT = `---
-name: test-agent
-description: |
-  Use this agent when you need to run automated tests for a codebase,
-  execute the test suite, or check test results. Also use when measuring
-  test coverage or running integration tests.
-model: sonnet
-color: cyan
-tools: ["Read", "Bash"]
+// Sample skill file content
+const SKILL_CONTENT = `---
+name: test-skill
+description: Runs automated tests for a codebase, executes the test suite, or checks test results. Use when running automated tests, executing the test suite, checking test results, or measuring test coverage.
 ---
 
-You are the Test Runner Agent.
+# Test Skill
 
 ## Workflow
 
-1. **Read the test config** — read \`evals/<name>/test-config.json\` or the project's test config.
+1. **Read the test config** — read \`skills/<skill-name>/test-config.json\` or the project's test config.
 2. **Execute the test suite** — run the test command.
 3. **Report results** — summarise pass/fail counts and coverage.
-
-## What NOT to Do
-
-- Never modify source files.
-- Never run destructive commands (rm, drop, delete).
 `;
 
 const CTX_CONTENT = JSON.stringify({
   project_name: 'my-project',
   stack: ['Node.js', 'Jest'],
   workflow_terms: ['CI', 'coverage'],
-  installed_skills: ['skill-eval', 'test-agent', 'skill-adapt'],
+  installed_skills: ['skill-eval', 'test-skill', 'skill-adapt'],
   key_phrases: ['test suite', 'coverage report'],
-  artifact_paths: ['evals/agents/'],
+  artifact_paths: ['evals/'],
   hooks: [{ command: 'pre-commit-lint.js' }],
   mcp_servers: [],
   plugins: [],
 });
 
 function setup() {
-  fs.mkdirSync(AGENT_DIR, { recursive: true });
-  fs.mkdirSync(path.join(TMP, 'evals', 'agents'), { recursive: true });
-  fs.writeFileSync(AGENT_FILE, AGENT_CONTENT);
+  fs.mkdirSync(SKILL_DIR, { recursive: true });
+  fs.mkdirSync(path.join(TMP, 'evals'), { recursive: true });
+  fs.writeFileSync(SKILL_FILE, SKILL_CONTENT);
 }
 
 function teardown() {
@@ -61,7 +50,7 @@ function teardown() {
 
 function run(extraArgs = '') {
   execSync(
-    `node ${SCRIPT} ${AGENT_FILE} ${extraArgs}`,
+    `node ${SCRIPT} ${SKILL_FILE} ${extraArgs}`,
     { cwd: TMP, stdio: 'pipe' }
   );
   return JSON.parse(fs.readFileSync(path.join(EVALS_DIR, 'evals.json'), 'utf8'));
@@ -71,7 +60,7 @@ function run(extraArgs = '') {
 // same "no-dependency" pattern as scripts/codex/test-schemas.js.
 function validateEvalsFile(data) {
   const errors = [];
-  for (const k of ['agent_name', 'agent_file', 'project_context', 'evals']) {
+  for (const k of ['skill_name', 'generated_from', 'project_context', 'evals']) {
     if (!(k in data)) errors.push(`missing top-level field: ${k}`);
   }
   if (!Array.isArray(data.evals)) { errors.push('evals must be an array'); return errors; }
@@ -109,8 +98,8 @@ try {
   // Test 1: 6 scenarios without --context
   {
     const result = run();
-    assert.strictEqual(result.agent_name, 'test-agent', 'agent_name mismatch');
-    assert.ok(result.agent_file.includes('test-agent.md'), 'agent_file mismatch');
+    assert.strictEqual(result.skill_name, 'test-skill', 'skill_name mismatch');
+    assert.ok(result.generated_from.includes('SKILL.md'), 'generated_from mismatch');
     assert.strictEqual(result.evals.length, 6, `Expected 6 scenarios, got ${result.evals.length}`);
 
     const types = result.evals.map(e => e.type);
@@ -118,22 +107,18 @@ try {
       assert.ok(types.includes(t), `Missing scenario type: ${t}`);
     }
 
-    // dispatches field must be boolean
     for (const e of result.evals) {
-      assert.ok(typeof e.expected.dispatches === 'boolean',
-        `${e.type}: expected.dispatches must be boolean`);
+      assert.ok(typeof e.expected.triggers === 'boolean', `${e.type}: expected.triggers must be boolean`);
     }
 
-    // negative and adversarial must NOT dispatch
     const neg = result.evals.find(e => e.type === 'negative');
-    assert.strictEqual(neg.expected.dispatches, false, 'negative must not dispatch');
+    assert.strictEqual(neg.expected.triggers, false, 'negative must not trigger');
     const adv = result.evals.find(e => e.type === 'adversarial');
-    assert.strictEqual(adv.expected.dispatches, false, 'adversarial must not dispatch');
+    assert.strictEqual(adv.expected.triggers, false, 'adversarial must not trigger');
 
-    // direct, paraphrased, semantic, edge_case must dispatch
     for (const t of ['direct', 'paraphrased', 'semantic', 'edge_case']) {
       const s = result.evals.find(e => e.type === t);
-      assert.strictEqual(s.expected.dispatches, true, `${t} must dispatch`);
+      assert.strictEqual(s.expected.triggers, true, `${t} must trigger`);
     }
     console.log('✓ Test 1: 6 scenarios without --context');
   }
@@ -142,7 +127,6 @@ try {
   {
     const CTX_FILE = path.join(TMP, 'evals', 'project-context.json');
     fs.writeFileSync(CTX_FILE, CTX_CONTENT);
-    // remove prior output to avoid false positive
     fs.rmSync(EVALS_DIR, { recursive: true, force: true });
     const result = run(`--context ${CTX_FILE}`);
     assert.strictEqual(result.evals.length, 9, `Expected 9 scenarios, got ${result.evals.length}`);
@@ -155,24 +139,8 @@ try {
     console.log('✓ Test 2: 9 scenarios with --context');
   }
 
-  // Test 3: prompts are orchestration-framed (contain dispatch language) and
-  // adversarial scoring guidance now lives in expected.judgment (not expected.note).
-  {
-    const CTX_FILE = path.join(TMP, 'evals', 'project-context.json');
-    const result = run(`--context ${CTX_FILE}`);
-    const direct = result.evals.find(e => e.type === 'direct');
-    assert.ok(direct.prompt.length > 0, 'direct prompt must not be empty');
-    assert.ok(/dispatch/i.test(direct.prompt), 'direct prompt should use dispatch vocabulary');
-
-    const adv = result.evals.find(e => e.type === 'adversarial');
-    assert.ok(!('note' in adv.expected), 'expected.note should no longer be a separate field');
-    assert.ok(adv.expected.judgment.some(j => j.includes('0 if dispatched') || j.toLowerCase().includes('binary')),
-      'adversarial judgment must describe binary scoring');
-    console.log('✓ Test 3: prompts are orchestration-framed; adversarial scoring lives in judgment');
-  }
-
-  // Test 4: target selection — every positive prompt names a concrete sibling
-  // target, and selection is deterministic across repeated runs.
+  // Test 3: target selection — every positive prompt names a concrete sibling
+  // target, selection is deterministic across runs, and never targets itself.
   {
     const CTX_FILE = path.join(TMP, 'evals', 'project-context.json');
     const result1 = run(`--context ${CTX_FILE}`);
@@ -182,8 +150,7 @@ try {
     assert.ok(result1.target_selection && result1.target_selection.target, 'target_selection.target must be set');
     assert.strictEqual(result1.target_selection.target, result2.target_selection.target,
       'target selection must be deterministic across runs');
-    // The agent itself must never be selected as its own target.
-    assert.notStrictEqual(result1.target_selection.target, 'test-agent', 'must not target itself');
+    assert.notStrictEqual(result1.target_selection.target, 'test-skill', 'must not target itself');
 
     for (const type of ['direct', 'paraphrased', 'edge_case', 'semantic', 'project-native', 'project-workflow', 'multi-turn']) {
       const sc = result1.evals.find(e => e.type === type);
@@ -197,18 +164,16 @@ try {
     const overridden = run(`--context ${CTX_FILE} --target skill-adapt`);
     assert.strictEqual(overridden.target_selection.target, 'skill-adapt', '--target override must win');
     assert.strictEqual(overridden.target_selection.source, 'cli', 'override source must be "cli"');
-    console.log('✓ Test 4: target selection is concrete, deterministic, and overridable');
+    console.log('✓ Test 3: target selection is concrete, deterministic, and overridable');
   }
 
-  // Test 5: description-echo lint — a hand-built description-echoing prompt is
-  // caught by --lint-only, and freshly generated scenarios all pass it.
+  // Test 4: description-echo lint — freshly generated output passes; a
+  // hand-built description-echoing prompt is caught by --lint-only.
   {
     const CTX_FILE = path.join(TMP, 'evals', 'project-context.json');
     fs.rmSync(EVALS_DIR, { recursive: true, force: true });
-    const result = run(`--context ${CTX_FILE}`);
-    // Every generated scenario must pass the lint (the generator itself aborts
-    // on failure, so if we got here, generation succeeded — this double-checks
-    // via --lint-only against the written file).
+    run(`--context ${CTX_FILE}`);
+
     let lintOutput = '';
     try {
       lintOutput = execSync(`node ${SCRIPT} --lint-only ${path.join(EVALS_DIR, 'evals.json')}`, { cwd: TMP, stdio: 'pipe' }).toString();
@@ -218,14 +183,13 @@ try {
     }
     assert.ok(/0\/\d+ scenarios flagged/.test(lintOutput), `Expected 0 flagged scenarios, got: ${lintOutput}`);
 
-    // Now hand-craft a description-echoing evals.json and confirm the lint catches it.
-    const badFile = path.join(TMP, 'evals', 'agents', 'test-agent', 'bad-evals.json');
-    const echoPrompt = 'Run automated tests for a codebase, execute the test suite, or check test results, measuring test coverage or running integration tests';
+    const badFile = path.join(TMP, 'evals', 'test-skill', 'bad-evals.json');
+    const echoPrompt = 'Running automated tests for a codebase, executes the test suite, or checks test results, measuring test coverage';
     fs.writeFileSync(badFile, JSON.stringify({
-      agent_name: 'test-agent',
-      agent_file: AGENT_FILE,
+      skill_name: 'test-skill',
+      generated_from: SKILL_FILE,
       project_context: null,
-      evals: [{ id: 1, eval_name: 'bad', type: 'direct', prompt: echoPrompt, expected: { dispatches: true, evidence: { artifacts: [], transcript_markers: [], workflow_steps: [] }, judgment: ['x'] } }],
+      evals: [{ id: 1, eval_name: 'bad', type: 'direct', prompt: echoPrompt, expected: { triggers: true, evidence: { artifacts: [], transcript_markers: [], workflow_steps: [] }, judgment: ['x'] } }],
     }, null, 2));
     let failed = false;
     try {
@@ -236,11 +200,11 @@ try {
       assert.ok(/FAIL/.test(out), 'lint-only output must mark the echoing scenario as FAIL');
     }
     assert.ok(failed, '--lint-only must exit non-zero when a description-echo scenario is present');
-    console.log('✓ Test 5: description-echo lint passes fresh output and catches a hand-built echo');
+    console.log('✓ Test 4: description-echo lint passes fresh output and catches a hand-built echo');
   }
 
-  // Test 6: evidence block structure — every scenario has evidence + judgment;
-  // negative/adversarial assert agent_dispatched only (no workflow_executed).
+  // Test 5: evidence block structure — every scenario has evidence + judgment;
+  // negative/adversarial assert skill_loaded only (no workflow_executed).
   {
     const CTX_FILE = path.join(TMP, 'evals', 'project-context.json');
     fs.rmSync(EVALS_DIR, { recursive: true, force: true });
@@ -252,26 +216,30 @@ try {
       assert.ok(Array.isArray(sc.expected.evidence.transcript_markers), `${sc.type}: evidence.transcript_markers must be an array`);
       assert.ok(Array.isArray(sc.expected.evidence.workflow_steps), `${sc.type}: evidence.workflow_steps must be an array`);
       assert.ok(Array.isArray(sc.expected.judgment) && sc.expected.judgment.length > 0, `${sc.type}: judgment must be non-empty`);
-      assert.ok(typeof sc.expected.agent_dispatched === 'boolean', `${sc.type}: agent_dispatched must be boolean`);
+      assert.ok(typeof sc.expected.skill_loaded === 'boolean', `${sc.type}: skill_loaded must be boolean`);
     }
 
     const neg = result.evals.find(e => e.type === 'negative');
     const adv = result.evals.find(e => e.type === 'adversarial');
-    assert.strictEqual(neg.expected.agent_dispatched, false, 'negative: agent_dispatched must be false');
-    assert.strictEqual(adv.expected.agent_dispatched, false, 'adversarial: agent_dispatched must be false');
+    assert.strictEqual(neg.expected.skill_loaded, false, 'negative: skill_loaded must be false');
+    assert.strictEqual(adv.expected.skill_loaded, false, 'adversarial: skill_loaded must be false');
     assert.ok(!('workflow_executed' in neg.expected), 'negative must not assert workflow_executed');
     assert.ok(!('workflow_executed' in adv.expected), 'adversarial must not assert workflow_executed');
-    // Negative/adversarial transcript markers must expect absence.
     assert.strictEqual(neg.expected.evidence.transcript_markers[0].expect, 'absent');
     assert.strictEqual(adv.expected.evidence.transcript_markers[0].expect, 'absent');
 
     const direct = result.evals.find(e => e.type === 'direct');
     assert.strictEqual(direct.expected.workflow_executed, true, 'direct must assert workflow_executed: true');
     assert.strictEqual(direct.expected.evidence.transcript_markers[0].expect, 'present');
-    console.log('✓ Test 6: evidence block structure + negative/adversarial semantics');
+    // Artifact evidence extracted from the skill's own documented convention
+    // (`skills/<skill-name>/test-config.json` in the fixture, with the concrete target substituted).
+    const artifactStep = direct.expected.evidence.workflow_steps.find(w => w.check === 'artifact');
+    assert.ok(artifactStep, 'direct scenario should surface at least one artifact-checked workflow step from the fixture');
+    assert.ok(artifactStep.ref.includes(result.target_selection.target), 'artifact ref should have the placeholder substituted with the concrete target');
+    console.log('✓ Test 5: evidence block structure + negative/adversarial semantics');
   }
 
-  // Test 7: schema validation of generated output (both context modes)
+  // Test 6: schema validation of generated output (both context modes)
   {
     const CTX_FILE = path.join(TMP, 'evals', 'project-context.json');
     fs.rmSync(EVALS_DIR, { recursive: true, force: true });
@@ -283,12 +251,12 @@ try {
     const withoutCtx = run();
     errors = validateEvalsFile(withoutCtx);
     assert.deepStrictEqual(errors, [], `Schema validation errors (without context): ${errors.join('; ')}`);
-    console.log('✓ Test 7: generated output validates against schemas/evals.schema.json structure');
+    console.log('✓ Test 6: generated output validates against schemas/evals.schema.json structure');
   }
 
-  // Test 8: tool_call marker must match only a genuine Agent dispatch token,
-  // never narrative mention of the agent's name (mirror of the skill-eval
-  // calibration-gate finding on `Skill.*<name>`).
+  // Test 7: tool_call marker must match only a genuine Skill invocation token,
+  // never narrative mention of the skill's name (calibration-gate finding:
+  // `Skill.*<name>` false-positived on 10 of 12 flagged reps).
   {
     fs.rmSync(EVALS_DIR, { recursive: true, force: true });
     const result = run();
@@ -297,26 +265,36 @@ try {
     assert.ok(marker, 'direct scenario must carry a tool_call marker');
     const re = new RegExp(marker.pattern, 'i'); // exactly how harvest-evidence.js applies it
 
-    // Genuine dispatch forms — must match
-    assert.ok(re.test('`Agent(test-agent)` — dispatched with the scenario prompt'),
-      'marker must match the bare Agent(<name>) dispatch token');
-    assert.ok(re.test('Agent("test-agent") spawned'),
-      'marker must match a double-quoted dispatch token');
+    // Genuine invocation forms — must match
+    assert.ok(re.test('`Skill(test-skill)` — the loaded skill was applied'),
+      'marker must match the bare Skill(<name>) invocation token');
+    assert.ok(re.test('Skill("test-skill") invoked'),
+      'marker must match a double-quoted invocation token');
+    assert.ok(re.test("Skill( 'test-skill' )"),
+      'marker must match a single-quoted, spaced invocation token');
 
-    // Narrative mentions — must NOT match
-    assert.ok(!re.test('**Agent under test**: `test-agent` (loaded from .claude/agents/test-agent.md)'),
-      'marker must not match an "Agent under test" narrative header');
-    assert.ok(!re.test('a sibling agent so test-agent can be compared against it'),
-      'marker must not match prose that mentions the agent name');
-    assert.ok(!re.test('The agent named test-agent was deliberately not dispatched'),
+    // Narrative mentions — must NOT match (real false positives from the calibration gate)
+    assert.ok(!re.test('**Skill under test**: `test-skill` (loaded from fixtures/...)'),
+      'marker must not match a "Skill under test" narrative header');
+    assert.ok(!re.test('a sibling skill so test-skill can be compared against it'),
+      'marker must not match prose that mentions the skill name');
+    assert.ok(!re.test('The skill named test-skill was deliberately not invoked'),
       'marker must not match a decline narration');
-    console.log('✓ Test 8: tool_call marker matches dispatch token only, not narrative mentions');
+    console.log('✓ Test 7: tool_call marker matches invocation token only, not narrative mentions');
   }
 
-  // Test 9: workflow-step extraction must also understand "### Step N: Title"
-  // heading workflows (mirror of the skill-eval calibration-gate finding).
+  // Test 8: workflow-step extraction must also understand "### Step N: Title"
+  // heading workflows (calibration-gate finding: the mutant fixture's format
+  // produced workflow_steps: [] for all 9 scenarios).
   {
-    const HEADING_AGENT = AGENT_CONTENT.replace(/## Workflow[\s\S]*?## What NOT to Do/, `## Workflow Overview
+    const HEADING_SKILL = `---
+name: test-skill
+description: Runs automated tests for a codebase. Use when running automated tests or checking test results.
+---
+
+# Test Skill
+
+## Workflow Overview
 
 1. Read the config
 2. Execute the suite
@@ -326,7 +304,7 @@ try {
 
 ### Step 1: Read the test config
 
-Read \\\`evals/<name>/test-config.json\\\` before anything else.
+Read \`skills/<skill-name>/test-config.json\` before anything else.
 
 ### Step 2: Execute the test suite
 
@@ -335,11 +313,8 @@ Run the test command.
 ### Step 3: Report results
 
 Summarise pass/fail counts and coverage.
-
-## What NOT to Do`);
-    assert.ok(/### Step 1/.test(HEADING_AGENT) && !/\*\*Read the test config\*\*/.test(HEADING_AGENT),
-      'test fixture rewrite sanity check');
-    fs.writeFileSync(AGENT_FILE, HEADING_AGENT);
+`;
+    fs.writeFileSync(SKILL_FILE, HEADING_SKILL);
     fs.rmSync(EVALS_DIR, { recursive: true, force: true });
     const result = run();
     const direct = result.evals.find(e => e.type === 'direct');
@@ -347,15 +322,19 @@ Summarise pass/fail counts and coverage.
     assert.ok(steps.length > 0, 'heading-style workflow must yield non-empty workflow_steps');
     assert.ok(steps.some(s => /read the test config/i.test(s.step)),
       'step titles must come from the "### Step N:" headings');
+    const artifactStep = steps.find(s => s.check === 'artifact');
+    assert.ok(artifactStep, 'artifact template extraction must still work inside heading-style step bodies');
+    assert.ok(artifactStep.ref.includes(result.target_selection.target),
+      'artifact ref must have the placeholder substituted');
 
-    // Numbered-bold list format must keep taking precedence when present
-    fs.writeFileSync(AGENT_FILE, AGENT_CONTENT);
+    // Numbered-bold list format must keep taking precedence when both are present
+    fs.writeFileSync(SKILL_FILE, SKILL_CONTENT);
     fs.rmSync(EVALS_DIR, { recursive: true, force: true });
     const boldResult = run();
     const boldSteps = boldResult.evals.find(e => e.type === 'direct').expected.evidence.workflow_steps;
     assert.ok(boldSteps.length > 0 && boldSteps.some(s => /read the test config/i.test(s.step)),
       'numbered-bold extraction must be unchanged');
-    console.log('✓ Test 9: workflow_steps extracted from "### Step N:" heading workflows');
+    console.log('✓ Test 8: workflow_steps extracted from "### Step N:" heading workflows');
   }
 
   console.log('\n✅ All tests passed');

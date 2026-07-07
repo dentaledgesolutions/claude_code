@@ -2,26 +2,62 @@
   "skill_name": "project-idea",
   "generated_from": "skills/project-idea/SKILL.md",
   "project_context": "evals/project-context.json",
+  "target_selection": {
+    "target": "skill-adapt",
+    "source": "installed_skills",
+    "domain": "skill"
+  },
   "evals": [
     {
       "id": 1,
       "eval_name": "direct-primary-trigger",
       "type": "direct",
-      "prompt": "Starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. Interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. Produces PROJECT-BRIEF.md. Run before project-setup on any greenfield project.\"",
+      "prompt": "Start the skill-adapt skill workflow now.",
+      "target": "skill-adapt",
       "expected": {
         "triggers": true,
-        "assertions": []
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?project-idea[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Loads the project-idea skill and executes its workflow against the named target (skill-adapt)",
+          "Completes the workflow before stopping"
+        ]
       }
     },
     {
       "id": 2,
       "eval_name": "paraphrased-reword",
       "type": "paraphrased",
-      "prompt": "I need to starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. produces project-brief.md. run before project-setup on any greenfield project.\"",
+      "prompt": "I need help with the skill-adapt skill — can you start it for me?",
+      "target": "skill-adapt",
       "expected": {
         "triggers": true,
-        "assertions": [
-          "Produces same outcome as direct trigger"
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?project-idea[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Produces the same outcome as the direct-trigger scenario despite reworded phrasing"
         ]
       }
     },
@@ -29,11 +65,25 @@
       "id": 3,
       "eval_name": "edge-case-mid-workflow",
       "type": "edge_case",
-      "prompt": "starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. Interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. Produces PROJECT-BRIEF.md. Run before project-setup on any greenfield project.\" — I'm already partway through, can you pick up from where I left off?",
+      "prompt": "I'm partway through starting the skill-adapt skill — can you pick up from where I left off?",
+      "target": "skill-adapt",
       "expected": {
         "triggers": true,
-        "assertions": [
-          "Handles partial workflow entry without restarting from scratch"
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?project-idea[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Resumes from the stated step without restarting the whole workflow from scratch"
         ]
       }
     },
@@ -41,21 +91,50 @@
       "id": 4,
       "eval_name": "negative-explain-only",
       "type": "negative",
-      "prompt": "What are the steps involved in starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. produces project-brief.md. run before project-setup on any greenfield project.\"? I'm not asking you to do it — just explain the process so I can understand it.",
+      "prompt": "What would starting the skill-adapt skill actually involve? I'm not asking you to do it — just explain the process so I understand it.",
+      "target": "skill-adapt",
       "expected": {
         "triggers": false,
-        "note": "Explanation request — should answer conversationally, not invoke the workflow"
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?project-idea[\"'`]?\\s*\\)",
+              "expect": "absent"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Explanation request — answers conversationally without invoking the workflow"
+        ]
       }
     },
     {
       "id": 5,
       "eval_name": "semantic-synonym-trigger",
       "type": "semantic",
-      "prompt": "I want to starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. produces project-brief.md. trigger before project-setup on any greenfield project.\"",
+      "prompt": "Set up the skill-adapt skill for me and let me know what you find.",
+      "target": "skill-adapt",
       "expected": {
         "triggers": true,
-        "assertions": [
-          "Synonym phrasing activates skill correctly"
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?project-idea[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Synonym phrasing activates the skill correctly despite not using the literal trigger verb"
         ]
       }
     },
@@ -63,23 +142,52 @@
       "id": 6,
       "eval_name": "adversarial-wrong-scope",
       "type": "adversarial",
-      "prompt": "Can you help me with starting a new pull request from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. produces pull request-brief.md. run before pull request-setup on any greenfield pull request.\"?",
+      "prompt": "Start the skill-adapt codebase workflow now.",
+      "target": "skill-adapt",
       "expected": {
         "triggers": false,
-        "note": "Adversarial probe — uses skill vocabulary in wrong context or scope. Skill must NOT invoke its workflow; a conversational or redirecting response is correct."
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?project-idea[\"'`]?\\s*\\)",
+              "expect": "absent"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe using skill vocabulary in the wrong context/scope — must NOT invoke the workflow; a conversational or redirecting response is correct"
+        ]
       }
     },
     {
       "id": 7,
       "eval_name": "project-native-terminology",
       "type": "project-native",
-      "prompt": "starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. Interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. Produces PROJECT-BRIEF.md. Run before project-setup on any greenfield project.\" for our Node.js project — we use SKILL and store outputs in ./install.sh",
+      "prompt": "Start the skill-adapt skill workflow now for our Node.js project — we use SKILL and store outputs in ./install.sh.",
+      "target": "skill-adapt",
       "expected": {
         "triggers": true,
-        "assertions": [
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?project-idea[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
           "Output references project-specific terminology (SKILL)",
-          "Output references correct artifact path (./install.sh)",
-          "Skill integrates with project stack (Node.js)"
+          "Output references the correct artifact path (./install.sh)",
+          "Integrates with the project's stack (Node.js)"
         ]
       },
       "project_context_used": {
@@ -94,20 +202,37 @@
       "id": 8,
       "eval_name": "project-workflow-integration",
       "type": "project-workflow",
-      "prompt": "After running agent-adapt, now starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. Interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. Produces PROJECT-BRIEF.md. Run before project-setup on any greenfield project.\" for our Node.js project",
+      "prompt": "After running agent-adapt, now start the skill-adapt skill workflow now for our Node.js project.",
+      "target": "skill-adapt",
       "expected": {
         "triggers": true,
-        "assertions": [
-          "Skill activates correctly within the project workflow context",
-          "Output does not duplicate or conflict with agent-adapt"
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?project-idea[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Activates correctly within the project workflow context",
+          "Does not duplicate or conflict with agent-adapt"
         ]
       },
       "project_context_used": {
         "installed_skills": [
           "agent-adapt",
           "agent-audit",
+          "agent-eval",
+          "agent-refine",
           "agent-scout",
           "project-audit",
+          "project-idea",
           "project-setup",
           "repo-audit",
           "skill-adapt",
@@ -124,11 +249,25 @@
       "id": 9,
       "eval_name": "multi-turn-resumed-context",
       "type": "multi-turn",
-      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd be starting a new project from scratch, clarifying a vague idea before building, not sure what to build or how to structure it, or wanting confirmation on an early-stage concept. interviews the user one question at a time to define the problem, target user, core features, out-of-scope items, tech direction, and success criteria. produces project-brief.md. run before project-setup on any greenfield project.\". We're using SKILL (our hooks include gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and do that now.",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd be starting the skill-adapt skill. We're using SKILL (our hooks include gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and do that now.",
+      "target": "skill-adapt",
       "expected": {
         "triggers": true,
-        "assertions": [
-          "Skill triggers correctly despite continuation/resumption framing",
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?project-idea[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing",
           "Does not ask for information already established in context",
           "Incorporates established context (SKILL) without re-asking"
         ]

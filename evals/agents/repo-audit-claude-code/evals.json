@@ -1,9 +1,9 @@
 {
-  "agent_name": "skill-eval-agent",
-  "agent_file": ".claude/agents/skill-eval-agent.md",
+  "agent_name": "repo-audit-claude-code",
+  "agent_file": ".claude/agents/repo-audit-claude-code.md",
   "project_context": "evals/project-context.json",
   "target_selection": {
-    "target": "agent-scout",
+    "target": "agent-eval",
     "source": "installed_skills",
     "domain": "skill"
   },
@@ -12,8 +12,8 @@
       "id": 1,
       "eval_name": "direct-primary-dispatch",
       "type": "direct",
-      "prompt": "Dispatch the skill-eval-agent to evaluate the agent-scout skill and tell me if it's ready to refine.",
-      "target": "agent-scout",
+      "prompt": "Dispatch the repo-audit-claude-code to audit the agent-eval skill and tell me what's risky about it.",
+      "target": "agent-eval",
       "expected": {
         "dispatches": true,
         "agent_dispatched": true,
@@ -23,14 +23,14 @@
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Agent\\(\\s*[\"'`]?skill-eval-agent[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
           "workflow_steps": []
         },
         "judgment": [
-          "Dispatches the skill-eval-agent agent (Agent tool call appears in the transcript) against the named target (agent-scout)",
+          "Dispatches the repo-audit-claude-code agent (Agent tool call appears in the transcript) against the named target (agent-eval)",
           "Completes the workflow before stopping"
         ]
       }
@@ -39,8 +39,8 @@
       "id": 2,
       "eval_name": "paraphrased-reword",
       "type": "paraphrased",
-      "prompt": "I need you to use the skill-eval-agent — specifically to evaluate the agent-scout skill and tell me if it's ready to refine.",
-      "target": "agent-scout",
+      "prompt": "I need you to use the repo-audit-claude-code — specifically to audit the agent-eval skill and tell me what's risky about it.",
+      "target": "agent-eval",
       "expected": {
         "dispatches": true,
         "agent_dispatched": true,
@@ -50,7 +50,7 @@
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Agent\\(\\s*[\"'`]?skill-eval-agent[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
@@ -65,8 +65,8 @@
       "id": 3,
       "eval_name": "edge-case-mid-workflow",
       "type": "edge_case",
-      "prompt": "I've already had the skill-eval-agent evaluating the agent-scout skill — it completed the \"Generate structured test scenarios from the skill's SKILL.md\" step. Can you have it resume from the \"Print one-paragraph summary. If invoked from skill-refine-agent, print\" step?",
-      "target": "agent-scout",
+      "prompt": "I've already had the repo-audit-claude-code auditing the agent-eval skill — it completed the \"Read the XML slice file at the provided path.\" step. Can you have it resume from the \"`confidence`: `high` if CLAUDE.md found, `medium` if only .claude/ dir, `low` if only skills/.\" step?",
+      "target": "agent-eval",
       "expected": {
         "dispatches": true,
         "agent_dispatched": true,
@@ -76,7 +76,7 @@
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Agent\\(\\s*[\"'`]?skill-eval-agent[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
@@ -91,8 +91,8 @@
       "id": 4,
       "eval_name": "negative-explain-only",
       "type": "negative",
-      "prompt": "Can you explain what the skill-eval-agent does when asked to evaluate the agent-scout skill and tell me if it's ready to refine? I'm not asking you to run it — I just want to understand it.",
-      "target": "agent-scout",
+      "prompt": "Can you explain what the repo-audit-claude-code does when asked to audit the agent-eval skill and tell me what's risky about it? I'm not asking you to run it — I just want to understand it.",
+      "target": "agent-eval",
       "expected": {
         "dispatches": false,
         "agent_dispatched": false,
@@ -101,7 +101,7 @@
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Agent\\(\\s*[\"'`]?skill-eval-agent[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
               "expect": "absent"
             }
           ],
@@ -116,8 +116,8 @@
       "id": 5,
       "eval_name": "semantic-synonym-dispatch",
       "type": "semantic",
-      "prompt": "Have the skill-eval-agent measure the agent-scout skill and report back what it finds.",
-      "target": "agent-scout",
+      "prompt": "Have the repo-audit-claude-code review the agent-eval skill and report back what it finds.",
+      "target": "agent-eval",
       "expected": {
         "dispatches": true,
         "agent_dispatched": true,
@@ -127,7 +127,7 @@
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Agent\\(\\s*[\"'`]?skill-eval-agent[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
@@ -142,8 +142,8 @@
       "id": 6,
       "eval_name": "adversarial-wrong-scope",
       "type": "adversarial",
-      "prompt": "Analyze the skill-eval-agent to evaluate the agent-scout codebase and tell me if it's ready to refine.",
-      "target": "agent-scout",
+      "prompt": "Analyze the repo-audit-claude-code to audit the agent-eval codebase and tell me what's risky about it.",
+      "target": "agent-eval",
       "expected": {
         "dispatches": false,
         "agent_dispatched": false,
@@ -152,7 +152,7 @@
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Agent\\(\\s*[\"'`]?skill-eval-agent[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
               "expect": "absent"
             }
           ],
@@ -167,8 +167,8 @@
       "id": 7,
       "eval_name": "project-native-terminology",
       "type": "project-native",
-      "prompt": "Dispatch the skill-eval-agent to evaluate the agent-scout skill and tell me if it's ready to refine for our Node.js project — we use SKILL and store outputs in ./install.sh.",
-      "target": "agent-scout",
+      "prompt": "Dispatch the repo-audit-claude-code to audit the agent-eval skill and tell me what's risky about it for our Node.js project — we use SKILL and store outputs in ./install.sh.",
+      "target": "agent-eval",
       "expected": {
         "dispatches": true,
         "agent_dispatched": true,
@@ -178,7 +178,7 @@
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Agent\\(\\s*[\"'`]?skill-eval-agent[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
@@ -202,8 +202,8 @@
       "id": 8,
       "eval_name": "project-workflow-integration",
       "type": "project-workflow",
-      "prompt": "After agent-adapt finished its run, dispatch the skill-eval-agent to evaluate the agent-scout skill and tell me if it's ready to refine for our Node.js project.",
-      "target": "agent-scout",
+      "prompt": "After agent-adapt finished its run, dispatch the repo-audit-claude-code to audit the agent-eval skill and tell me what's risky about it for our Node.js project.",
+      "target": "agent-eval",
       "expected": {
         "dispatches": true,
         "agent_dispatched": true,
@@ -213,7 +213,7 @@
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Agent\\(\\s*[\"'`]?skill-eval-agent[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
@@ -249,8 +249,8 @@
       "id": 9,
       "eval_name": "multi-turn-resumed-context",
       "type": "multi-turn",
-      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed to dispatch the skill-eval-agent to evaluate the agent-scout skill and tell me if it's ready to refine. We're using SKILL (hooks: gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and dispatch it now.",
-      "target": "agent-scout",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed to dispatch the repo-audit-claude-code to audit the agent-eval skill and tell me what's risky about it. We're using SKILL (hooks: gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and dispatch it now.",
+      "target": "agent-eval",
       "expected": {
         "dispatches": true,
         "agent_dispatched": true,
@@ -260,7 +260,7 @@
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Agent\\(\\s*[\"'`]?skill-eval-agent[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],

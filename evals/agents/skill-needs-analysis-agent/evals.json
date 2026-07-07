@@ -1,53 +1,53 @@
 {
-  "skill_name": "skill-discovery",
-  "generated_from": "skills/skill-discovery/SKILL.md",
+  "agent_name": "skill-needs-analysis-agent",
+  "agent_file": ".claude/agents/skill-needs-analysis-agent.md",
   "project_context": "evals/project-context.json",
   "target_selection": {
-    "target": "agent-refine",
+    "target": "skill-refine",
     "source": "installed_skills",
     "domain": "skill"
   },
   "evals": [
     {
       "id": 1,
-      "eval_name": "direct-primary-trigger",
+      "eval_name": "direct-primary-dispatch",
       "type": "direct",
-      "prompt": "Run the agent-refine skill against our current setup.",
-      "target": "agent-refine",
+      "prompt": "Dispatch the skill-needs-analysis-agent to run against the skill-refine skill and report the outcome.",
+      "target": "skill-refine",
       "expected": {
-        "triggers": true,
-        "skill_loaded": true,
+        "dispatches": true,
+        "agent_dispatched": true,
         "workflow_executed": true,
         "evidence": {
           "artifacts": [],
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Skill\\(\\s*[\"'`]?skill-discovery[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?skill-needs-analysis-agent[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
           "workflow_steps": [
             {
-              "step": "Load context",
+              "step": "— Load context",
               "check": "marker",
-              "ref": "Load context"
+              "ref": "— Load context"
             },
             {
-              "step": "Read the logs",
+              "step": "— Map to skill categories",
               "check": "marker",
-              "ref": "Read the logs"
+              "ref": "— Map to skill categories"
             },
             {
-              "step": "Identify patterns",
+              "step": "— Rank candidates",
               "check": "marker",
-              "ref": "Identify patterns"
+              "ref": "— Rank candidates"
             }
           ]
         },
         "judgment": [
-          "Loads the skill-discovery skill and executes its workflow against the named target (agent-refine)",
-          "Reaches at least the \"Identify patterns\" step before stopping or asking a clarifying question"
+          "Dispatches the skill-needs-analysis-agent agent (Agent tool call appears in the transcript) against the named target (skill-refine)",
+          "Reaches at least the \"— Rank candidates\" step before stopping"
         ]
       }
     },
@@ -55,41 +55,41 @@
       "id": 2,
       "eval_name": "paraphrased-reword",
       "type": "paraphrased",
-      "prompt": "I need help with the agent-refine skill — can you run it for me?",
-      "target": "agent-refine",
+      "prompt": "I need you to use the skill-needs-analysis-agent — specifically to run against the skill-refine skill and report the outcome.",
+      "target": "skill-refine",
       "expected": {
-        "triggers": true,
-        "skill_loaded": true,
+        "dispatches": true,
+        "agent_dispatched": true,
         "workflow_executed": true,
         "evidence": {
           "artifacts": [],
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Skill\\(\\s*[\"'`]?skill-discovery[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?skill-needs-analysis-agent[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
           "workflow_steps": [
             {
-              "step": "Load context",
+              "step": "— Load context",
               "check": "marker",
-              "ref": "Load context"
+              "ref": "— Load context"
             },
             {
-              "step": "Read the logs",
+              "step": "— Map to skill categories",
               "check": "marker",
-              "ref": "Read the logs"
+              "ref": "— Map to skill categories"
             },
             {
-              "step": "Identify patterns",
+              "step": "— Rank candidates",
               "check": "marker",
-              "ref": "Identify patterns"
+              "ref": "— Rank candidates"
             }
           ]
         },
         "judgment": [
-          "Produces the same outcome as the direct-trigger scenario despite reworded phrasing"
+          "Produces the same outcome as the direct-dispatch scenario despite reworded phrasing"
         ]
       }
     },
@@ -97,41 +97,41 @@
       "id": 3,
       "eval_name": "edge-case-mid-workflow",
       "type": "edge_case",
-      "prompt": "I'm already partway through running the agent-refine skill — I've completed the \"Load context\" step. Can you continue from \"Save candidates if requested\" onwards?",
-      "target": "agent-refine",
+      "prompt": "I've already had the skill-needs-analysis-agent running the skill-refine skill — it completed the \"Categories matched by stack AND workflow_terms AND mcp_servers (highest confidence)\" step. Can you have it resume from the \"...\" step?",
+      "target": "skill-refine",
       "expected": {
-        "triggers": true,
-        "skill_loaded": true,
+        "dispatches": true,
+        "agent_dispatched": true,
         "workflow_executed": true,
         "evidence": {
           "artifacts": [],
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Skill\\(\\s*[\"'`]?skill-discovery[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?skill-needs-analysis-agent[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
           "workflow_steps": [
             {
-              "step": "Load context",
+              "step": "— Load context",
               "check": "marker",
-              "ref": "Load context"
+              "ref": "— Load context"
             },
             {
-              "step": "Read the logs",
+              "step": "— Map to skill categories",
               "check": "marker",
-              "ref": "Read the logs"
+              "ref": "— Map to skill categories"
             },
             {
-              "step": "Identify patterns",
+              "step": "— Rank candidates",
               "check": "marker",
-              "ref": "Identify patterns"
+              "ref": "— Rank candidates"
             }
           ]
         },
         "judgment": [
-          "Resumes from the stated step without restarting the whole workflow from scratch"
+          "Handles partial workflow entry without restarting from scratch"
         ]
       }
     },
@@ -139,66 +139,66 @@
       "id": 4,
       "eval_name": "negative-explain-only",
       "type": "negative",
-      "prompt": "What would running the agent-refine skill actually involve? I'm not asking you to do it — just explain the process so I understand it.",
-      "target": "agent-refine",
+      "prompt": "Can you explain what the skill-needs-analysis-agent does when asked to run against the skill-refine skill and report the outcome? I'm not asking you to run it — I just want to understand it.",
+      "target": "skill-refine",
       "expected": {
-        "triggers": false,
-        "skill_loaded": false,
+        "dispatches": false,
+        "agent_dispatched": false,
         "evidence": {
           "artifacts": [],
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Skill\\(\\s*[\"'`]?skill-discovery[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?skill-needs-analysis-agent[\"'`]?\\s*\\)",
               "expect": "absent"
             }
           ],
           "workflow_steps": []
         },
         "judgment": [
-          "Explanation request — answers conversationally without invoking the workflow"
+          "Explanation request — answers conversationally without dispatching the agent"
         ]
       }
     },
     {
       "id": 5,
-      "eval_name": "semantic-synonym-trigger",
+      "eval_name": "semantic-synonym-dispatch",
       "type": "semantic",
-      "prompt": "Trigger the agent-refine skill for me and let me know what you find.",
-      "target": "agent-refine",
+      "prompt": "Have the skill-needs-analysis-agent kick off the skill-refine skill and report back what it finds.",
+      "target": "skill-refine",
       "expected": {
-        "triggers": true,
-        "skill_loaded": true,
+        "dispatches": true,
+        "agent_dispatched": true,
         "workflow_executed": true,
         "evidence": {
           "artifacts": [],
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Skill\\(\\s*[\"'`]?skill-discovery[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?skill-needs-analysis-agent[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
           "workflow_steps": [
             {
-              "step": "Load context",
+              "step": "— Load context",
               "check": "marker",
-              "ref": "Load context"
+              "ref": "— Load context"
             },
             {
-              "step": "Read the logs",
+              "step": "— Map to skill categories",
               "check": "marker",
-              "ref": "Read the logs"
+              "ref": "— Map to skill categories"
             },
             {
-              "step": "Identify patterns",
+              "step": "— Rank candidates",
               "check": "marker",
-              "ref": "Identify patterns"
+              "ref": "— Rank candidates"
             }
           ]
         },
         "judgment": [
-          "Synonym phrasing activates the skill correctly despite not using the literal trigger verb"
+          "Synonym phrasing dispatches the correct agent despite not using the literal trigger verb"
         ]
       }
     },
@@ -206,24 +206,24 @@
       "id": 6,
       "eval_name": "adversarial-wrong-scope",
       "type": "adversarial",
-      "prompt": "Run the agent-refine codebase against our current setup.",
-      "target": "agent-refine",
+      "prompt": "Analyze the skill-needs-analysis-agent to run against the skill-refine codebase and report the outcome.",
+      "target": "skill-refine",
       "expected": {
-        "triggers": false,
-        "skill_loaded": false,
+        "dispatches": false,
+        "agent_dispatched": false,
         "evidence": {
           "artifacts": [],
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Skill\\(\\s*[\"'`]?skill-discovery[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?skill-needs-analysis-agent[\"'`]?\\s*\\)",
               "expect": "absent"
             }
           ],
           "workflow_steps": []
         },
         "judgment": [
-          "Adversarial probe using skill vocabulary in the wrong context/scope — must NOT invoke the workflow; a conversational or redirecting response is correct"
+          "Adversarial probe — agent vocabulary used in wrong scope. Agent must NOT be dispatched. Score 10 if not dispatched, 0 if dispatched — no partial credit."
         ]
       }
     },
@@ -231,43 +231,43 @@
       "id": 7,
       "eval_name": "project-native-terminology",
       "type": "project-native",
-      "prompt": "Run the agent-refine skill against our current setup for our Node.js project — we use SKILL and store outputs in ./install.sh.",
-      "target": "agent-refine",
+      "prompt": "Dispatch the skill-needs-analysis-agent to run against the skill-refine skill and report the outcome for our Node.js project — we use SKILL and store outputs in ./install.sh.",
+      "target": "skill-refine",
       "expected": {
-        "triggers": true,
-        "skill_loaded": true,
+        "dispatches": true,
+        "agent_dispatched": true,
         "workflow_executed": true,
         "evidence": {
           "artifacts": [],
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Skill\\(\\s*[\"'`]?skill-discovery[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?skill-needs-analysis-agent[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
           "workflow_steps": [
             {
-              "step": "Load context",
+              "step": "— Load context",
               "check": "marker",
-              "ref": "Load context"
+              "ref": "— Load context"
             },
             {
-              "step": "Read the logs",
+              "step": "— Map to skill categories",
               "check": "marker",
-              "ref": "Read the logs"
+              "ref": "— Map to skill categories"
             },
             {
-              "step": "Identify patterns",
+              "step": "— Rank candidates",
               "check": "marker",
-              "ref": "Identify patterns"
+              "ref": "— Rank candidates"
             }
           ]
         },
         "judgment": [
           "Output references project-specific terminology (SKILL)",
           "Output references the correct artifact path (./install.sh)",
-          "Integrates with the project's stack (Node.js)"
+          "Aligns with the project's stack (Node.js)"
         ]
       },
       "project_context_used": {
@@ -282,41 +282,41 @@
       "id": 8,
       "eval_name": "project-workflow-integration",
       "type": "project-workflow",
-      "prompt": "After running agent-adapt, now run the agent-refine skill against our current setup for our Node.js project.",
-      "target": "agent-refine",
+      "prompt": "After agent-adapt finished its run, dispatch the skill-needs-analysis-agent to run against the skill-refine skill and report the outcome for our Node.js project.",
+      "target": "skill-refine",
       "expected": {
-        "triggers": true,
-        "skill_loaded": true,
+        "dispatches": true,
+        "agent_dispatched": true,
         "workflow_executed": true,
         "evidence": {
           "artifacts": [],
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Skill\\(\\s*[\"'`]?skill-discovery[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?skill-needs-analysis-agent[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
           "workflow_steps": [
             {
-              "step": "Load context",
+              "step": "— Load context",
               "check": "marker",
-              "ref": "Load context"
+              "ref": "— Load context"
             },
             {
-              "step": "Read the logs",
+              "step": "— Map to skill categories",
               "check": "marker",
-              "ref": "Read the logs"
+              "ref": "— Map to skill categories"
             },
             {
-              "step": "Identify patterns",
+              "step": "— Rank candidates",
               "check": "marker",
-              "ref": "Identify patterns"
+              "ref": "— Rank candidates"
             }
           ]
         },
         "judgment": [
-          "Activates correctly within the project workflow context",
+          "Dispatches correctly within the project workflow context",
           "Does not duplicate or conflict with agent-adapt"
         ]
       },
@@ -345,41 +345,41 @@
       "id": 9,
       "eval_name": "multi-turn-resumed-context",
       "type": "multi-turn",
-      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd be running the agent-refine skill. We're using SKILL (our hooks include gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and do that now.",
-      "target": "agent-refine",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed to dispatch the skill-needs-analysis-agent to run against the skill-refine skill and report the outcome. We're using SKILL (hooks: gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and dispatch it now.",
+      "target": "skill-refine",
       "expected": {
-        "triggers": true,
-        "skill_loaded": true,
+        "dispatches": true,
+        "agent_dispatched": true,
         "workflow_executed": true,
         "evidence": {
           "artifacts": [],
           "transcript_markers": [
             {
               "kind": "tool_call",
-              "pattern": "Skill\\(\\s*[\"'`]?skill-discovery[\"'`]?\\s*\\)",
+              "pattern": "Agent\\(\\s*[\"'`]?skill-needs-analysis-agent[\"'`]?\\s*\\)",
               "expect": "present"
             }
           ],
           "workflow_steps": [
             {
-              "step": "Load context",
+              "step": "— Load context",
               "check": "marker",
-              "ref": "Load context"
+              "ref": "— Load context"
             },
             {
-              "step": "Read the logs",
+              "step": "— Map to skill categories",
               "check": "marker",
-              "ref": "Read the logs"
+              "ref": "— Map to skill categories"
             },
             {
-              "step": "Identify patterns",
+              "step": "— Rank candidates",
               "check": "marker",
-              "ref": "Identify patterns"
+              "ref": "— Rank candidates"
             }
           ]
         },
         "judgment": [
-          "Triggers correctly despite continuation/resumption framing",
+          "Dispatches correctly despite continuation/resumption framing",
           "Does not ask for information already established in context",
           "Incorporates established context (SKILL) without re-asking"
         ]

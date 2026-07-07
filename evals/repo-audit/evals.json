@@ -2,26 +2,62 @@
   "skill_name": "repo-audit",
   "generated_from": "skills/repo-audit/SKILL.md",
   "project_context": "evals/project-context.json",
+  "target_selection": {
+    "target": "skill-audit",
+    "source": "installed_skills",
+    "domain": "skill"
+  },
   "evals": [
     {
       "id": 1,
       "eval_name": "direct-primary-trigger",
       "type": "direct",
-      "prompt": "Auditing a GitHub repository to extract tech stack signals for informing future Claude Code project architecture, running a deep reference audit from project-setup Phase 0 with --deep flag, or when asked to scan/map/audit a GitHub repo. Accepts a public GitHub URL and optional flags: --pipeline (inject into project-context.json), --layer <names> (comma-separated subset), --estimate (preview token count before running). Triggers on: audit this repo, scan this GitHub repo, deep audit, repo-audit, extract stack from, analyze this repository.\"",
+      "prompt": "Audit the skill-audit skill and tell me what's risky about it.",
+      "target": "skill-audit",
       "expected": {
         "triggers": true,
-        "assertions": []
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?repo-audit[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Loads the repo-audit skill and executes its workflow against the named target (skill-audit)",
+          "Completes the workflow before stopping"
+        ]
       }
     },
     {
       "id": 2,
       "eval_name": "paraphrased-reword",
       "type": "paraphrased",
-      "prompt": "I need to auditing a github repository to extract tech stack signals for informing future claude code project architecture, running a deep reference audit from project-setup phase 0 with --deep flag, or when asked to scan/map/audit a github repo. accepts a public github url and optional flags: --pipeline (inject into project-context.json), --layer <names> (comma-separated subset), --estimate (preview token count before running). triggers on: audit this repo, scan this github repo, deep audit, repo-audit, extract stack from, analyze this repository.\"",
+      "prompt": "I need help with the skill-audit skill — can you audit it for me?",
+      "target": "skill-audit",
       "expected": {
         "triggers": true,
-        "assertions": [
-          "Produces same outcome as direct trigger"
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?repo-audit[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Produces the same outcome as the direct-trigger scenario despite reworded phrasing"
         ]
       }
     },
@@ -29,11 +65,25 @@
       "id": 3,
       "eval_name": "edge-case-mid-workflow",
       "type": "edge_case",
-      "prompt": "auditing a GitHub repository to extract tech stack signals for informing future Claude Code project architecture, running a deep reference audit from project-setup Phase 0 with --deep flag, or when asked to scan/map/audit a GitHub repo. Accepts a public GitHub URL and optional flags: --pipeline (inject into project-context.json), --layer <names> (comma-separated subset), --estimate (preview token count before running). Triggers on: audit this repo, scan this GitHub repo, deep audit, repo-audit, extract stack from, analyze this repository.\" — I'm already partway through, can you pick up from where I left off?",
+      "prompt": "I'm partway through auditing the skill-audit skill — can you pick up from where I left off?",
+      "target": "skill-audit",
       "expected": {
         "triggers": true,
-        "assertions": [
-          "Handles partial workflow entry without restarting from scratch"
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?repo-audit[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Resumes from the stated step without restarting the whole workflow from scratch"
         ]
       }
     },
@@ -41,21 +91,50 @@
       "id": 4,
       "eval_name": "negative-explain-only",
       "type": "negative",
-      "prompt": "What are the steps involved in auditing a github repository to extract tech stack signals for informing future claude code project architecture, running a deep reference audit from project-setup phase 0 with --deep flag, or when asked to scan/map/audit a github repo. accepts a public github url and optional flags: --pipeline (inject into project-context.json), --layer <names> (comma-separated subset), --estimate (preview token count before running). triggers on: audit this repo, scan this github repo, deep audit, repo-audit, extract stack from, analyze this repository.\"? I'm not asking you to do it — just explain the process so I can understand it.",
+      "prompt": "What would auditing the skill-audit skill actually involve? I'm not asking you to do it — just explain the process so I understand it.",
+      "target": "skill-audit",
       "expected": {
         "triggers": false,
-        "note": "Explanation request — should answer conversationally, not invoke the workflow"
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?repo-audit[\"'`]?\\s*\\)",
+              "expect": "absent"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Explanation request — answers conversationally without invoking the workflow"
+        ]
       }
     },
     {
       "id": 5,
       "eval_name": "semantic-synonym-trigger",
       "type": "semantic",
-      "prompt": "I want to inspecting a github repository to extract tech stack signals for informing future claude code project architecture, running a deep reference audit from project-setup phase 0 with --deep flag, or when asked to scan/map/audit a github repo. accepts a public github url and optional flags: --pipeline (inject into project-context.json), --layer <names> (comma-separated subset), --estimate (preview token count before running). triggers on: audit this repo, scan this github repo, deep audit, repo-audit, extract stack from, analyze this repository.\"",
+      "prompt": "Check the skill-audit skill for me and let me know what you find.",
+      "target": "skill-audit",
       "expected": {
         "triggers": true,
-        "assertions": [
-          "Synonym phrasing activates skill correctly"
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?repo-audit[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Synonym phrasing activates the skill correctly despite not using the literal trigger verb"
         ]
       }
     },
@@ -63,23 +142,52 @@
       "id": 6,
       "eval_name": "adversarial-wrong-scope",
       "type": "adversarial",
-      "prompt": "Can you help me with auditing a github repository to extract tech stack signals for informing future claude code pull request architecture, running a deep reference audit from pull request-setup phase 0 with --deep flag, or when asked to scan/map/audit a github repo. accepts a public github url and optional flags: --pipeline (inject into pull request-context.json), --layer <names> (comma-separated subset), --estimate (preview token count before running). triggers on: audit this repo, scan this github repo, deep audit, repo-audit, extract stack from, analyze this repository.\"?",
+      "prompt": "Audit the skill-audit codebase and tell me what's risky about it.",
+      "target": "skill-audit",
       "expected": {
         "triggers": false,
-        "note": "Adversarial probe — uses skill vocabulary in wrong context or scope. Skill must NOT invoke its workflow; a conversational or redirecting response is correct."
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?repo-audit[\"'`]?\\s*\\)",
+              "expect": "absent"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe using skill vocabulary in the wrong context/scope — must NOT invoke the workflow; a conversational or redirecting response is correct"
+        ]
       }
     },
     {
       "id": 7,
       "eval_name": "project-native-terminology",
       "type": "project-native",
-      "prompt": "auditing a GitHub repository to extract tech stack signals for informing future Claude Code project architecture, running a deep reference audit from project-setup Phase 0 with --deep flag, or when asked to scan/map/audit a GitHub repo. Accepts a public GitHub URL and optional flags: --pipeline (inject into project-context.json), --layer <names> (comma-separated subset), --estimate (preview token count before running). Triggers on: audit this repo, scan this GitHub repo, deep audit, repo-audit, extract stack from, analyze this repository.\" for our Node.js project — we use SKILL and store outputs in ./install.sh",
+      "prompt": "Audit the skill-audit skill and tell me what's risky about it for our Node.js project — we use SKILL and store outputs in ./install.sh.",
+      "target": "skill-audit",
       "expected": {
         "triggers": true,
-        "assertions": [
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?repo-audit[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
           "Output references project-specific terminology (SKILL)",
-          "Output references correct artifact path (./install.sh)",
-          "Skill integrates with project stack (Node.js)"
+          "Output references the correct artifact path (./install.sh)",
+          "Integrates with the project's stack (Node.js)"
         ]
       },
       "project_context_used": {
@@ -94,21 +202,39 @@
       "id": 8,
       "eval_name": "project-workflow-integration",
       "type": "project-workflow",
-      "prompt": "After running agent-adapt, now auditing a GitHub repository to extract tech stack signals for informing future Claude Code project architecture, running a deep reference audit from project-setup Phase 0 with --deep flag, or when asked to scan/map/audit a GitHub repo. Accepts a public GitHub URL and optional flags: --pipeline (inject into project-context.json), --layer <names> (comma-separated subset), --estimate (preview token count before running). Triggers on: audit this repo, scan this GitHub repo, deep audit, repo-audit, extract stack from, analyze this repository.\" for our Node.js project",
+      "prompt": "After running agent-adapt, now audit the skill-audit skill and tell me what's risky about it for our Node.js project.",
+      "target": "skill-audit",
       "expected": {
         "triggers": true,
-        "assertions": [
-          "Skill activates correctly within the project workflow context",
-          "Output does not duplicate or conflict with agent-adapt"
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?repo-audit[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Activates correctly within the project workflow context",
+          "Does not duplicate or conflict with agent-adapt"
         ]
       },
       "project_context_used": {
         "installed_skills": [
           "agent-adapt",
           "agent-audit",
+          "agent-eval",
+          "agent-refine",
           "agent-scout",
           "project-audit",
+          "project-idea",
           "project-setup",
+          "repo-audit",
           "skill-adapt",
           "skill-audit",
           "skill-discovery",
@@ -123,11 +249,25 @@
       "id": 9,
       "eval_name": "multi-turn-resumed-context",
       "type": "multi-turn",
-      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd be auditing a github repository to extract tech stack signals for informing future claude code project architecture, running a deep reference audit from project-setup phase 0 with --deep flag, or when asked to scan/map/audit a github repo. accepts a public github url and optional flags: --pipeline (inject into project-context.json), --layer <names> (comma-separated subset), --estimate (preview token count before running). triggers on: audit this repo, scan this github repo, deep audit, repo-audit, extract stack from, analyze this repository.\". We're using SKILL (our hooks include gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and do that now.",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd be auditing the skill-audit skill. We're using SKILL (our hooks include gsd-check-update.js, gsd-session-state.sh). Let's continue — go ahead and do that now.",
+      "target": "skill-audit",
       "expected": {
         "triggers": true,
-        "assertions": [
-          "Skill triggers correctly despite continuation/resumption framing",
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Skill\\(\\s*[\"'`]?repo-audit[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing",
           "Does not ask for information already established in context",
           "Incorporates established context (SKILL) without re-asking"
         ]

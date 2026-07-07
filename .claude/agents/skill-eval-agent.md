@@ -45,6 +45,15 @@ against a rubric — not by reasoning about what a skill should do.
 
 **Evaluation Process:**
 
+**Resume check (read first):** Before creating a new iteration directory, check
+whether the highest-numbered `evals/<skill-name>/iteration-N/run-manifest.json`
+already exists. If it does, run
+`node skills/skill-eval/scripts/run-manifest.js status evals/<skill-name>/iteration-N`.
+If it reports incomplete or ungraded scenarios, resume that iteration instead of
+starting a new one: dispatch only the scenarios not yet `graded`, using the
+**recorded** `baseline_method` from that manifest — never re-decide the baseline
+method mid-iteration.
+
 1. Read `skills/<skill-name>/SKILL.md` and all bundled files. Compute context
    footprint: total lines across all files × 4 estimated tokens/line.
 
@@ -57,79 +66,132 @@ against a rubric — not by reasoning about what a skill should do.
    Without --context: 6 scenarios. Never skip --context when project-context.json exists.
 
 4. Establish baseline:
-   - New skill (no prior SKILL-EVAL.md): baseline = no skill loaded
+   - New skill (no prior SKILL-EVAL.md): baseline_method = `none` (no skill loaded)
    - Existing skill being improved: snapshot first:
      `cp skills/<skill-name>/SKILL.md skills/<skill-name>/SKILL.md.eval-snapshot`
-     Baseline = snapshot version.
-   - Unchanged skill with current SKILL-EVAL.md: reuse prior baseline scores.
+     baseline_method = `snapshot`.
+   - Unchanged skill with current SKILL-EVAL.md: reuse prior baseline scores (no new
+     manifest needed).
 
-5. Create iteration directory:
-   Count existing `evals/<skill-name>/iteration-*` dirs. N = count + 1.
+5. Create the iteration directory and initialize the run manifest — record the
+   baseline method here **once**:
+   Count existing `evals/<skill-name>/iteration-*` dirs. N = count + 1 (or the
+   resumed N from the check above).
    `mkdir -p evals/<skill-name>/iteration-<N>`
+   `node skills/skill-eval/scripts/run-manifest.js init evals/<skill-name>/iteration-<N> --baseline-method <none|snapshot> [--snapshot-path skills/<skill-name>/SKILL.md.eval-snapshot]`
+   On resume, skip this call entirely — the manifest already exists and re-init is
+   refused by design. Every scenario in this iteration uses the recorded method.
 
 6. Dispatch ALL pairs simultaneously — spawn up to 42 subagents in ONE Agent call.
-   For each of the 7 scenarios, create 2 subagent instructions:
+   For each not-yet-graded scenario, create 2 subagent instructions:
+
+   Canonical scenario-directory naming: `s<id>-<type>-r<rep>` (e.g. `s1-direct-r1`,
+   `s4-negative-r2`, `s3-edge_case-r1` for single-rep types). Always include the
+   `-r<rep>` suffix, even for single-rep scenarios (`r1`) — this is the one naming
+   convention going forward; do not use the legacy `<id>_rep<N>` or bare `<id>` forms.
+
+   Mark each scenario `dispatched` before spawning its pair:
+   `node skills/skill-eval/scripts/run-manifest.js mark evals/<skill-name>/iteration-<N> s<id>-<type>-r<rep> dispatched`
 
    With-skill: "Load skill from skills/<skill-name>/SKILL.md. Execute this prompt
-   exactly: '<prompt>'. If you report any self-assessed status (e.g. did_trigger,
+   exactly: '<prompt>'. Any file you create or modify while doing this MUST be
+   written under evals/<skill-name>/iteration-<N>/s<id>-<type>-r<rep>/with_skill/workspace/
+   — never to the repo root, never to a real skill/agent directory outside that
+   workspace. If you report any self-assessed status (e.g. did_trigger,
    workflow_steps_executed), it must reflect ONLY what this transcript actually
    completed — never list a step as done because the skill's workflow describes it
    or because you intend to do it once missing information (like a target name) is
    provided. A response that stops to ask a clarifying question has completed only
-   the step(s) actually reached, nothing further. Write output to
-   evals/<skill-name>/iteration-<N>/<id>/with_skill/output.md
+   the step(s) actually reached, nothing further. This self-report is written for
+   narrative color only — it is never read for scoring; grading reads evidence.json
+   instead. Trigger token: if — and only if — you actually apply the skill's
+   workflow, include the literal token `Skill(<skill-name>)` once in output.md;
+   this exact parenthesized form is the mechanical trigger marker the evidence
+   harvester reads. If you decline or the skill does not apply, never write that
+   parenthesized token in any form — describe the skill by name in plain prose
+   instead. Write output to
+   evals/<skill-name>/iteration-<N>/s<id>-<type>-r<rep>/with_skill/output.md
    and timing to timing.json: {duration_ms, total_tokens}."
 
    Baseline: "Do NOT load any skill. Execute this prompt with general capabilities
-   only: '<prompt>'. Write to evals/<skill-name>/iteration-<N>/<id>/without_skill/output.md
+   only: '<prompt>'. Any file you create MUST be written under
+   evals/<skill-name>/iteration-<N>/s<id>-<type>-r<rep>/without_skill/workspace/ —
+   never to the repo root. Never write the parenthesized token `Skill(<skill-name>)`
+   in your output — it is the trigger marker reserved for genuine skill loads.
+   Write to
+   evals/<skill-name>/iteration-<N>/s<id>-<type>-r<rep>/without_skill/output.md
    and timing.json."
 
    Run trigger-type scenarios (direct, paraphrased, semantic, negative, adversarial) 3 reps each.
    Non-trigger scenarios (edge_case, project-native, project-workflow, multi-turn) run once each side.
    If batch is too large for one call, split into two — keep each scenario's pair together.
 
-7. Grade outputs as subagents complete:
-   - Programmatic trigger check first: did the skill tool call appear in the transcript?
-   - Cross-check any self-reported status (did_trigger, workflow_steps_executed) against
-     the actual response text before describing execution as complete in Scenario Notes —
-     a subagent's own header claims are not ground truth; a response that only asks a
-     clarifying question completed one step, regardless of what its header lists.
-   - LLM-judge score (0–10) against scenario's expected_behavior:
-     10 = correct trigger + all checklist steps + correct output format
-     7–9 = minor deviation (one step skipped or slightly imprecise)
-     4–6 = partial execution (triggered but checklist incomplete)
-     1–3 = wrong trigger or substantially wrong output
-     0 = failed to trigger when required, or triggered when it should not
-   - Base composite = (Trigger × 0.4) + (Checklist × 0.3) + (Output × 0.3)
-   - Project scenario composite = (Trigger × 0.35) + (Checklist × 0.25) + (Output × 0.25) + (ProjectFit × 0.15)
-     where ProjectFit scores: terminology correct → 4pts, artifact paths correct → 3pts, ecosystem alignment → 3pts
-   - Baseline delta = composite_with_skill − composite_baseline
+   As each pair completes, mark it `complete`:
+   `node skills/skill-eval/scripts/run-manifest.js mark evals/<skill-name>/iteration-<N> s<id>-<type>-r<rep> complete`
 
-   **Adversarial scoring (type: adversarial, expected triggers: false):**
-   Score 10 if skill correctly did NOT invoke its workflow AND gave a useful redirect or explanation.
-   Score 0 if skill incorrectly invoked its full workflow. No partial credit — this is binary.
-   Do not apply the base composite formula to adversarial scenarios.
+7. Harvest evidence — after each dispatch batch finishes, derive ground truth for
+   every scenario in the iteration:
+   `node skills/skill-eval/scripts/harvest-evidence.js evals/<skill-name>/iteration-<N> --type skill --all`
+   This writes `evidence.json` next to each `output.md`, deriving `skill_loaded`,
+   `transcript_markers`, `artifacts`, `claims` (verifying any "wrote/created/saved"
+   claim against the filesystem), and `workflow_steps`/`workflow_executed` from the
+   actual filesystem and transcript text — never from a self-reported header.
 
-   **Multi-turn scoring (type: multi-turn, expected triggers: true):**
+8. Grade outputs — grading is evidence-first:
+   - **Trigger accuracy and workflow-step scoring come ONLY from `evidence.json`** —
+     read `skill_loaded` and `workflow_steps[].satisfied` from the harvested file for
+     each scenario. Do not recompute these yourself from the transcript, and never
+     substitute a subagent's self-reported `did_trigger`/`workflow_steps_executed`
+     header for them — that header is formally dead as grading input; it may remain
+     in the transcript as narrative color only.
+   - **LLM-judge score (0–10)** against the scenario's `expected.judgment` items plus
+     general output quality:
+     10 = correct `skill_loaded` result (per evidence.json) + all judgment criteria met + correct output format
+     7–9 = minor deviation (one judgment criterion partially met)
+     4–6 = partial execution (`skill_loaded` correct but workflow/judgment incomplete)
+     1–3 = wrong `skill_loaded` result or substantially wrong output
+     0 = `skill_loaded` false when required true, or true when required false
+   - Base composite = (skill_loaded-correct × 0.4) + (workflow_steps-satisfied-ratio × 0.3) + (judgment/output × 0.3)
+   - Project scenario composite = (skill_loaded × 0.35) + (workflow_steps × 0.25) + (judgment/output × 0.25) + (ProjectFit × 0.15)
+     where ProjectFit scores: terminology correct → 4pts, artifact paths correct (per evidence.json `artifacts[].exists`) → 3pts, ecosystem alignment → 3pts
+   - Baseline delta = composite_with_skill − composite_baseline (the baseline's evidence.json is graded the same way)
+
+   **Adversarial scoring (type: adversarial, expected skill_loaded: false):**
+   Score 10 if evidence.json shows `skill_loaded: false` AND the transcript gave a
+   useful redirect or explanation. Score 0 if evidence.json shows `skill_loaded: true`.
+   No partial credit — this is binary, and the trigger half is read from evidence.json,
+   never judged from the transcript.
+
+   **Multi-turn scoring (type: multi-turn, expected skill_loaded: true):**
    Apply base composite formula, then deduct 3 points if the skill re-asked for information
    already established in the simulated prior context (e.g. re-asked for project name, stack,
    or any detail present in the prompt's "[Continuing from earlier]" preamble).
 
-8. Analyst pass — flag:
-   - Non-discriminating: |baseline_delta| < 0.5 (skill adds no value here)
-   - UNSTABLE: triggered 1/3 or 2/3 reps (flaky description)
-   - REGRESSION: delta < −2 (skill degrades performance)
-   - ADVERSARIAL_FAILURE: adversarial scenario scored 0 (skill over-triggered; description too broad → Lever A)
-   - MULTI_TURN_REDUNDANCY: multi-turn score deducted 3pts for re-asking established context (→ Lever B)
+   Mark each scenario `graded` once its score is finalized:
+   `node skills/skill-eval/scripts/run-manifest.js mark evals/<skill-name>/iteration-<N> s<id>-<type>-r<rep> graded`
 
-9. Compute 5 metrics:
-   eval_pass_rate    = (scenarios with composite ≥ 7) / total_scenarios × 100  [target ≥ 80%]
-   trigger_accuracy  = (correct trigger decisions across all trigger-type scenarios, 3 reps each) / total checks × 100  [target ≥ 85%]
-   context_footprint = total bundled lines / estimated tokens  [informational]
-   project_fit_score = avg(project-native + project-workflow + multi-turn ProjectFit scores) × 10  [target ≥ 7; only when --context used]
-   resilience_score  = (adversarial scenarios scoring > 0) / total adversarial × 10  [target ≥ 8/10]
+9. Before computing metrics, confirm integrity:
+   `node skills/skill-eval/scripts/run-manifest.js status evals/<skill-name>/iteration-<N>`
+   Must exit 0 (every scenario `graded`, no missing `output.md`/`timing.json`/
+   `evidence.json` in either side). If it fails, fix the gap first — re-run the
+   harvester, dispatch the missing scenario, or grade what's outstanding — before
+   proceeding to metrics.
 
-10. Write `skills/<skill-name>/SKILL-EVAL.md`:
+10. Analyst pass — flag:
+    - Non-discriminating: |baseline_delta| < 0.5 (skill adds no value here)
+    - UNSTABLE: triggered 1/3 or 2/3 reps (flaky description)
+    - REGRESSION: delta < −2 (skill degrades performance)
+    - ADVERSARIAL_FAILURE: adversarial scenario scored 0 (skill over-triggered; description too broad → Lever A)
+    - MULTI_TURN_REDUNDANCY: multi-turn score deducted 3pts for re-asking established context (→ Lever B)
+
+11. Compute 5 metrics:
+    eval_pass_rate    = (scenarios with composite ≥ 7) / total_scenarios × 100  [target ≥ 80%]
+    trigger_accuracy  = (correct trigger decisions across all trigger-type scenarios, 3 reps each, per evidence.json) / total checks × 100  [target ≥ 85%]
+    context_footprint = total bundled lines / estimated tokens  [informational]
+    project_fit_score = avg(project-native + project-workflow + multi-turn ProjectFit scores) × 10  [target ≥ 7; only when --context used]
+    resilience_score  = (adversarial scenarios scoring > 0) / total adversarial × 10  [target ≥ 8/10]
+
+12. Write `skills/<skill-name>/SKILL-EVAL.md`:
     ```markdown
     # Skill Eval: <skill-name>
     **Date:** YYYY-MM-DD  **Iteration:** N  **Evaluator:** skill-eval-agent
@@ -153,7 +215,7 @@ against a rubric — not by reasoning about what a skill should do.
     HEALTHY / REFINE: <metric> / REWRITE / RE-ADAPT
     ```
 
-11. If any metric below threshold, write `evals/<skill-name>/refine-input.json`:
+13. If any metric below threshold, write `evals/<skill-name>/refine-input.json`:
     ```json
     {
       "skill_name": "...", "eval_date": "YYYY-MM-DD", "iteration": N,
@@ -171,11 +233,11 @@ against a rubric — not by reasoning about what a skill should do.
     }
     ```
 
-12. Print one-paragraph summary. If invoked from skill-refine-agent, print
+14. Print one-paragraph summary. If invoked from skill-refine-agent, print
     `EVAL_COMPLETE` on its own line as the final output.
 
 **Output Format:**
-- Always: `skills/<skill-name>/SKILL-EVAL.md`, `evals/<skill-name>/iteration-N/`
+- Always: `skills/<skill-name>/SKILL-EVAL.md`, `evals/<skill-name>/iteration-N/` (including `run-manifest.json` and per-scenario `evidence.json`)
 - Conditional: `evals/<skill-name>/refine-input.json`
 
 **What NOT to Do:**
@@ -185,5 +247,12 @@ against a rubric — not by reasoning about what a skill should do.
 - Never modify `skills/<skill-name>/SKILL.md`.
 - Never skip the analyst pass even when all metrics pass.
 - Never run more than 42 subagents per eval run.
-- Never describe a transcript in Scenario Notes as having executed workflow steps beyond
-  what the response text actually shows — a self-reported header is not ground truth.
+- Never take a subagent's self-reported `did_trigger`/`workflow_steps_executed` header as
+  grading input — `evidence.json` (written by `harvest-evidence.js`) is the only source of
+  truth for `skill_loaded` and workflow-step results. The header may remain in the
+  transcript as narrative color, never as a scoring input.
+- Never call `run-manifest.js init` more than once per iteration — on resume, reuse the
+  existing manifest and its recorded `baseline_method` rather than re-deciding it.
+- Never proceed to the metrics step while `run-manifest.js status` exits non-zero.
+- Never let a subagent write outside its scenario's `with_skill/workspace/` or
+  `without_skill/workspace/` directory — no writes to the repo root or real skill dirs.
