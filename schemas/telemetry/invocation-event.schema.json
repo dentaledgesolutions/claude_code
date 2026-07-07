@@ -1,0 +1,91 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Telemetry Invocation/Outcome Event",
+  "description": "One JSONL line in evals/telemetry/events-YYYY-MM.jsonl. Written by scripts/telemetry/log-invocation.js (event=invocation, on PostToolUse for Skill/Task calls) and scripts/telemetry/log-outcome.js (event=outcome on UserPromptSubmit correction heuristic; event=session_end on Stop/SessionEnd close-out). Never contains raw prompt or transcript text — see scripts/telemetry/redact.js.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["ts", "session_id", "event"],
+  "properties": {
+    "ts": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO-8601 UTC timestamp of when this event was recorded"
+    },
+    "session_id": {
+      "type": "string",
+      "description": "Claude Code session_id from the hook event payload"
+    },
+    "invocation_id": {
+      "type": "string",
+      "description": "UUID identifying one skill/agent invocation. Required when event=invocation or event=outcome — links an outcome back to the invocation it judges. Absent on event=session_end (see invocation_ids instead)."
+    },
+    "name": {
+      "type": "string",
+      "description": "Skill or agent name (Skill: tool_input.skill; Task/Agent: tool_input.subagent_type). Required when event=invocation or event=outcome."
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["skill", "agent"],
+      "description": "Required when event=invocation or event=outcome."
+    },
+    "event": {
+      "type": "string",
+      "enum": ["invocation", "outcome", "session_end"],
+      "description": "invocation: one Skill/Task tool call recorded by log-invocation.js. outcome: a correction/disposition signal recorded by log-outcome.js on a later prompt. session_end: a close-out record written by log-outcome.js on Stop/SessionEnd."
+    },
+    "context_hash": {
+      "type": "string",
+      "description": "sha256 hex digest of the raw prompt/tool-input text this event derives from. Never the raw text itself. Optional — present only when a text source was available to hash."
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Optional. Present only when derivable from hook event fields."
+    },
+    "artifacts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "description": "Repo-relative artifact paths only (no absolute paths, no paths outside the repo root). Present on event=invocation when the tool_response mentions files written/created."
+    },
+    "outcome": {
+      "type": "object",
+      "description": "Required when event=outcome. Absent otherwise.",
+      "additionalProperties": false,
+      "required": ["followed_by_correction", "user_disposition", "confidence"],
+      "properties": {
+        "followed_by_correction": {
+          "type": "boolean",
+          "description": "True when a later prompt in the same session referenced one of this invocation's artifacts and used revision language."
+        },
+        "user_disposition": {
+          "type": "string",
+          "enum": ["accepted", "revised", "rejected", "unknown"],
+          "description": "revised: correction heuristic fired. rejected: reserved for aggregator-derived signals (e.g. artifact absent at session close-out). accepted/unknown: no correction signal observed."
+        },
+        "confidence": {
+          "type": "string",
+          "enum": ["low", "medium", "high"],
+          "description": "Heuristic confidence — never treat as ground truth. See docs/telemetry-privacy.md."
+        }
+      }
+    },
+    "artifact_census": {
+      "type": "array",
+      "description": "Present only when event=session_end. Final existence check for artifacts recorded by invocation_ids during this session.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "exists"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean" }
+        }
+      }
+    },
+    "invocation_ids": {
+      "type": "array",
+      "description": "Present only when event=session_end. The invocation_id(s) this close-out record covers.",
+      "items": { "type": "string" }
+    }
+  }
+}
