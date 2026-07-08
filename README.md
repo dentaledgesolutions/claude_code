@@ -13,7 +13,7 @@ project-setup → project-audit
                      │                    (missing agent dependency detected)                 │
                      │                                    ↓                                  │
                      └── Agent pipeline ──────────────────────────────────────────────────── ┘
-                         agent-scout → agent-audit → agent-adapt
+                         agent-scout → agent-audit → agent-adapt → agent-eval → agent-refine
 ```
 
 `project-setup` feeds both pipelines via `evals/project-context.json` (9 fields: project name, stack, workflow terms, installed skills, key phrases, artifact paths, hooks, MCP servers, plugins) and optionally seeds them with signals from up to 3 GitHub reference repos.
@@ -48,6 +48,14 @@ The through-line for all of it: **evidence over claims, comparison over intuitio
 
 ## Skills
 
+### `project-idea`
+
+Guided interview that turns a vague idea into a structured `PROJECT-BRIEF.md` — problem, target user, core features, out-of-scope items, tech direction, and success criteria, one question at a time. Run before `project-setup` on any greenfield project; `project-setup` reads the brief to pre-fill its recommendations.
+
+**Triggers:** "I have an idea for a project", "help me figure out what to build", "I want to start a new project"
+
+---
+
 ### `project-setup`
 
 Guided interview that produces `CLAUDE.md` and `evals/project-context.json`. Scans existing config files (`.claude/settings.json`, `.mcp.json`, `~/.claude/settings.json`) to auto-detect active hooks, MCP servers, and installed plugins before the interview begins. Optionally fetches conventions, stack, commands, rules, directories, and skill/agent names from up to 3 GitHub reference repos. The output powers the rest of the pipeline.
@@ -61,6 +69,14 @@ Guided interview that produces `CLAUDE.md` and `evals/project-context.json`. Sca
 Security scan of the Claude Code project configuration using [ecc-agentshield](https://www.npmjs.com/package/ecc-agentshield). Runs 102 rules across 5 categories — Secrets, Permissions, Hooks, MCP Servers, Agents — and returns an A–F grade. Offers auto-fix for the 8 most common safe issues. Advisory by default; surfaces critical findings before any skill installation proceeds.
 
 **Triggers:** "audit my project security", "check my Claude Code setup for secrets", "scan before installing new skills"
+
+---
+
+### `repo-audit`
+
+Deep multi-layer audit of any public GitHub repository, using 8 parallel layer agents (the `repo-audit-*` analysts) backed by Repomix. Produces machine-readable JSON + human-readable Markdown reports at `docs/audits/`, covering runtime, framework, database, testing, CI/CD, auth, AI/LLM, and Claude Code config. `--pipeline` injects findings into `evals/project-context.json`; `--layer` runs a subset; `--estimate` previews token cost first. Also invoked by `project-setup` Phase 0 with `--deep`.
+
+**Triggers:** "audit this repo", "scan this GitHub repo", "extract stack from <url>"
 
 ---
 
@@ -105,6 +121,11 @@ Applies Karpathy's autoresearch loop to improve a skill that fails eval metrics.
 
 **Triggers:** "refine this skill", "improve this skill", "run autoresearch on this skill"
 
+#### `skill-discovery`
+Mines the project's logs for tasks done manually often enough to warrant becoming a skill, filters out anything already covered by `installed_skills`, and proposes a prioritized backlog of candidates ready for `skill-scout`. Deliberately *not* a step in the main sourcing pipeline — run it periodically, after friction patterns have had time to accumulate.
+
+**Triggers:** "what skills should we build next?", "what keeps coming up that we don't have a skill for?"
+
 ---
 
 ### Agent Pipeline
@@ -123,6 +144,16 @@ Security gate for agent definitions. Checks tool escalation (agent requests more
 Rewrites a PASS-audited agent definition to match the project's model tier preferences, tool scope, domain terminology, and color conventions. Writes the adapted agent to `.claude/agents/<name>.md` with a provenance metadata block.
 
 **Triggers:** "adapt this agent", "customize this agent for my project", "install this agent"
+
+#### `agent-eval`
+Mirror of `skill-eval` for agent definitions: 9 dispatch scenarios executed as with-agent/baseline pairs by `agent-eval-agent`, graded from harvested evidence. Produces the same 5 metrics with **Dispatch Accuracy** (≥ 85%) in place of Trigger Accuracy, and writes the report to `.claude/agents/<name>-EVAL.md`. Run after `agent-adapt` and before trusting a new agent.
+
+**Triggers:** "evaluate this agent", "run agent tests", "check agent effectiveness"
+
+#### `agent-refine`
+Karpathy autoresearch loop for agents. Requires an `agent-eval` baseline and `refine-input.json`; routes by failing metric, mutates one lever per iteration (Lever E — frontmatter config — triggers an `agent-audit` re-run), re-scores via `agent-eval-agent`, keeps or reverts. Default budget 10 iterations; appends every step to `.claude/agents/<name>-REFINE-LOG.md`.
+
+**Triggers:** "refine this agent", "improve this agent", "run autoresearch on this agent"
 
 ---
 
@@ -184,19 +215,27 @@ The shared data contract that connects every pipeline stage. Generated by `proje
 
 ```
 skills/
+  project-idea/      — greenfield idea interview (PROJECT-BRIEF.md)
   project-setup/     — project initialization (CLAUDE.md + project-context.json)
   project-audit/     — project-level security scan (ecc-agentshield wrapper)
+  repo-audit/        — deep multi-layer GitHub repo audit (8 parallel analysts)
   skill-scout/       — skill discovery
   skill-audit/       — skill content security gate
   skill-adapt/       — skill customization
   skill-eval/        — skill measurement (9 scenario types, 5 metrics)
   skill-refine/      — skill autoresearch loop
+  skill-discovery/   — periodic log mining for new skill candidates
   agent-scout/       — agent discovery
   agent-audit/       — agent security gate
   agent-adapt/       — agent customization
+  agent-eval/        — agent measurement (dispatch accuracy + 4 more metrics)
+  agent-refine/      — agent autoresearch loop
 .claude/agents/      — installed runtime sub-agents
-evals/               — project context and eval artifacts (generated, gitignored)
-docs/                — design specs and implementation plans
+fixtures/            — committed calibration assets (known-defective mutant + golden target)
+schemas/             — JSON schemas (evals.json, telemetry events, Codex results)
+scripts/             — calibration, Codex, and telemetry orchestration
+evals/               — project context and eval artifacts (generated, mostly gitignored)
+docs/                — design specs, evaluations, and implementation plans
 ```
 
 ## Installation
