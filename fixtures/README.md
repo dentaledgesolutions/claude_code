@@ -37,7 +37,16 @@ These fixtures are inert reference data. Nothing here is a real, usable skill.
   2. As a grading calibration reference: `golden-transcript.md` is a realistic with-skill
      transcript for one direct scenario, and `expected-scores.json` records the known-correct
      score band (±1 tolerance) per rubric dimension. Re-grading the transcript should land inside
-     every band — if it doesn't, the grader (not the fixture) has drifted.
+     every band — if it doesn't, the grader (not the fixture) has drifted. Measured via
+     `scripts/run-grader-calibration.js`:
+     ```bash
+     node scripts/run-grader-calibration.js generate --judges 5   # writes N blind judge prompts
+     # run each judge-prompt-<i>.md as an independent subagent → scores-<i>.json
+     node scripts/run-grader-calibration.js check                 # bands + variance → report
+     ```
+     Judge prompts are blind by construction (no bands, no notes, fixture preamble stripped);
+     `check` writes `GRADER-CALIBRATION-REPORT.md` with per-dimension mean/spread and fails on
+     any out-of-band score or spread > 2.
 - **`GATE-RUNBOOK.md`** — the exact human-invoked command sequence for the Phase 3 live gate
   (generate → native eval → native audit `--live` → check). See that file before running the gate.
 
