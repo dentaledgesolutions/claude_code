@@ -1,0 +1,36 @@
+{
+  "fixture": "mutant-notes-summarizer",
+  "source": "docs/superpowers/specs/2026-07-08-eval-hardening-design.md (Part 1b)",
+  "purpose": "Ground-truth manifest for scripts/run-calibration.js --fixture mutant-notes-summarizer — one entry per intentionally injected defect, in classes deliberately distinct from mutant-brief-writer's four. Never edit anchor_quote to match a 'fixed' SKILL.md; the defects are the fixture.",
+  "defects": [
+    {
+      "id": "over-narrow-trigger",
+      "defect_class": "over_narrow_trigger",
+      "description": "The frontmatter description restricts activation to one exact phrase, so paraphrased and semantic-variant requests that plainly want a notes summary will fail to trigger the skill.",
+      "anchor_quote": "Use this skill only when the user says the exact phrase \"summarize the meeting notes file\"",
+      "expected_catcher": "native_metric:trigger_accuracy"
+    },
+    {
+      "id": "phantom-script",
+      "defect_class": "phantom_script_reference",
+      "description": "Step 2 instructs running scripts/notes/extract-actions.js, a script that does not exist anywhere in the repository, so the documented extraction step cannot be executed as written.",
+      "anchor_quote": "Run `node scripts/notes/extract-actions.js` against the notes file to produce the structured",
+      "expected_catcher": "native_audit:output_integration_claims"
+    },
+    {
+      "id": "multi-turn-redundancy",
+      "defect_class": "multi_turn_redundancy",
+      "description": "Every step mandates re-confirming the attendee list and meeting date with the user, even when both were already provided — forcing redundant questions in any multi-turn continuation.",
+      "anchor_quote": "attendee list and the meeting date with the user, even if they were already provided",
+      "expected_catcher": "native_metric:analyst_observations"
+    },
+    {
+      "id": "dead-step",
+      "defect_class": "dead_step",
+      "description": "Step 5 applies only when Step 2 found zero action items, but Step 2 explicitly guarantees the list always contains at least one entry (it synthesizes a follow-up item when none are found) — Step 5's guard condition can never be true.",
+      "anchor_quote": "This step applies only if Step 2 found zero action items.",
+      "anchor_quote_conflicting": "synthesize a follow-up review item so the list\nalways contains at least one entry",
+      "expected_catcher": "native_audit:workflow_step_fidelity"
+    }
+  ]
+}

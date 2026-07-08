@@ -11,6 +11,24 @@ manifest to make the gate pass — if a defect is missed, iterate on the catchin
 `buildPrompt()` in `scripts/codex/run-native-audit.js`), then re-run steps 3–4. The fixture makes
 that loop cheap and regression-safe.
 
+## Routine cadence (added 2026-07-08)
+
+- **After ANY change** under `skills/*/scripts/`, `scripts/codex/`, `scripts/telemetry/`, or the
+  calibration scripts: run `node scripts/run-all-tests.js` (every test suite, incl. the check
+  matcher's own tests). This is free and takes seconds.
+- **After changes to `buildPrompt()` in `run-native-audit.js` or to the grading methodology**
+  (skill-eval/agent-eval grading steps, harvest-evidence.js): re-run the live gate (steps 2–4)
+  against **both** committed fixtures.
+- Two fixtures exist; every step below accepts `--fixture <name>`:
+  - `mutant-brief-writer` (default) — vague trigger, self-contradiction, dropped step,
+    filename mismatch
+  - `mutant-notes-summarizer` — over-narrow trigger, phantom script, multi-turn redundancy,
+    dead step
+  Example: `node scripts/run-calibration.js generate --fixture mutant-notes-summarizer`, and the
+  native eval / audit paths in steps 2–3 substitute the fixture name. `check --fixture <name>`
+  writes `evals/fixtures/CALIBRATION-REPORT-<name>.md` (per-fixture, so one fixture's PASS never
+  overwrites another's FAIL).
+
 ---
 
 ## Step 1 — Generate scenarios (no API cost)

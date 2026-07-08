@@ -185,7 +185,7 @@ Codex CLI acts as an independent second-model evaluator: a separate AI with no s
 |---|---|---|
 | Cold prediction | `node scripts/codex/run-external-skill-eval.js <skill> --mode smoke\|standard\|full --live` | Codex reads the definition and judges the scenarios itself (agents: `run-external-agent-eval.js`) |
 | Native audit | `node scripts/codex/run-native-audit.js <target> <skill\|agent> --live` | Codex reviews a *completed* native run's real transcripts + report and checks whether the evidence supports the native conclusions |
-| Calibration gate | `node scripts/run-calibration.js generate` / `check` | Runs the pipeline against the known-defective fixture and diffs findings against ground truth (no Codex cost itself; see `fixtures/GATE-RUNBOOK.md`) |
+| Calibration gate | `node scripts/run-calibration.js generate` / `check` `[--fixture <name>]` | Runs the pipeline against a known-defective fixture (two committed: `mutant-brief-writer`, `mutant-notes-summarizer` — 8 defect classes between them) and diffs findings against ground truth (no Codex cost itself; see `fixtures/GATE-RUNBOOK.md`) |
 
 **Disagreement policy:** native PASS + Codex PASS → healthy; any split verdict → refine or manual review; any hard failure → block. A native-audit escalation of `MANUAL_REVIEW_REQUIRED` or `REVIEW_SUGGESTED` always routes to manual review, even when both models otherwise agree. Claude Code reviews only `CODEX-EVAL-SUMMARY.md` / `NATIVE-AUDIT-REPORT.md` — never raw traces.
 

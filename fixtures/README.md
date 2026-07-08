@@ -23,6 +23,13 @@ These fixtures are inert reference data. Nothing here is a real, usable skill.
     from `SKILL.md`), which layer is expected to catch it (`native_metric:...` or
     `native_audit:<checklist_item>`), and the Phase 8 native-pipeline result
     (`caught` / `partial` / `missed`).
+- **`mutant-notes-summarizer/`** — a second deliberately defective skill (a meeting-notes
+  summarizer) with 4 injected defects in classes deliberately distinct from `mutant-brief-writer`'s:
+  over-narrow trigger (fires only on one exact phrase), phantom script (a step runs
+  `scripts/notes/extract-actions.js`, which doesn't exist), multi-turn redundancy (every step
+  re-confirms already-given info), and a dead step (its guard condition can never be true). Same
+  file layout (`SKILL.md` + `expected-findings.json`) and the same immutability rules. Run via
+  `--fixture mutant-notes-summarizer` on `scripts/run-calibration.js`.
 - **`golden-target/`** — a small, clean, benign skill (a changelog-entry formatter) used two ways:
   1. As a concrete `--target` for `generate-seed-evals.js` when generating scenarios for the
      mutant (`--target fixtures/golden-target`), so mutant scenarios name a real sibling instead

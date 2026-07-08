@@ -65,19 +65,33 @@ const fs = require('fs');
 const path = require('path');
 const { spawnSync } = require('child_process');
 
-// Fixture locations — defaults for this repo's committed calibration fixture.
-// These name fixture assets (not pipeline skills), and are flag-overridable.
-const DEFAULTS = {
-  mutantDef: path.join('fixtures', 'mutant-brief-writer', 'SKILL.md'),
-  expectedFindings: path.join('fixtures', 'mutant-brief-writer', 'expected-findings.json'),
-  goldenDef: path.join('fixtures', 'golden-target', 'SKILL.md'),
-  contextFile: path.join('evals', 'project-context.json'),
-  generator: path.join('skills', 'skill-eval', 'scripts', 'generate-seed-evals.js'),
-  evalsOutDir: path.join('evals', 'fixtures', 'mutant-brief-writer'),
-  evalReport: path.join('fixtures', 'mutant-brief-writer', 'SKILL-EVAL.md'),
-  auditRunsDir: path.join('evals', 'codex-runs', 'native-audits', 'skills', 'mutant-brief-writer'),
-  calibrationReport: path.join('evals', 'fixtures', 'CALIBRATION-REPORT.md'),
-};
+const args = process.argv.slice(2);
+
+function flagValue(name) {
+  const i = args.indexOf(name);
+  return i >= 0 ? args[i + 1] : null;
+}
+
+// Fixture locations — parameterized by --fixture (default: the original committed
+// calibration fixture). Every mutant fixture follows the same layout under
+// fixtures/<name>/, so all fixture-relative paths derive from the one name.
+const FIXTURE = flagValue('--fixture') || 'mutant-brief-writer';
+
+function resolvePaths(fixture) {
+  return {
+    mutantDef: path.join('fixtures', fixture, 'SKILL.md'),
+    expectedFindings: path.join('fixtures', fixture, 'expected-findings.json'),
+    goldenDef: path.join('fixtures', 'golden-target', 'SKILL.md'),
+    contextFile: path.join('evals', 'project-context.json'),
+    generator: path.join('skills', 'skill-eval', 'scripts', 'generate-seed-evals.js'),
+    evalsOutDir: path.join('evals', 'fixtures', fixture),
+    evalReport: path.join('fixtures', fixture, 'SKILL-EVAL.md'),
+    auditRunsDir: path.join('evals', 'codex-runs', 'native-audits', 'skills', fixture),
+    calibrationReport: path.join('evals', 'fixtures', `CALIBRATION-REPORT-${fixture}.md`),
+  };
+}
+
+const DEFAULTS = resolvePaths(FIXTURE);
 
 const HELP = `Usage: node scripts/run-calibration.js <generate|check> [OPTIONS]
 
@@ -121,8 +135,14 @@ Options (check):
                             (default: ${DEFAULTS.evalReport})
   --audit-report <path>     NATIVE-AUDIT-REPORT.md location
                             (default: newest run under ${DEFAULTS.auditRunsDir}/)
+  --expected <path>         Ground-truth expected-findings.json location
+                            (default: ${DEFAULTS.expectedFindings})
 
 Options (both):
+  --fixture <name>          Calibration fixture under fixtures/ to run against
+                            (default: mutant-brief-writer; also committed:
+                            mutant-notes-summarizer). All fixture paths and the
+                            per-fixture CALIBRATION-REPORT-<name>.md derive from this.
   --help                    Show this help
 
 Exit codes:
@@ -132,18 +152,12 @@ Exit codes:
   check:    0 = 4/4 defects caught; 1 = any defect missed or inputs missing.
 `;
 
-const args = process.argv.slice(2);
 if (args.includes('--help') || args.includes('-h') || args.length === 0) {
   console.log(HELP);
   process.exit(args.length === 0 ? 1 : 0);
 }
 
 const step = args[0];
-
-function flagValue(name) {
-  const i = args.indexOf(name);
-  return i >= 0 ? args[i + 1] : null;
-}
 
 function fail(msg) {
   console.error(`Error: ${msg}`);
@@ -256,6 +270,10 @@ const CLASS_KEYWORDS = {
   internal_self_contradiction: /contradict|self-?contradiction|inconsisten|conflicting (instruction|guidance|step|rule)|(never ask|do not ask).{0,120}(interview|follow-?up)/,
   silently_dropped_step: /silently (skipp|dropp|omitt)|dropped step|skipped step|missing step|never (implement|execut|perform)|omitted (from|in) the detailed|interview.{0,120}(missing|absent|never|omitted|dropped|skipped)/,
   broken_output_filename_integration: /filename mismatch|file ?name.{0,60}(mismatch|inconsisten|does not match|doesn'?t match)|brief\.md.{0,200}project-brief\.md|project-brief\.md.{0,200}brief\.md|integration.{0,80}(break|broken|fail)/,
+  over_narrow_trigger: /too narrow|over-?narrow|under-?trigger|(did not|didn'?t|failed to|never) trigger|only.{0,60}exact (phrase|wording)|trigger accuracy.{0,80}(below|fail|low)/,
+  phantom_script_reference: /does not exist|doesn'?t exist|nonexistent|non-existent|no such (file|script)|missing script|phantom script|script.{0,80}(not found|cannot be found|is absent)/,
+  multi_turn_redundancy: /re-?ask|re-?confirm|redundan|already (established|given|provided|confirmed|known)|asks? again for/,
+  dead_step: /dead.?step|unreachable|never (applies|reached|executes|true|fire)|impossible (condition|guard)|can never (be true|execute|apply|run)|guarantees at least one/,
 };
 
 function anchorWindows(quote, size = 5) {
@@ -314,8 +332,9 @@ function findLatestAuditReport(baseDir) {
 function stepCheck() {
   const evalReportPath = flagValue('--eval-report') || DEFAULTS.evalReport;
   const auditReportPath = flagValue('--audit-report') || findLatestAuditReport(DEFAULTS.auditRunsDir);
+  const expectedPath = flagValue('--expected') || DEFAULTS.expectedFindings;
 
-  if (!fs.existsSync(DEFAULTS.expectedFindings)) fail(`${DEFAULTS.expectedFindings} not found.`);
+  if (!fs.existsSync(expectedPath)) fail(`${expectedPath} not found.`);
   if (!fs.existsSync(evalReportPath)) {
     fail(`native eval report not found at ${evalReportPath}.\n` +
       'Run the native eval first (fixtures/GATE-RUNBOOK.md step 2), or pass --eval-report <path>.');
@@ -325,7 +344,7 @@ function stepCheck() {
       'Run the native audit first (fixtures/GATE-RUNBOOK.md step 3), or pass --audit-report <path>.');
   }
 
-  const manifest = JSON.parse(fs.readFileSync(DEFAULTS.expectedFindings, 'utf8'));
+  const manifest = JSON.parse(fs.readFileSync(expectedPath, 'utf8'));
   const evalReportRaw = fs.readFileSync(evalReportPath, 'utf8');
   const auditReportRaw = fs.readFileSync(auditReportPath, 'utf8');
   const docs = {
@@ -391,7 +410,7 @@ function stepCheck() {
     `**Generated:** ${new Date().toISOString()}  `,
     `**Native eval report:** \`${evalReportPath}\`  `,
     `**Native audit report:** \`${auditReportPath}\`  `,
-    `**Ground truth:** \`${DEFAULTS.expectedFindings}\`  `,
+    `**Ground truth:** \`${expectedPath}\`  `,
     '',
     `## Verdict: ${verdict} — ${caughtCount}/${total} defect classes caught`,
     '',
@@ -404,7 +423,7 @@ function stepCheck() {
     '| Defect | Class | Expected catcher | Phase 8 native result | Result | Mechanism | Also in other layer? |',
     '|--------|-------|------------------|----------------------|--------|-----------|----------------------|',
     ...rows.map(r =>
-      `| ${r.defect.id} | ${r.defect.defect_class} | ${r.defect.expected_catcher} | ${r.defect.phase8_native_result} | ${r.caught ? 'CAUGHT' : '**MISSED**'} | ${r.mechanism} | ${r.alsoMentioned ? 'yes' : 'no'} |`
+      `| ${r.defect.id} | ${r.defect.defect_class} | ${r.defect.expected_catcher} | ${r.defect.phase8_native_result || '—'} | ${r.caught ? 'CAUGHT' : '**MISSED**'} | ${r.mechanism} | ${r.alsoMentioned ? 'yes' : 'no'} |`
     ),
     '',
     '## Evidence',
