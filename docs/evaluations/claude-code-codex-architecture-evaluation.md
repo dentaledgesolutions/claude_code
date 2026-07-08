@@ -517,6 +517,51 @@ Deviations and pipeline findings recorded from the gate run:
 
 Phases 4+ are unblocked.
 
+### Phase 9 — fixture-2 cross-validation (mutant-notes-summarizer): PASS 4/4 (2026-07-08)
+
+Routine-cadence re-run of the live gate against the second committed fixture
+(`fixtures/mutant-notes-summarizer/`, distinct defect classes: over-narrow-trigger, phantom-script,
+multi-turn-redundancy, dead-step), per `fixtures/GATE-RUNBOOK.md`'s "Two fixtures" rule. Native eval
+iteration-1 was resumed twice after session/API-limit interruptions; all 19 scenarios ultimately
+graded, manifest integrity OK. `run-calibration.js check --fixture mutant-notes-summarizer` exits 0 —
+**all 4 defect classes caught** (`evals/fixtures/CALIBRATION-REPORT-mutant-notes-summarizer.md`):
+
+| Defect | Catcher | Match |
+|--------|---------|-------|
+| over-narrow-trigger | native metric: trigger_accuracy (40%, SKILL-EVAL.md) | anchor-quote |
+| multi-turn-redundancy | native metric: analyst observations (SKILL-EVAL.md) | anchor-quote |
+| phantom-script | native audit: `output_integration_claims` (fail) | anchor-quote |
+| dead-step | native audit findings array (`internal_contradiction`, major) | anchor-quote |
+
+Native eval metrics: Eval Pass Rate 31.6% (6/19, REFINE), Trigger Accuracy 40.0% (6/15, OPTIMIZE),
+Project Fit 9.0/10 (PASS), Resilience 10.0/10 (PASS) — recommendation REFINE via Lever A
+(frontmatter description). `refine-input.json` written for record only; this fixture is never
+refined (immutability rule).
+
+Audit run: `evals/codex-runs/native-audits/skills/mutant-notes-summarizer/2026-07-08T18-43-30-823Z/`.
+Escalation `REVIEW_SUGGESTED` (major findings only, no critical), `audit_confidence: high`,
+`hard_failure: false`, `native_conclusion_supported: true`. Checklist: `instruction_self_consistency`
+fail, `output_integration_claims` fail, `native_scoring_supported` pass, `workflow_step_fidelity`
+**not_applicable** (no transcript executed the workflow, since the over-narrow trigger prevented any
+scenario from engaging it).
+
+**Actual cost:** single holistic Codex call — 31,489 input tokens (2,432 cached) + 1,634 output
+tokens (516 reasoning) ≈ 33.1k total. Same ChatGPT-subscription auth as the fixture-1 run, so no
+metered dollar charge.
+
+Deviation from the runbook's expected-catcher table: `workflow_step_fidelity`'s own checklist row
+did **not** fire "fail" for the dead-step defect (it read `not_applicable`, since no included
+transcript ever ran the workflow far enough to exercise Step 5). The defect was still caught because
+Codex separately raised it as a major `internal_contradiction` finding, with the Step 2/Step 5
+quote, in the free-form `audit_findings` array — which the calibration script's anchor-quote scan
+also covers. Net effect on the gate is none (still CAUGHT), but it shows the named-checklist-fail
+path is not the only route to catching a workflow-fidelity-class defect when the trigger defect
+prevents the workflow from ever running in the sampled transcripts.
+
+Cross-fixture result: with two structurally distinct fixtures now both at 4/4, the calibration gate
+generalizes beyond the original mutant — confidence in Phases 4+ remaining unblocked is higher than
+after the single fixture-1 run.
+
 ---
 
 ## Future Work: Level 4 — Results-Based Performance Analysis
