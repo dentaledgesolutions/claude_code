@@ -133,11 +133,32 @@ Runtime sub-agents that implement parallelizable or autonomous parts of the pipe
 | Agent | Model | Role | Invoked by |
 |---|---|---|---|
 | `skill-scout-agent` | sonnet | Parallel registry + GitHub search | `skill-scout` |
-| `skill-eval-agent` | sonnet | Parallel test scenario execution (up to 42 subagents) | `skill-eval`, `skill-refine` |
-| `skill-refine-agent` | sonnet | Autoresearch loop orchestration | user / autoresearch loop |
+| `skill-eval-agent` | sonnet | Parallel scenario execution with evidence-first grading (up to 42 subagents); resumes interrupted runs from the run manifest | `skill-eval`, `skill-refine` |
+| `skill-refine-agent` | sonnet | Autoresearch loop orchestration for skills | user / autoresearch loop |
+| `agent-eval-agent` | sonnet | Mirror of `skill-eval-agent` for agent definitions; measures Dispatch Accuracy instead of Trigger Accuracy | `agent-eval`, `agent-refine` |
+| `agent-refine-agent` | sonnet | Autoresearch loop for agents; Lever E (frontmatter config) triggers an `agent-audit` re-run | user / autoresearch loop |
 | `skill-synthesizer-agent` | opus | Multi-candidate synthesis before adaptation | user (2+ PASS candidates) |
 | `skill-needs-analysis-agent` | haiku | Gap analysis: maps stack + workflow_terms + mcp_servers to skill categories | user (after project-setup) |
 | `skill-guardian` | sonnet | Full pipeline orchestration: context refresh → project-audit → 5-metric eval cycle → refinement | user (periodic health check) |
+| `repo-audit-*` (8 analysts) | inherit | One per codebase layer — runtime, framework, database, auth, testing, CI/CD, AI/LLM, Claude Code config; each reads an XML slice and returns a JSON layer object | `repo-audit` |
+
+---
+
+## Codex External Eval Layer
+
+Codex CLI acts as an independent second-model evaluator: a separate AI with no stake in the outcome that executes eval scenarios outside the Claude Code session and returns structured results. Claude Code remains the methodology and lifecycle owner and makes every final call.
+
+**Three modes** (dry-run is the default everywhere — `--live` must always be typed by a human, never automated):
+
+| Mode | Command | What it does |
+|---|---|---|
+| Cold prediction | `node scripts/codex/run-external-skill-eval.js <skill> --mode smoke\|standard\|full --live` | Codex reads the definition and judges the scenarios itself (agents: `run-external-agent-eval.js`) |
+| Native audit | `node scripts/codex/run-native-audit.js <target> <skill\|agent> --live` | Codex reviews a *completed* native run's real transcripts + report and checks whether the evidence supports the native conclusions |
+| Calibration gate | `node scripts/run-calibration.js generate` / `check` | Runs the pipeline against the known-defective fixture and diffs findings against ground truth (no Codex cost itself; see `fixtures/GATE-RUNBOOK.md`) |
+
+**Disagreement policy:** native PASS + Codex PASS → healthy; any split verdict → refine or manual review; any hard failure → block. A native-audit escalation of `MANUAL_REVIEW_REQUIRED` or `REVIEW_SUGGESTED` always routes to manual review, even when both models otherwise agree. Claude Code reviews only `CODEX-EVAL-SUMMARY.md` / `NATIVE-AUDIT-REPORT.md` — never raw traces.
+
+All Codex run artifacts live under `evals/codex-runs/` (gitignored). Full design and boundary table: `docs/codex-external-eval-architecture.md`.
 
 ---
 
