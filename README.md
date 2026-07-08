@@ -22,6 +22,30 @@ project-setup → project-audit
 
 ---
 
+## How Evaluation Works (Plain English)
+
+Before trusting a skill or agent, the pipeline tests it the way you'd test a new employee: give it realistic tasks, compare its work against someone doing the same tasks without its help, and check the evidence of what it actually did — not what it *says* it did.
+
+**1. Write the test questions.** A script reads the skill's definition file and automatically generates 9 test scenarios: some that clearly should trigger it, some phrased indirectly, some that should *not* trigger it, and a few trick questions designed to tempt it into activating when it shouldn't. Three of the nine are tailored to this specific project's stack and vocabulary.
+
+**2. Run each scenario twice — with and without the skill.** For every scenario, one test run has the skill loaded and a twin run doesn't. The "without" run is the baseline: if the skill doesn't beat it, the skill isn't adding value.
+
+**3. Collect hard evidence, not self-reports.** A harvester script inspects what each run actually left behind — did the skill genuinely activate (a specific token that only appears on a real invocation), were the promised files really written to disk, were the workflow steps really completed? The test runs' own claims about what they did are ignored for scoring; only verified evidence counts.
+
+**4. Grade and score five metrics.** Each scenario gets a 0–10 score, rolling up into: pass rate (does it do the job?), trigger accuracy (does it activate at the right times?), resilience (does it resist the trick questions?), project fit (does it speak this project's language?), and context footprint (how much it costs to load). Each metric has a pass threshold, and the result is a one-page report with a recommendation: healthy, refine, or rewrite.
+
+**5. Fix what failed, automatically.** If a metric fails, a refine loop makes one targeted change at a time (to the description, the workflow, the examples, etc.), re-runs the eval, and keeps the change only if the scores improve — up to 10 iterations.
+
+**6. Get a second opinion from a different AI.** Codex — a separate model with no stake in the outcome — can independently judge the scenarios, and in "native audit" mode it reviews a finished eval's real transcripts and report to check whether the evidence actually supports the conclusions. Where the two models disagree, a human decides.
+
+**7. Keep the graders honest.** A deliberately broken skill with 4 known, documented defects lives in `fixtures/`. Periodically the whole pipeline runs against it: if the process catches all 4 defects, the process works (see `fixtures/GATE-RUNBOOK.md`).
+
+**8. Watch real usage over time.** Lightweight, privacy-safe telemetry counts how often each skill gets used and how often users correct or reject its output. A skill that's frequently corrected in real life gets flagged for refinement — the loop feeds itself.
+
+The through-line for all of it: **evidence over claims, comparison over intuition, and a second pair of eyes on the process itself.**
+
+---
+
 ## Skills
 
 ### `project-setup`
