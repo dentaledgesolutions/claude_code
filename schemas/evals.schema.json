@@ -4,7 +4,8 @@
   "description": "Output of skills/skill-eval/scripts/generate-seed-evals.js (skill variant) or skills/agent-eval/scripts/generate-agent-evals.js (agent variant). 6 or 9 structured test scenarios with evidence-based expectations (Phase 1 ground-truth rebuild — see docs/evaluations for F3/F5/F9/F10 background).",
   "oneOf": [
     { "$ref": "#/definitions/skillEvalsFile" },
-    { "$ref": "#/definitions/agentEvalsFile" }
+    { "$ref": "#/definitions/agentEvalsFile" },
+    { "$ref": "#/definitions/teamEvalsFile" }
   ],
   "definitions": {
     "skillEvalsFile": {
@@ -39,6 +40,35 @@
         }
       }
     },
+    "teamEvalsFile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["team_name", "team_file", "orchestrator", "members", "project_context", "evals"],
+      "properties": {
+        "team_name": { "type": "string" },
+        "team_file": { "type": "string", "description": "Path to the source team.json manifest" },
+        "orchestrator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "name"],
+          "properties": {
+            "type": { "type": "string", "enum": ["skill", "agent"] },
+            "name": { "type": "string" }
+          }
+        },
+        "members": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "project_context": { "anyOf": [{ "type": "string" }, { "type": "null" }] },
+        "evals": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/definitions/scenario" }
+        }
+      }
+    },
     "targetSelection": {
       "type": "object",
       "description": "Records how the concrete positive-scenario target was chosen, for reproducibility/debugging.",
@@ -60,7 +90,8 @@
           "enum": [
             "direct", "paraphrased", "edge_case", "negative", "semantic", "adversarial",
             "project-native", "project-workflow", "multi-turn",
-            "uat-acceptance", "uat-checkbox"
+            "uat-acceptance", "uat-checkbox",
+            "full-run", "partial-team", "member-failure", "handoff-integrity"
           ]
         },
         "prompt": { "type": "string", "minLength": 1 },

@@ -1,0 +1,18 @@
+{
+  "team_name": "repo-audit-ensemble",
+  "description": "The repo-audit skill's 8-analyst orchestration: each layer analyst receives a Repomix XML slice path and returns a JSON layer object; the orchestrator merges them into the final audit report.",
+  "orchestrator": { "type": "skill", "name": "repo-audit" },
+  "members": [
+    { "agent": "repo-audit-runtime", "role": "runtime layer (language, version, package manager, Docker)" },
+    { "agent": "repo-audit-framework", "role": "framework layer (primary framework, rendering, API style, routing)" },
+    { "agent": "repo-audit-database", "role": "database layer (DB type, ORM/client, migrations, schema patterns)" },
+    { "agent": "repo-audit-testing", "role": "testing layer (framework, coverage tooling, test types, naming)" },
+    { "agent": "repo-audit-cicd", "role": "CI/CD layer (pipeline tool, stages, deployment targets)" },
+    { "agent": "repo-audit-auth", "role": "auth/security layer (strategy, provider, sessions, RBAC)" },
+    { "agent": "repo-audit-ai-llm", "role": "AI/LLM layer (models, providers, prompting, eval strategy)" },
+    { "agent": "repo-audit-claude-code", "role": "Claude Code config layer (CLAUDE.md, skills, agents, hooks, MCP)" }
+  ],
+  "handoff_contract": "each member receives an XML slice path and returns a JSON layer object; the orchestrator merges member outputs into docs/audits/<owner>-<repo>-<date>.json and .md without re-deriving any layer itself",
+  "expected_artifacts": ["docs/audits/"],
+  "example_target": "https://github.com/expressjs/express"
+}

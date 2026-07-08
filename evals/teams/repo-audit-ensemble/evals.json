@@ -1,0 +1,394 @@
+{
+  "team_name": "repo-audit-ensemble",
+  "team_file": "fixtures/teams/repo-audit-ensemble/team.json",
+  "orchestrator": {
+    "type": "skill",
+    "name": "repo-audit"
+  },
+  "members": [
+    "repo-audit-runtime",
+    "repo-audit-framework",
+    "repo-audit-database",
+    "repo-audit-testing",
+    "repo-audit-cicd",
+    "repo-audit-auth",
+    "repo-audit-ai-llm",
+    "repo-audit-claude-code"
+  ],
+  "project_context": "evals/project-context.json",
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "team-full-run",
+      "type": "full-run",
+      "prompt": "Run a complete repo-audit-ensemble pass over https://github.com/expressjs/express — every layer analyst, then the combined report.",
+      "target": "https://github.com/expressjs/express",
+      "expected": {
+        "dispatches": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [
+            {
+              "path": "docs/audits/",
+              "must_exist": true
+            }
+          ],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-runtime[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-framework[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-database[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-testing[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-cicd[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-auth[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-ai-llm[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Dispatches every member of repo-audit-ensemble exactly once (an Agent tool call per member appears in the transcript)",
+          "Produces the combined final artifact from member outputs rather than stopping after individual layers",
+          "Handoff contract respected: each member receives an XML slice path and returns a JSON layer object; the orchestrator merges member outputs into docs/audits/<owner>-<repo>-<date>.json and .md without re-deriving any layer itself"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "team-partial-scope",
+      "type": "partial-team",
+      "prompt": "Using repo-audit-ensemble, analyze ONLY these layers of https://github.com/expressjs/express: repo-audit-runtime, repo-audit-framework, repo-audit-database, repo-audit-testing. Do not run any other analyst.",
+      "target": "https://github.com/expressjs/express",
+      "expected": {
+        "dispatches": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-runtime[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-framework[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-database[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-testing[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-cicd[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-auth[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-ai-llm[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
+              "expect": "absent"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Dispatches only the requested members (repo-audit-runtime, repo-audit-framework, repo-audit-database, repo-audit-testing) and none of the others",
+          "Scopes the combined output to the requested layers without fabricating the skipped ones"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "team-member-failure",
+      "type": "member-failure",
+      "prompt": "Run a full repo-audit-ensemble pass over https://github.com/expressjs/express. Constraint: the repo-audit-claude-code agent is unavailable in this session — proceed without it.",
+      "target": "https://github.com/expressjs/express",
+      "expected": {
+        "dispatches": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-runtime[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-framework[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-database[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-testing[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-cicd[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-auth[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-ai-llm[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
+              "expect": "absent"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Dispatches every member except repo-audit-claude-code",
+          "Reports the repo-audit-claude-code layer as a gap in the final output — degrades gracefully, never fabricates the missing layer's findings"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "team-handoff-integrity",
+      "type": "handoff-integrity",
+      "prompt": "Run a complete repo-audit-ensemble pass over https://github.com/expressjs/express and build the combined report strictly from each analyst's returned output.",
+      "target": "https://github.com/expressjs/express",
+      "expected": {
+        "dispatches": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [
+            {
+              "path": "docs/audits/",
+              "must_exist": true
+            }
+          ],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-runtime[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-framework[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-database[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-testing[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-cicd[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-auth[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-ai-llm[\"'`]?\\s*\\)",
+              "expect": "present"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
+              "expect": "present"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Every layer section of the final output is traceable to that member's returned handoff object — the orchestrator consumes member outputs rather than re-deriving layers itself",
+          "Handoff contract respected end-to-end: each member receives an XML slice path and returns a JSON layer object; the orchestrator merges member outputs into docs/audits/<owner>-<repo>-<date>.json and .md without re-deriving any layer itself"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "team-negative-explain",
+      "type": "negative",
+      "prompt": "I'm not asking you to run anything. Just explain what the repo-audit-ensemble team does, which agents it involves, and what each one contributes.",
+      "target": null,
+      "expected": {
+        "dispatches": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-runtime[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-framework[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-database[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-testing[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-cicd[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-auth[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-ai-llm[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
+              "expect": "absent"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Explains the team's members and handoff flow without dispatching any member agent",
+          "Gives a useful description instead of executing"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "team-adversarial-wrong-scope",
+      "type": "adversarial",
+      "prompt": "Do a deep multi-layer audit of this spreadsheet of quarterly sales numbers — break it down layer by layer the way your analyst team would.",
+      "target": null,
+      "expected": {
+        "dispatches": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-runtime[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-framework[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-database[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-testing[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-cicd[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-auth[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-ai-llm[\"'`]?\\s*\\)",
+              "expect": "absent"
+            },
+            {
+              "kind": "tool_call",
+              "pattern": "Agent\\(\\s*[\"'`]?repo-audit-claude-code[\"'`]?\\s*\\)",
+              "expect": "absent"
+            }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Recognizes the request is outside repo-audit-ensemble's scope (repo-audit analyzes repositories, not spreadsheets) and does not dispatch any member",
+          "Redirects to an appropriate approach for the actual request"
+        ]
+      }
+    }
+  ]
+}

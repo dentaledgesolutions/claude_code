@@ -157,6 +157,14 @@ Karpathy autoresearch loop for agents. Requires an `agent-eval` baseline and `re
 
 ---
 
+### `team-eval`
+
+Evaluates an agent **team** — an orchestrator plus the member agents it dispatches — as a single unit, filling the blind spot per-definition evals can't cover: member selection, handoffs, and ensemble degradation. Works from a committed `team.json` manifest (reference: `fixtures/teams/repo-audit-ensemble/team.json`, the 8-analyst repo-audit orchestration). Generates 6 scenario types (full-run, partial-team, member-failure, handoff-integrity, negative, adversarial) with one `Agent(<member>)` dispatch-token marker per member, harvested by the standard evidence harvester. Produces 5 metrics — team pass rate (≥ 80%), **Dispatch-Chain Accuracy** (≥ 85%), **Handoff Integrity** (≥ 90%), aggregate context footprint, and team resilience (≥ 8/10) — reported to `evals/teams/<team>/TEAM-EVAL.md`. Failures route to the *orchestrator's* refine track.
+
+**Triggers:** "evaluate the team", "test the orchestration", "check the ensemble"
+
+---
+
 ## Agents
 
 Runtime sub-agents that implement parallelizable or autonomous parts of the pipeline:
@@ -230,6 +238,7 @@ skills/
   agent-adapt/       — agent customization
   agent-eval/        — agent measurement (dispatch accuracy + 4 more metrics)
   agent-refine/      — agent autoresearch loop
+  team-eval/         — orchestration measurement (dispatch-chain accuracy, handoff integrity)
 .claude/agents/      — installed runtime sub-agents
 fixtures/            — committed calibration assets (known-defective mutant + golden target)
 schemas/             — JSON schemas (evals.json, telemetry events, Codex results)

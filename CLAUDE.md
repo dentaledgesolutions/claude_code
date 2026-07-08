@@ -55,6 +55,10 @@ project-setup → project-audit → skill-scout → skill-audit → skill-adapt 
 - **codex-baseline.json** — written to `evals/<skill>/` or `evals/agents/<agent>/` after a HEALTHY Codex eval; used by aggregator for regression detection on subsequent runs
 - **events-YYYY-MM.jsonl** — Level 4 real-usage telemetry, one JSONL line per invocation/outcome/session_end event at `evals/telemetry/`; written by `scripts/telemetry/log-invocation.js` (PostToolUse) and `scripts/telemetry/log-outcome.js` (UserPromptSubmit / Stop / SessionEnd); schema at `schemas/telemetry/invocation-event.schema.json`; never contains raw prompt or transcript text — see `docs/telemetry-privacy.md`
 - **usage-summary.json** — written by `scripts/telemetry/aggregate-usage.js` to `evals/telemetry/`; per skill/agent invocation_count, correction_rate, rejection_rate, artifact_production_rate, overall + trailing-30-day stats
+- **team.json** — team-eval's input manifest: `team_name`, `orchestrator` (skill|agent), `members[]` (each must exist in `.claude/agents/`), `handoff_contract`, `expected_artifacts`, `example_target`; reference at `fixtures/teams/repo-audit-ensemble/team.json`
+- **TEAM-EVAL.md** — per-team eval report at `evals/teams/<team>/`; metrics: team pass rate, Dispatch-Chain Accuracy, Handoff Integrity, aggregate footprint, team resilience; failures route to the orchestrator's refine track (no team-refine)
+- **Dispatch-Chain Accuracy** — team-eval metric: correct member dispatch decisions / total member-checks across all scenarios, read from the FULL `transcript_markers` evidence (never the single `agent_dispatched` boolean); ≥ 85% required
+- **Handoff Integrity** — team-eval metric: verifiably consumed member outputs / expected handoffs; ≥ 90% required
 - **REFINE_RECOMMENDED** — advisory-only telemetry flag: ≥10 invocations in the trailing 30 days AND (correction_rate > 0.3 OR rejection_rate > 0.2); the aggregator merges a `real_usage` block (`source: "telemetry"`, stats, `flagged_at`) into the target's `refine-input.json`, never invokes `skill-refine`/`agent-refine` itself
 
 ## Claude's Rules
