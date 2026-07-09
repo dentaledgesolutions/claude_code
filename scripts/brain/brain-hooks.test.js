@@ -84,6 +84,25 @@ try {
   assert.strictEqual(denyBash('node scripts/brain/brain-promote.js decisions/candidates/a.md --approve --to canon').stdout.trim(), '');
   assert.ok(denyBash('rm -rf .project-brain').stdout.includes('deny'));
 
+  // 6b. Hardening regressions: path traversal, cd+relative canon, interpreter writes.
+  // Raw string concat on purpose — path.join would normalize the ".." away.
+  r = runHook('brain-security-guard.sh', {
+    hook_event_name: 'PreToolUse', tool_name: 'Write',
+    tool_input: { file_path: path.join(BRAIN, 'decisions') + '/../canon/x.md', content: 'hi' },
+  });
+  assert.ok(r.stdout.includes('"permissionDecision":"deny"'), `traversal into canon must be denied: ${r.stdout}`);
+  assert.ok(denyBash('cd .project-brain && echo x >> canon/y.md').stdout.includes('deny'),
+    'cd + relative canon append must be denied');
+  assert.ok(denyBash('node -e "require(\'fs\').writeFileSync(\'.project-brain/canon/x.md\',\'x\')"').stdout.includes('deny'),
+    'interpreter write into canon must be denied');
+  assert.strictEqual(denyBash('node scripts/brain/brain-promote.js decisions/candidates/a.md --approve --to canon').stdout.trim(), '',
+    'approved promote still passes after hardening');
+  r = runHook('brain-security-guard.sh', {
+    hook_event_name: 'PreToolUse', tool_name: 'Write',
+    tool_input: { file_path: path.join(TMP, 'src', 'app.js'), content: 'hi' },
+  });
+  assert.strictEqual(r.stdout.trim(), '', 'normal write still passes silently after hardening');
+
   // 7. Post-lint: always exit 0; warns via additionalContext only on sensitive content
   seedCapsule();
   fs.writeFileSync(path.join(BRAIN, 'sessions', 'daily', `${today}.md`),
