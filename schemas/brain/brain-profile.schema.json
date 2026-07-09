@@ -1,0 +1,27 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "brain-profile",
+  "description": "Configuration profile for a project brain capsule (spec §6 Phase 1, v3 §17)",
+  "type": "object",
+  "required": [
+    "project_name", "project_slug", "project_brain_path", "brain_mode",
+    "brain_kernel_enabled", "gbrain_enabled", "canon_requires_approval", "sensitive_paths"
+  ],
+  "properties": {
+    "project_name": { "type": "string" },
+    "project_slug": { "type": "string" },
+    "central_brain_path": { "type": "string" },
+    "project_brain_path": { "type": "string" },
+    "brain_mode": { "type": "string", "enum": ["lightweight", "standard", "enhanced-with-gbrain", "enhanced-with-graphify", "lab-multimodal"] },
+    "brain_kernel_enabled": { "type": "boolean" },
+    "gbrain_enabled": { "type": "boolean" },
+    "gbrain_evals_enabled": { "type": "boolean" },
+    "graphify_enabled": { "type": "boolean" },
+    "reference_repositories_enabled": { "type": "boolean" },
+    "canon_requires_approval": { "type": "boolean", "const": true },
+    "sensitive_paths": { "type": "array", "items": { "type": "string" }, "minItems": 1 },
+    "created_at": { "type": "string" },
+    "last_brain_lint": { "type": "string" },
+    "last_memory_compile": { "type": "string" }
+  }
+}

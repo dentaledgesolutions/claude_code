@@ -1,0 +1,20 @@
+{
+  "project_name": "",
+  "project_slug": "",
+  "central_brain_path": "~/DES/second-brain",
+  "project_brain_path": ".project-brain",
+  "brain_mode": "standard",
+  "brain_kernel_enabled": true,
+  "gbrain_enabled": false,
+  "gbrain_evals_enabled": false,
+  "graphify_enabled": false,
+  "reference_repositories_enabled": true,
+  "canon_requires_approval": true,
+  "sensitive_paths": [
+    ".env", ".env.*", "secrets/", "credentials/", "private/",
+    "legal-sensitive/", "client-sensitive/", "patient/", "financial/"
+  ],
+  "created_at": "",
+  "last_brain_lint": "",
+  "last_memory_compile": ""
+}
