@@ -12,6 +12,14 @@ const {
 } = require('./brain-lib');
 
 const target = resolveTarget(process.argv);
+// --date is interpolated straight into a filename (sessions/daily/<date>.md); a
+// strict YYYY-MM-DD check is simpler and stricter than path-containment here —
+// it rejects '../' traversal and any other filename-breaking input outright.
+const dateArg = getArg(process.argv, '--date', todayStamp());
+if (!hasFlag(process.argv, '--all') && !/^\d{4}-\d{2}-\d{2}$/.test(dateArg)) {
+  console.error(`brain-compile: --date must be YYYY-MM-DD (got '${dateArg}')`);
+  process.exit(1);
+}
 const dailyDir = path.join(target, 'sessions', 'daily');
 if (!fs.existsSync(dailyDir)) {
   console.error(`brain-compile: not a project brain capsule (missing sessions/daily under ${target})`);
@@ -19,7 +27,7 @@ if (!fs.existsSync(dailyDir)) {
 }
 const files = hasFlag(process.argv, '--all')
   ? fs.readdirSync(dailyDir).filter(f => f.endsWith('.md')).map(f => path.join(dailyDir, f))
-  : [path.join(dailyDir, `${getArg(process.argv, '--date', todayStamp())}.md`)];
+  : [path.join(dailyDir, `${dateArg}.md`)];
 
 const DEST = {
   decision: path.join(target, 'decisions', 'candidates'),

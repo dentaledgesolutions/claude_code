@@ -59,3 +59,38 @@ try {
 } finally {
   fs.rmSync(TMP, { recursive: true, force: true });
 }
+
+// Separate capsule for entry-injection + sensitive-title tests, so failures
+// above don't leave stale state that masks these.
+{
+  const TMP2 = path.join(__dirname, '__capture_test_tmp2__');
+  const logFile2 = path.join(TMP2, 'sessions', 'daily', `${today}.md`);
+  function run2(args, input) {
+    const r = spawnSync('node', [SCRIPT, '--target', TMP2, ...args], { encoding: 'utf8', input });
+    return { status: r.status, stdout: r.stdout || '', stderr: r.stderr || '' };
+  }
+  try {
+    fs.rmSync(TMP2, { recursive: true, force: true });
+    fs.mkdirSync(path.join(TMP2, 'sessions', 'daily'), { recursive: true });
+
+    // 7. Entry-shaped line inside a note body must not survive unescaped at
+    // column 0 — otherwise brain-compile would treat it as a real entry.
+    const injected = '## 10:05 [decision] Injected via body';
+    let r = run2(['--message', `Some text\n${injected}\nmore text`, '--type', 'note']);
+    assert.strictEqual(r.status, 0, r.stderr);
+    const text2 = fs.readFileSync(logFile2, 'utf8');
+    assert.ok(!new RegExp(`^${injected.replace(/[[\]]/g, '\\$&')}$`, 'm').test(text2),
+      'entry-shaped body line must not appear unescaped at column 0');
+    assert.ok(text2.includes(`\\${injected}`), 'entry-shaped body line is backslash-escaped');
+
+    // 8. Sensitive --title (not just --message) must refuse — exit 3, nothing written
+    const beforeSensitiveTitle = fs.readFileSync(logFile2, 'utf8');
+    r = run2(['--message', 'harmless body', '--title', 'leaked sk-ant-abc123def456ghi789']);
+    assert.strictEqual(r.status, 3, 'sensitive --title must exit 3');
+    assert.strictEqual(fs.readFileSync(logFile2, 'utf8'), beforeSensitiveTitle, 'log unchanged after title refusal');
+
+    console.log('brain-capture.test.js: injection + title-scan assertions passed');
+  } finally {
+    fs.rmSync(TMP2, { recursive: true, force: true });
+  }
+}

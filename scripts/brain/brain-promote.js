@@ -9,13 +9,20 @@ const fs = require('fs');
 const path = require('path');
 const {
   getArg, hasFlag, positional, resolveTarget, todayStamp,
-  parseFrontmatter, serializeFrontmatter, scanSensitive,
+  parseFrontmatter, serializeFrontmatter, scanSensitive, resolveCapsuleRelative,
 } = require('./brain-lib');
 
 const target = resolveTarget(process.argv);
 const rel = positional(process.argv)[0];
 if (!rel) {
   console.error('brain-promote: usage: brain-promote.js <capsule-relative-file> --approve [--to active|canon]');
+  process.exit(1);
+}
+// Containment check BEFORE any filesystem access: '../' segments or absolute
+// paths must never let a promote reach outside the capsule (read, delete, or write).
+const src = resolveCapsuleRelative(target, rel);
+if (src === null) {
+  console.error(`brain-promote: path escapes the capsule: ${rel}`);
   process.exit(1);
 }
 if (!hasFlag(process.argv, '--approve')) {
@@ -27,7 +34,6 @@ if (!['active', 'canon'].includes(to)) {
   console.error(`brain-promote: --to must be 'active' or 'canon' (got '${to}')`);
   process.exit(1);
 }
-const src = path.join(target, rel);
 if (!fs.existsSync(src)) {
   console.error(`brain-promote: candidate not found: ${rel}`);
   process.exit(1);

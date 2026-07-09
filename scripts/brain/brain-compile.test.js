@@ -76,6 +76,11 @@ Always run brain-verify before claiming install success.
   assert.strictEqual(r.status, 0);
   assert.ok(r.stdout.includes('0 candidate(s) written'));
 
+  // 7. --date path traversal → exit 1, refused before touching the filesystem
+  r = run(['--date', '../../x']);
+  assert.strictEqual(r.status, 1, `traversal --date must exit 1:\n${r.stderr}`);
+  assert.ok(r.stderr.includes('YYYY-MM-DD'), 'refusal names the format requirement');
+
   console.log('brain-compile.test.js: all assertions passed');
 } finally {
   fs.rmSync(TMP, { recursive: true, force: true });

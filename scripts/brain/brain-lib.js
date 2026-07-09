@@ -70,9 +70,17 @@ function walkMarkdown(dir) {
 function slugify(s) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60);
 }
+// Resolves `rel` against `target` and returns the absolute path ONLY if it stays
+// strictly inside the capsule — rejects `../` escapes and absolute-path args.
+// Callers must treat a null return as a hard refusal, never fall back to path.join.
+function resolveCapsuleRelative(target, rel) {
+  const base = path.resolve(target);
+  const resolved = path.resolve(base, rel);
+  return resolved.startsWith(base + path.sep) ? resolved : null;
+}
 
 module.exports = {
   getArg, hasFlag, positional, resolveTarget, todayStamp, timeStamp,
   scanSensitive, parseFrontmatter, serializeFrontmatter, walkMarkdown, slugify,
-  SENSITIVE_CONTENT_PATTERNS,
+  resolveCapsuleRelative, SENSITIVE_CONTENT_PATTERNS,
 };

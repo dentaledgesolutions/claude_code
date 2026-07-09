@@ -83,6 +83,35 @@ try {
   assert.strictEqual(run([CAND, '--approve', '--to', 'superseded']).status, 1);
   assert.strictEqual(run(['decisions/candidates/nope.md', '--approve']).status, 1);
 
+  // 7. Path traversal ('../') → exit 1, outside file untouched, capsule untouched
+  seed();
+  const outside = path.join(path.dirname(TMP), '__promote_outside_probe__.md');
+  fs.writeFileSync(outside, 'secret outside content\n');
+  try {
+    const beforeOutside = fs.readFileSync(outside, 'utf8');
+    const beforeCapsule = snapshot('.');
+    r = run(['../' + path.basename(outside), '--approve', '--to', 'canon']);
+    assert.strictEqual(r.status, 1, `path traversal must exit 1:\n${r.stderr}`);
+    assert.ok(r.stderr.includes('escapes the capsule'), 'refusal names the traversal');
+    assert.strictEqual(fs.readFileSync(outside, 'utf8'), beforeOutside, 'outside file untouched');
+    assert.strictEqual(snapshot('.'), beforeCapsule, 'capsule untouched by traversal attempt');
+  } finally {
+    fs.rmSync(outside, { force: true });
+  }
+
+  // 8. Absolute-path arg → exit 1, refused before any filesystem access
+  seed();
+  const absOutside = path.join(path.dirname(TMP), '__promote_abs_probe__.md');
+  fs.writeFileSync(absOutside, 'abs secret\n');
+  try {
+    r = run([absOutside, '--approve', '--to', 'canon']);
+    assert.strictEqual(r.status, 1, `absolute path must exit 1:\n${r.stderr}`);
+    assert.ok(r.stderr.includes('escapes the capsule'), 'refusal names the traversal');
+    assert.ok(fs.existsSync(absOutside), 'absolute-path target untouched');
+  } finally {
+    fs.rmSync(absOutside, { force: true });
+  }
+
   console.log('brain-promote.test.js: all assertions passed');
 } finally {
   fs.rmSync(TMP, { recursive: true, force: true });

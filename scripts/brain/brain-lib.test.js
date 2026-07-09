@@ -42,4 +42,17 @@ const lib = require('./brain-lib');
   assert.strictEqual(lib.timeStamp(d), '14:03');
   assert.strictEqual(lib.slugify('Use FTS5, not grep!'), 'use-fts5-not-grep');
 }
+// resolveCapsuleRelative: inside the capsule resolves; '../' escapes and
+// absolute-path args are both rejected with null (path-traversal containment).
+{
+  const path = require('path');
+  const target = '/tmp/brain-capsule-test';
+  assert.strictEqual(
+    lib.resolveCapsuleRelative(target, 'decisions/candidates/x.md'),
+    path.resolve(target, 'decisions/candidates/x.md'),
+  );
+  assert.strictEqual(lib.resolveCapsuleRelative(target, '../outside.md'), null);
+  assert.strictEqual(lib.resolveCapsuleRelative(target, '../../etc/passwd'), null);
+  assert.strictEqual(lib.resolveCapsuleRelative(target, '/etc/passwd'), null);
+}
 console.log('brain-lib.test.js: all assertions passed');
