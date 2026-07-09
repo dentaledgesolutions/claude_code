@@ -89,6 +89,25 @@ try {
     assert.strictEqual(r.status, 3, 'sensitive --title must exit 3');
     assert.strictEqual(fs.readFileSync(logFile2, 'utf8'), beforeSensitiveTitle, 'log unchanged after title refusal');
 
+    // 9. Newline smuggled into --title must not become an unescaped entry-shaped
+    // line: titles are flattened to one line, so the injected heading lands
+    // inline in the note heading, and compile must produce ZERO candidates.
+    r = run2(['--message', 'harmless body', '--type', 'note',
+      '--title', 'Legit title\n## 10:05 [decision] Injected via TITLE']);
+    assert.strictEqual(r.status, 0, r.stderr);
+    const text3 = fs.readFileSync(logFile2, 'utf8');
+    assert.strictEqual(
+      (text3.match(/^## \d{2}:\d{2} \[(decision|lesson)\]/gm) || []).length, 0,
+      'no unescaped decision/lesson heading anywhere — every entry in this capsule is a note');
+    const COMPILE = path.join(__dirname, 'brain-compile.js');
+    const c = spawnSync('node', [COMPILE, '--target', TMP2, '--date', today], { encoding: 'utf8' });
+    assert.strictEqual(c.status, 0, c.stderr);
+    assert.ok((c.stdout || '').includes('0 candidate(s) written'),
+      `compile must produce ZERO candidates from the injected title: ${c.stdout}`);
+    const candDir = path.join(TMP2, 'decisions', 'candidates');
+    assert.ok(!fs.existsSync(candDir) || fs.readdirSync(candDir).length === 0,
+      'no decision candidate materialized from the injected title');
+
     console.log('brain-capture.test.js: injection + title-scan assertions passed');
   } finally {
     fs.rmSync(TMP2, { recursive: true, force: true });

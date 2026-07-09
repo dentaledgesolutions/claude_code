@@ -22,7 +22,10 @@ if (!message || !message.trim()) {
   console.error('brain-capture: empty message (use --message or pipe stdin)');
   process.exit(1);
 }
-const title = getArg(process.argv, '--title', '');
+// Title is a one-line heading by definition — flatten ALL whitespace (including
+// embedded newlines) to single spaces before scanning or interpolation, or a
+// newline in --title could smuggle an unescaped entry-shaped line into the log.
+const title = getArg(process.argv, '--title', '').replace(/\s+/g, ' ').trim();
 // Scan title + message together — a sensitive secret in --title must refuse the
 // same as one in the message body; scanning message alone let --title bypass it.
 const hits = scanSensitive(`${title}\n${message}`);

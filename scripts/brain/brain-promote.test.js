@@ -104,10 +104,12 @@ try {
   const absOutside = path.join(path.dirname(TMP), '__promote_abs_probe__.md');
   fs.writeFileSync(absOutside, 'abs secret\n');
   try {
+    const beforeAbs = fs.readFileSync(absOutside, 'utf8');
     r = run([absOutside, '--approve', '--to', 'canon']);
     assert.strictEqual(r.status, 1, `absolute path must exit 1:\n${r.stderr}`);
     assert.ok(r.stderr.includes('escapes the capsule'), 'refusal names the traversal');
     assert.ok(fs.existsSync(absOutside), 'absolute-path target untouched');
+    assert.strictEqual(fs.readFileSync(absOutside, 'utf8'), beforeAbs, 'absolute-path target byte-identical');
   } finally {
     fs.rmSync(absOutside, { force: true });
   }

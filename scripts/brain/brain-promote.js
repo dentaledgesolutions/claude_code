@@ -3,7 +3,7 @@
 // Requires explicit --approve; without it, refuses and writes NOTHING (exit 2).
 // Usage: node brain-promote.js <capsule-relative-file> --approve
 //        [--to active|canon] [--force] [--target <dir>]
-// Exit 0 ok · 1 usage/overwrite refusal · 2 missing --approve · 3 sensitive content.
+// Exit 0 ok · 1 usage/overwrite/traversal refusal · 2 missing --approve · 3 sensitive content.
 'use strict';
 const fs = require('fs');
 const path = require('path');
