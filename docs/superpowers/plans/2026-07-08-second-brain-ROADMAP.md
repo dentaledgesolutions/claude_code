@@ -8,7 +8,8 @@ acceptance failure, the `brain-promote --approve` human gate, or shared-file con
 
 ## Current status
 
-> **Phase 1 — Capture Core: in progress** (updated 2026-07-08)
+> **Phase 1 — Capture Core: COMPLETE** (27047ff..bd08f0a, 2026-07-09) — 5/5 acceptance criteria pass, 6/6 test suites green, whole-branch security review findings fixed and re-verified.
+> **Phase 2 — Capture Hooks + Self-install: in progress** (updated 2026-07-09)
 
 ## Phase sequence
 
