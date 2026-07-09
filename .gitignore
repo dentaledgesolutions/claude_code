@@ -19,3 +19,4 @@ evals/codex-runs/
 fixtures/*/SKILL-EVAL.md
 fixtures/*/SKILL.md.eval-snapshot
 fixtures/*/SKILL.md.baseline
+.project-brain/sessions/
