@@ -20,6 +20,10 @@ Before architecture, workflow, skill, agent, hook, or governance decisions:
 - Current task context → stays in the session.
 - Repeated corrections → lesson candidates via capture-learning.
 - Canon → only through `brain-promote --approve`. Never write `canon/` directly.
+- NotebookLM/deep-research output → `support/sources/` at raw-source authority,
+  then compile → promote like any other content. Research tooling (notebooklm-py,
+  notebooklm-skill, deep-research-notebooklm) is registered in the reference
+  library — adopt skills from them only through scout → audit → adapt → eval.
 
 ## Hard Rules
 
