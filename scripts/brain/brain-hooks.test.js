@@ -115,6 +115,15 @@ try {
   assert.ok(denyBash('echo x > .project-brain/canon/sneak.md 2>/dev/null').stdout.includes('deny'),
     'real redirect into canon still denied even with trailing 2>/dev/null');
 
+  // 6d. Direct install from reference-repositories/sources/ into the skills dir is denied.
+  assert.ok(denyBash('cp -R reference-repositories/sources/gstack ~/.claude/skills/gstack').stdout.includes('deny'),
+    'direct install from reference sources must be denied');
+  assert.ok(denyBash('rsync -a reference-repositories/sources/foo/ .claude/skills/foo/').stdout.includes('deny'),
+    'rsync install from reference sources must be denied');
+  // Reading/mapping a source card (no install) still passes.
+  assert.strictEqual(denyBash('cat reference-repositories/sources/gstack/source-card.md 2>/dev/null').stdout.trim(), '',
+    'reading a source card must pass');
+
   // 7. Post-lint: always exit 0; warns via additionalContext only on sensitive content
   seedCapsule();
   fs.writeFileSync(path.join(BRAIN, 'sessions', 'daily', `${today}.md`),

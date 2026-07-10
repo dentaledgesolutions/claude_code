@@ -45,6 +45,9 @@ if (tool === "Bash") {
     deny("Only brain-promote.js --approve may modify .project-brain/canon/");
   if (/\brm\b[^|;&]*\.project-brain/.test(cmd))
     deny("Destructive command targeting .project-brain/ blocked — the capsule is governed memory");
+  // Reference sources are documentation only — block direct installs into the skills dir.
+  if (/reference-repositories\/sources\//.test(cmd) && /\b(cp|mv|ln|rsync)\b/.test(cmd) && /\.claude\/skills|~\/\.claude/.test(cmd))
+    deny("Direct install from reference-repositories/sources/ is forbidden — route through skill-scout, skill-audit, skill-adapt");
 }
 ' 2>/dev/null)" || { echo "brain-security-guard: parser error — failing open" >&2; exit 0; }
 [ -n "${DECISION}" ] && printf '%s' "${DECISION}"
