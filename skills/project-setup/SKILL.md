@@ -142,7 +142,7 @@ If no references were provided or all fetches failed, `ref_signals = null`.
 
 4. **Determine mode**:
    - CLAUDE.md exists with ≥1 substantive line → **SUPPLEMENT** mode: read it, identify which standard sections are missing (Quick Facts, Key Directories, Claude's Rules, Domain Terms), ask only about those; skip the rest
-   - CLAUDE.md missing or empty → **CREATE** mode: full 6-question interview
+   - CLAUDE.md missing or empty → **CREATE** mode: full 7-question interview
 
 5. **Check if project-context.json already rich**:
    - If `evals/project-context.json` exists AND `stack` is non-empty AND `key_phrases` is non-empty → offer to skip the interview and just refresh context: *"Project context already looks populated. Refresh evals/project-context.json without re-interviewing? [y/N]"*
@@ -152,7 +152,7 @@ If no references were provided or all fetches failed, `ref_signals = null`.
 
 Open with: *"I'll ask you [N] questions, one at a time. Each has a recommended answer from your project files. Press Enter to accept, or type your own."*
 
-N = 6 in CREATE mode, or the count of missing sections in SUPPLEMENT mode.
+N = 7 in CREATE mode, or the count of missing sections in SUPPLEMENT mode.
 
 Wait for the user's answer before asking the next question.
 
@@ -240,6 +240,19 @@ Store as `directories` list of `{path, description}` pairs.
 > *(Accept any language — terms are stored verbatim.)*
 
 Store as `glossary` list of `{term, definition}` pairs. If user presses Enter or says "none", store `[]`.
+
+---
+
+**Q7 — Second Brain.** "Should this project use a Second Brain (a governed,
+git-versioned memory capsule at .project-brain/)?"
+
+Recommended: `standard` (capture + compile + retrieval, no external services).
+Options: `none` | `lightweight` | `standard` | `enhanced-with-gbrain` | `enhanced-with-graphify` | `lab-multimodal`
+
+- If not `none`: after Phase 3 outputs, run `bash scripts/brain/brain-self-install.sh`
+  (or note that `./install.sh <target> --with-second-brain --brain-mode <mode>` does it),
+  then set `brain_mode` in `.project-brain/context/brain-profile.json` to the answer.
+- If `none`: skip — record the choice in the summary so it isn't re-asked.
 
 ---
 
