@@ -13,7 +13,8 @@ acceptance failure, the `brain-promote --approve` human gate, or shared-file con
 > **Phase 3 — Capture Skills (6): SKILLS SHIPPED, eval gate DEFERRED** (41e3ab6, 2026-07-10) — 6 SKILL.md built/deployed/committed, seed evals generated. Formal skill-eval-agent metric gate NOT met this session (session limits killed the eval agents; auto-scenarios miscalibrated to skill-scout). Follow-up: retarget scenarios + re-run eval/refine after limits reset. Skills usable now; thresholds unmeasured.
 > **Phase 4 — Retrieval: COMPLETE** (7bab7ab..b6028be, 2026-07-10) — authority-ranked search, §7.3 context packs, SessionStart brain-load (~347 tokens). 10/10 suites green; guard false-positive on canon reads fixed.
 > **Phase 5 — install.sh Integration: COMPLETE** (a9eb1dc..ad59dfa, 2026-07-10) — install.sh step 8, uninstall mirror (preserves capsule), project-setup Q7, second-brain-setup + brain-kernel skills, @import marker self-applied. 18/18 suites green.
-> **Phase 6 — Reference Repository Library: in progress** (updated 2026-07-10)
+> **Phase 6 — Reference Repository Library: COMPLETE** (4389616..b167186, 2026-07-10) — 16-entry governed registry, add/audit/map/refresh scripts (docs-only enforcement), 4 skills, NotebookLM lane note, guard blocks direct install from sources/. 19/19 suites.
+> **Phase 7 — SecondBrainBench + Docs: in progress** (updated 2026-07-10)
 
 ## Phase sequence
 
