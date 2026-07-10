@@ -152,3 +152,8 @@ Codex does not replay the Claude Code runtime — it is an independent second mo
 - Add CI until local results are stable and explicitly approved
 - Auto-trigger `run-native-audit.js` after a native eval completes — on-demand only
 - Let `run-native-audit.js` write anywhere except `evals/codex-runs/native-audits/` — read-only against native run trees
+
+# >>> second-brain >>>
+## Second Brain
+@.project-brain/BRAIN.md
+# <<< second-brain <<<
