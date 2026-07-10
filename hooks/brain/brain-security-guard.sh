@@ -31,9 +31,16 @@ if (tool === "Bash") {
   const touchesCanon = /\.project-brain\/canon/.test(cmd)
     || (/\bcanon\//.test(cmd) && /\.project-brain/.test(cmd));
   const isApprovedPromote = /brain-promote(\.js)?\b[\s\S]*--approve/.test(cmd);
-  const mutates = /(>>?|\btee\b|\bmv\b|\bcp\b|\brm\b|\bsed\b[^|]*-i)/.test(cmd)
-    || /\bnode\s+(-e|--eval)\b|\bpython3?\s+-c\b|\bperl\s+-e\b/.test(cmd)
-    || /writeFileSync|\bopen\(/.test(cmd);
+  // Redirects to the null device or stderr-merge can never write canon — strip
+  // them before mutation detection so read commands like "ls canon/ 2>/dev/null"
+  // are not falsely denied. A real redirect target (> canon/x.md) survives.
+  const scrubbed = cmd
+    .replace(/&>\s*\/dev\/null/g, " ")
+    .replace(/\d*>\s*\/dev\/null/g, " ")
+    .replace(/\d*>&\d+/g, " ");
+  const mutates = /(>>?|\btee\b|\bmv\b|\bcp\b|\brm\b|\bsed\b[^|]*-i)/.test(scrubbed)
+    || /\bnode\s+(-e|--eval)\b|\bpython3?\s+-c\b|\bperl\s+-e\b/.test(scrubbed)
+    || /writeFileSync|\bopen\(/.test(scrubbed);
   if (touchesCanon && mutates && !isApprovedPromote)
     deny("Only brain-promote.js --approve may modify .project-brain/canon/");
   if (/\brm\b[^|;&]*\.project-brain/.test(cmd))

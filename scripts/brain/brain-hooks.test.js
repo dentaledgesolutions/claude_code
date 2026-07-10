@@ -103,6 +103,18 @@ try {
   });
   assert.strictEqual(r.stdout.trim(), '', 'normal write still passes silently after hardening');
 
+  // 6c. False-positive guard: a READ command that merely references canon and uses a
+  // /dev/null or stderr redirect must NOT be denied (2>/dev/null is not a canon write).
+  assert.strictEqual(denyBash('ls .project-brain/canon/ 2>/dev/null').stdout.trim(), '',
+    'read of canon with 2>/dev/null must pass');
+  assert.strictEqual(denyBash('find .project-brain/canon -name "*.md" 2>/dev/null | grep -v gitkeep').stdout.trim(), '',
+    'find under canon with stderr redirect must pass');
+  assert.strictEqual(denyBash('cat .project-brain/canon/x.md >/dev/null 2>&1').stdout.trim(), '',
+    'cat canon to /dev/null must pass');
+  // …but a real redirect TARGETING canon is still denied.
+  assert.ok(denyBash('echo x > .project-brain/canon/sneak.md 2>/dev/null').stdout.includes('deny'),
+    'real redirect into canon still denied even with trailing 2>/dev/null');
+
   // 7. Post-lint: always exit 0; warns via additionalContext only on sensitive content
   seedCapsule();
   fs.writeFileSync(path.join(BRAIN, 'sessions', 'daily', `${today}.md`),
