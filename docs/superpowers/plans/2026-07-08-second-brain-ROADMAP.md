@@ -10,7 +10,8 @@ acceptance failure, the `brain-promote --approve` human gate, or shared-file con
 
 > **Phase 1 — Capture Core: COMPLETE** (27047ff..bd08f0a, 2026-07-09) — 5/5 acceptance criteria pass, 6/6 test suites green, whole-branch security review findings fixed and re-verified.
 > **Phase 2 — Capture Hooks + Self-install: COMPLETE** (5153200..cfadbbb, 2026-07-09) — repo is remembering things: 4 hooks + self-install live, security guard hardened past 2 review-found bypasses, live smoke green, 16/16 suites.
-> **Phase 3 — Capture Skills (6): in progress** (updated 2026-07-09)
+> **Phase 3 — Capture Skills (6): SKILLS SHIPPED, eval gate DEFERRED** (41e3ab6, 2026-07-10) — 6 SKILL.md built/deployed/committed, seed evals generated. Formal skill-eval-agent metric gate NOT met this session (session limits killed the eval agents; auto-scenarios miscalibrated to skill-scout). Follow-up: retarget scenarios + re-run eval/refine after limits reset. Skills usable now; thresholds unmeasured.
+> **Phase 4 — Retrieval: in progress** (updated 2026-07-10)
 
 ## Phase sequence
 
