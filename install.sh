@@ -19,10 +19,22 @@ dryrun()  { echo -e "  ${CYAN}~${RESET} [dry-run] $*"; }
 
 # ── Args ─────────────────────────────────────────────────────────────────────
 DRY_RUN=false
+WITH_BRAIN=false
+BRAIN_MODE="standard"
 ARGS=()
-for arg in "$@"; do
-    [[ "${arg}" == "--dry-run" ]] && DRY_RUN=true || ARGS+=("${arg}")
+while [ $# -gt 0 ]; do
+    case "$1" in
+        --dry-run)           DRY_RUN=true ;;
+        --with-second-brain) WITH_BRAIN=true ;;
+        --brain-mode)        BRAIN_MODE="${2:-}"; shift ;;
+        *)                   ARGS+=("$1") ;;
+    esac
+    shift
 done
+case "${BRAIN_MODE}" in
+    lightweight|standard|enhanced-with-gbrain|enhanced-with-graphify|lab-multimodal) ;;
+    *) echo "Unknown --brain-mode: ${BRAIN_MODE}"; exit 1 ;;
+esac
 
 TARGET="${ARGS[0]:-}"
 if [ -z "${TARGET}" ]; then
@@ -66,7 +78,7 @@ while IFS= read -r dir; do
 done < <(find "${REPO_DIR}/skills" -mindepth 1 -maxdepth 1 -type d | sort)
 
 # ── 1. Project-scoped skills (source of truth) ───────────────────────────────
-echo "→ [1/7] Copying skills to project"
+echo "→ [1/8] Copying skills to project"
 if ! ${DRY_RUN}; then mkdir -p "${TARGET}/skills" && cp -R "${REPO_DIR}/skills/." "${TARGET}/skills/"; fi
 for skill in "${SKILL_NAMES[@]}"; do
     ${DRY_RUN} && dryrun "${skill}  →  ${TARGET}/skills/${skill}" || ok "${skill}  →  ${TARGET}/skills/${skill}"
@@ -74,7 +86,7 @@ done
 echo ""
 
 # ── 2. Runtime sync (~/.claude/skills/) ─────────────────────────────────────
-echo "→ [2/7] Syncing skills to runtime"
+echo "→ [2/8] Syncing skills to runtime"
 if ! ${DRY_RUN}; then mkdir -p "${GLOBAL_SKILLS}"; fi
 for skill in "${SKILL_NAMES[@]}"; do
     if ! ${DRY_RUN}; then cp -R "${REPO_DIR}/skills/${skill}" "${GLOBAL_SKILLS}/"; fi
@@ -83,7 +95,7 @@ done
 echo ""
 
 # ── 3. Agents (project-scoped only) ─────────────────────────────────────────
-echo "→ [3/7] Installing agents"
+echo "→ [3/8] Installing agents"
 if ! ${DRY_RUN}; then mkdir -p "${TARGET}/.claude/agents"; fi
 for agent_file in "${REPO_DIR}/.claude/agents/"*.md; do
     agent_name="$(basename "${agent_file}")"
@@ -93,7 +105,7 @@ done
 echo ""
 
 # ── 4. Codex eval scripts + schemas ─────────────────────────────────────────
-echo "→ [4/7] Installing Codex external eval scripts and schemas"
+echo "→ [4/8] Installing Codex external eval scripts and schemas"
 if ! ${DRY_RUN}; then
     mkdir -p "${TARGET}/scripts/codex" "${TARGET}/schemas/codex"
     cp -R "${REPO_DIR}/scripts/codex/." "${TARGET}/scripts/codex/"
@@ -110,7 +122,7 @@ done
 echo ""
 
 # ── 5. Evals workspace + .gitignore ─────────────────────────────────────────
-echo "→ [5/7] Setting up evals/ workspace and .gitignore"
+echo "→ [5/8] Setting up evals/ workspace and .gitignore"
 if ! ${DRY_RUN}; then
     mkdir -p "${TARGET}/evals"
     ok "created  ${TARGET}/evals/"
@@ -148,7 +160,7 @@ fi
 echo ""
 
 # ── 6. CLAUDE.md pipeline section ────────────────────────────────────────────
-echo "→ [6/7] Writing pipeline rules to CLAUDE.md"
+echo "→ [6/8] Writing pipeline rules to CLAUDE.md"
 CLAUDE_MD="${TARGET}/CLAUDE.md"
 MARKER_START="# >>> skill-builder >>>"
 
@@ -199,7 +211,7 @@ fi
 echo ""
 
 # ── 7. Telemetry (Level 4 real-usage hooks) ─────────────────────────────────
-echo "→ [7/7] Installing telemetry hooks"
+echo "→ [7/8] Installing telemetry hooks"
 if ! ${DRY_RUN}; then
     mkdir -p "${TARGET}/scripts/telemetry" "${TARGET}/schemas/telemetry"
     cp -R "${REPO_DIR}/scripts/telemetry/." "${TARGET}/scripts/telemetry/"
@@ -269,6 +281,51 @@ else
     dryrun "would merge telemetry hook entries into ${TARGET}/.claude/settings.json"
 fi
 echo ""
+
+# ── 8. Second Brain (opt-in) ────────────────────────────────────────────────
+if ${WITH_BRAIN}; then
+    echo "→ [8/8] Installing second brain (mode: ${BRAIN_MODE})"
+    BRAIN="${TARGET}/.project-brain"
+    if ! ${DRY_RUN}; then
+        # 8a. Hooks + scripts to target (targets need them for their own sessions)
+        mkdir -p "${TARGET}/hooks/brain" "${TARGET}/scripts/brain" "${TARGET}/schemas/brain" "${TARGET}/templates/second-brain"
+        cp -R "${REPO_DIR}/hooks/brain/." "${TARGET}/hooks/brain/"
+        cp -R "${REPO_DIR}/scripts/brain/." "${TARGET}/scripts/brain/"
+        cp -R "${REPO_DIR}/schemas/brain/." "${TARGET}/schemas/brain/"
+        cp -R "${REPO_DIR}/templates/second-brain/." "${TARGET}/templates/second-brain/"
+        # 8b. Capsule + hook merge + .gitignore + verify — the proven Phase 2 installer
+        bash "${TARGET}/scripts/brain/brain-self-install.sh" "${TARGET}"
+        # 8c. Set the chosen brain mode in the installed profile
+        node -e '
+const fs = require("fs");
+const pf = process.argv[1] + "/.project-brain/context/brain-profile.json";
+const p = JSON.parse(fs.readFileSync(pf, "utf8"));
+p.brain_mode = process.argv[2];
+fs.writeFileSync(pf, JSON.stringify(p, null, 2) + "\n");
+' "${TARGET}" "${BRAIN_MODE}"
+        # 8d. CLAUDE.md marker — @import keeps the protocol inside the brain
+        CLAUDE_MD="${TARGET}/CLAUDE.md"
+        touch "${CLAUDE_MD}"
+        if ! grep -qF "# >>> second-brain >>>" "${CLAUDE_MD}"; then
+            cat >> "${CLAUDE_MD}" <<'BRAIN_MARKER'
+
+# >>> second-brain >>>
+## Second Brain
+@.project-brain/BRAIN.md
+# <<< second-brain <<<
+BRAIN_MARKER
+            ok "second-brain section appended to CLAUDE.md"
+        else
+            ok "second-brain section already present in CLAUDE.md"
+        fi
+        ok "second brain installed (mode: ${BRAIN_MODE}) — verify passed"
+    else
+        dryrun "would copy hooks/brain, scripts/brain, schemas/brain, templates/second-brain"
+        dryrun "would create ${BRAIN} + merge 6 hook entries + append CLAUDE.md marker"
+        dryrun "would set brain_mode=${BRAIN_MODE} in brain-profile.json"
+    fi
+    echo ""
+fi
 
 # ── 4b. Refresh project-context.json if stale ────────────────────────────────
 # A pre-existing project-context.json may be missing the hooks/mcp_servers/plugins

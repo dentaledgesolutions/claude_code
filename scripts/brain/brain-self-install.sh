@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# scripts/brain/brain-self-install.sh — Phase 2 manual installer: capsule +
-# hook registration + .gitignore, ending with brain-verify. Idempotent.
+# scripts/brain/brain-self-install.sh — capsule + hook registration + .gitignore,
+# ending with brain-verify. Idempotent.
+# Used by install.sh step 8 (--with-second-brain); also runnable standalone.
 # Usage: bash scripts/brain/brain-self-install.sh [target-dir]   (default: this repo)
-# NOTE: retired into install.sh step 8 (--with-second-brain) in Phase 5.
 set -euo pipefail
 REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 TARGET="$(cd "${1:-${REPO_DIR}}" && pwd)"
