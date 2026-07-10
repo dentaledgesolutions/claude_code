@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "reference-repo-registry",
+  "description": "Registry of external repositories usable as source material only",
+  "type": "object",
+  "required": ["repositories"],
+  "properties": {
+    "repositories": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["name", "url", "status", "types", "install_policy", "last_reviewed"],
+        "properties": {
+          "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$" },
+          "url": { "type": "string" },
+          "status": { "type": "string", "enum": ["reference", "unreachable", "retired"] },
+          "types": { "type": "array", "minItems": 1, "items": { "type": "string", "enum": [
+            "methodology-source", "skill-pattern-source", "agent-pattern-source",
+            "candidate-skill-source", "eval-scenario-source", "governance-source",
+            "retrieval-source", "research-source", "human-workflow-source" ] } },
+          "install_policy": { "type": "string", "const": "do-not-install-directly" },
+          "last_reviewed": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+          "preferred_use": { "type": "array", "items": { "type": "string" } },
+          "risk_notes": { "type": "array", "items": { "type": "string" } }
+        }
+      }
+    }
+  }
+}
