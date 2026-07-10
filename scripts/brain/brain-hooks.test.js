@@ -119,6 +119,22 @@ try {
   });
   assert.strictEqual(r.stdout.trim(), '', 'non-brain writes are ignored');
 
+  // 8. brain-load: emits additionalContext with protocol + top titles, ≤8000 chars
+  seedCapsule();
+  fs.writeFileSync(path.join(BRAIN, 'BRAIN.md'), '# Project Brain — t\n\n## Second Brain Protocol\n\n1. Read first.\n');
+  fs.mkdirSync(path.join(BRAIN, 'decisions', 'active'), { recursive: true });
+  fs.writeFileSync(path.join(BRAIN, 'decisions', 'active', 'd1.md'),
+    '---\ntype: decision\ntitle: Loaded decision one\ndescription: d\ntags: []\ntimestamp: 2026-07-08T00:00:00\nsources: []\nstatus: active\n---\n\nBody.\n');
+  r = runHook('brain-load.sh', { hook_event_name: 'SessionStart' });
+  assert.strictEqual(r.status, 0, r.stderr);
+  assert.ok(r.stdout.includes('"additionalContext"'), 'emits additionalContext');
+  assert.ok(r.stdout.includes('Second Brain Protocol'), 'includes protocol');
+  assert.ok(r.stdout.includes('Loaded decision one'), 'includes active decision title');
+  assert.ok(r.stdout.length < 8500, 'respects size cap');
+  // no capsule → silent
+  r = runHook('brain-load.sh', { hook_event_name: 'SessionStart' }, path.join(TMP, 'nowhere'));
+  assert.strictEqual(r.stdout.trim(), '');
+
   console.log('brain-hooks.test.js: all assertions passed');
 } finally {
   fs.rmSync(TMP, { recursive: true, force: true });

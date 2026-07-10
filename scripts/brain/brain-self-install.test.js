@@ -40,7 +40,7 @@ try {
   // 2. Hooks merged: 5 brain registrations present, pre-existing hook intact
   const settings = JSON.parse(fs.readFileSync(path.join(TMP, '.claude', 'settings.local.json'), 'utf8'));
   const flat = JSON.stringify(settings.hooks);
-  for (const h of ['brain-pre-compact.sh', 'brain-session-end.sh', 'brain-security-guard.sh', 'brain-post-lint.sh']) {
+  for (const h of ['brain-pre-compact.sh', 'brain-session-end.sh', 'brain-security-guard.sh', 'brain-post-lint.sh', 'brain-load.sh']) {
     assert.ok(flat.includes(h), `${h} registered`);
   }
   assert.ok(flat.includes('echo preexisting'), 'pre-existing hook survived');

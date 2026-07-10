@@ -60,6 +60,7 @@ if (ensureHookEntry("SessionEnd", null, H("brain-session-end.sh"))) added++;
 if (ensureHookEntry("Stop", null, H("brain-session-end.sh"))) added++;
 if (ensureHookEntry("PreToolUse", "Write|Edit|NotebookEdit|Bash", H("brain-security-guard.sh"))) added++;
 if (ensureHookEntry("PostToolUse", "Write|Edit", H("brain-post-lint.sh"))) added++;
+if (ensureHookEntry("SessionStart", null, H("brain-load.sh"))) added++;
 fs.writeFileSync(file, JSON.stringify(settings, null, 2) + "\n");
 process.stdout.write(String(added));
 ' "${TARGET}")"
