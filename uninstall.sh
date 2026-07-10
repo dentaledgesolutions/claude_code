@@ -13,6 +13,7 @@ set -euo pipefail
 GREEN='\033[0;32m'; YELLOW='\033[1;33m'; RESET='\033[0m'
 ok()   { echo -e "  ${GREEN}✓${RESET} $*"; }
 skip() { echo -e "  ${YELLOW}–${RESET} $*"; }
+warn() { echo -e "  ${YELLOW}!${RESET} $*"; }
 
 # ── Args ─────────────────────────────────────────────────────────────────────
 TARGET="${1:-}"
@@ -179,6 +180,43 @@ process.stdout.write(String(removed));
     fi
 else
     skip "${SETTINGS_FILE} not found"
+fi
+echo ""
+
+# ── Second Brain removal (mirrors install step 8) ───────────────────────────
+if [ -d "${TARGET}/hooks/brain" ] || [ -d "${TARGET}/scripts/brain" ]; then
+    rm -rf "${TARGET}/hooks/brain" "${TARGET}/scripts/brain" "${TARGET}/schemas/brain" "${TARGET}/templates/second-brain"
+    ok "removed brain hooks, scripts, schemas, templates"
+    # Remove our hook entries (match by command string; leave everything else)
+    SETTINGS="${TARGET}/.claude/settings.local.json"
+    if [ -f "${SETTINGS}" ] && command -v node &>/dev/null; then
+        node -e '
+const fs = require("fs");
+const file = process.argv[1];
+const s = JSON.parse(fs.readFileSync(file, "utf8"));
+let removed = 0;
+for (const ev of Object.keys(s.hooks || {})) {
+  const before = s.hooks[ev].length;
+  s.hooks[ev] = s.hooks[ev].filter(e =>
+    !(Array.isArray(e.hooks) && e.hooks.some(h => /hooks\/brain\//.test(h.command || ""))));
+  removed += before - s.hooks[ev].length;
+  if (!s.hooks[ev].length) delete s.hooks[ev];
+}
+fs.writeFileSync(file, JSON.stringify(s, null, 2) + "\n");
+console.log(removed);
+' "${SETTINGS}" >/dev/null && ok "brain hook entries removed from settings.local.json"
+    fi
+    # Remove CLAUDE.md marker section (keep everything outside the markers)
+    CLAUDE_MD="${TARGET}/CLAUDE.md"
+    if [ -f "${CLAUDE_MD}" ] && grep -qF "# >>> second-brain >>>" "${CLAUDE_MD}"; then
+        awk '/# >>> second-brain >>>/{skip=1} !skip{print} /# <<< second-brain <<</{skip=0}' \
+            "${CLAUDE_MD}" > "${CLAUDE_MD}.tmp" && mv "${CLAUDE_MD}.tmp" "${CLAUDE_MD}"
+        ok "second-brain section removed from CLAUDE.md"
+    fi
+    if [ -d "${TARGET}/.project-brain" ]; then
+        warn ".project-brain/ PRESERVED — it is your project's memory, not tooling."
+        warn "Delete manually only if you are certain: rm -rf ${TARGET}/.project-brain"
+    fi
 fi
 echo ""
 
