@@ -30,6 +30,11 @@ project-setup/
 # evals/fixtures/, distinct from the top-level committed fixtures/.
 fixtures/
 
+# SecondBrainBench workspace (scripts/brain/secondbrainbench-*.js) — generated
+# datasets, sealed answers, and run reports. Bench code is versioned in
+# scripts/brain/; its data artifacts stay local.
+brain/
+
 # Level 4 real-usage telemetry (scripts/telemetry/) — monthly JSONL event logs
 # and the aggregated usage-summary.json. Generated, never versioned; contains
 # no raw prompt/transcript text (see docs/telemetry-privacy.md) but is still
