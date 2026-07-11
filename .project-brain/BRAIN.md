@@ -30,3 +30,8 @@ Before architecture, workflow, skill, agent, hook, or governance decisions:
 - No secrets, credentials, tokens, client-private, patient, financial, or legal-sensitive content in memory.
 - Do not install directly from reference repositories.
 - External skills/agents must pass scout → audit → adapt → eval before activation.
+
+## Reference
+
+Operator manual (every script, hook, and skill): `docs/BRAIN_KERNEL.md`.
+Architecture: `docs/SECOND_BRAIN.md` · Security: `docs/SECOND_BRAIN_SECURITY.md`.
