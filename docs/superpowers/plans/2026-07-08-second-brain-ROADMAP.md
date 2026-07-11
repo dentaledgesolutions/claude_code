@@ -14,7 +14,9 @@ acceptance failure, the `brain-promote --approve` human gate, or shared-file con
 > **Phase 4 — Retrieval: COMPLETE** (7bab7ab..b6028be, 2026-07-10) — authority-ranked search, §7.3 context packs, SessionStart brain-load (~347 tokens). 10/10 suites green; guard false-positive on canon reads fixed.
 > **Phase 5 — install.sh Integration: COMPLETE** (a9eb1dc..ad59dfa, 2026-07-10) — install.sh step 8, uninstall mirror (preserves capsule), project-setup Q7, second-brain-setup + brain-kernel skills, @import marker self-applied. 18/18 suites green.
 > **Phase 6 — Reference Repository Library: COMPLETE** (4389616..b167186, 2026-07-10) — 16-entry governed registry, add/audit/map/refresh scripts (docs-only enforcement), 4 skills, NotebookLM lane note, guard blocks direct install from sources/. 19/19 suites.
-> **Phase 7 — SecondBrainBench + Docs: in progress** (updated 2026-07-10)
+> **Phase 7 — SecondBrainBench + Docs: COMPLETE** (033f7f9..51088f3, 2026-07-11) — sealed-answer bench with 5 hard gates (smoke PASS, sabotage exits 1), 4 consolidated docs + README section, full E2E narrative verified, finale promoted to canon.
+>
+> **★ SECOND BRAIN v1 COMPLETE — all 7 phases shipped (27047ff..51088f3). ★** 12/12 brain test suites green; capture→compile→promote→retrieve loop live on this repo; installable via `install.sh --with-second-brain`. Deferred: formal skill-eval metric gate for the 12 brain skills (session limits + a miscalibrated generate-seed-evals.js, fix identified); Central Operator Brain; FTS index; GBrain adapter.
 
 ## Phase sequence
 
