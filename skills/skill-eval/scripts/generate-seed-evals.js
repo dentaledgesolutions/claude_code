@@ -62,6 +62,34 @@ function pickDeterministic(seed, candidates) {
   return candidates[hashString(seed) % candidates.length];
 }
 
+// Extracts the "description:" frontmatter value, correctly handling YAML
+// double/single-quoted scalars that fold across multiple indented continuation
+// lines. A naive single-line regex (/^description:\s*(.+)/m) silently truncates a
+// multi-line description at the first newline — which fed malformed trigger text
+// into scenario generation and produced generic, wrong-target scenarios for any
+// skill with a folded description (the brain-* family).
+function extractYamlDescription(content) {
+  const lines = content.split(/\r?\n/);
+  const startIdx = lines.findIndex(l => /^description:\s*/.test(l));
+  if (startIdx === -1) return '';
+  const firstRest = lines[startIdx].replace(/^description:\s*/, '');
+  const quoteChar = /^["']/.test(firstRest) ? firstRest[0] : null;
+  if (!quoteChar) return firstRest.trim();
+
+  const afterQuote = firstRest.slice(1);
+  const closeIdx = afterQuote.indexOf(quoteChar);
+  if (closeIdx !== -1) return afterQuote.slice(0, closeIdx).trim();
+
+  const parts = [afterQuote];
+  for (let i = startIdx + 1; i < lines.length; i++) {
+    const line = lines[i];
+    const idx = line.indexOf(quoteChar);
+    if (idx !== -1) { parts.push(line.slice(0, idx).trim()); break; }
+    parts.push(line.trim());
+  }
+  return parts.join(' ').replace(/\s+/g, ' ').trim();
+}
+
 // Stopwords excluded from the description-echo overlap calculation so the lint measures
 // echoed *content* vocabulary, not incidental shared function words.
 const STOPWORDS = new Set([
@@ -135,8 +163,7 @@ if (lintOnlyFlag !== -1) {
     process.exit(1);
   }
   const defContent = fs.readFileSync(defPath, 'utf8');
-  const descMatch = defContent.match(/^description:\s*(.+)/m);
-  const description = descMatch ? descMatch[1].trim().replace(/^(["'])(.*)\1$/, '$2') : '';
+  const description = extractYamlDescription(defContent);
 
   const results = lintScenarios(data.evals || [], description);
   console.log(`Description-echo lint for ${evalsPath} (against ${defPath}):`);
@@ -406,10 +433,7 @@ function skillLoadedMarker(name, expectPresent) {
 
 // ── Parse SKILL.md ───────────────────────────────────────────────────────────
 if (fileName === 'skill.md') {
-  const descMatch = content.match(/^description:\s*(.+)/m);
-  const description = descMatch
-    ? descMatch[1].trim().replace(/^(["'])(.*)\1$/, '$2')
-    : '';
+  const description = extractYamlDescription(content);
   const useWhenMatch = description.match(/[Uu]se when:?\s+(.+)/);
   const triggerText  = useWhenMatch ? useWhenMatch[1] : description;
 
