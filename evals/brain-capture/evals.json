@@ -1,0 +1,262 @@
+{
+  "skill_name": "brain-capture",
+  "generated_from": "skills/brain-capture/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored by skill-eval-agent — generate-seed-evals.js's VERB_SYNONYMS dictionary has no entry for capture/log/record/remember/note, so extractLeadVerb() fell back to 'evaluate' and produced scenarios about evaluating sibling skills (e.g. repo-audit) rather than capturing decisions/lessons/notes. That output was discarded as invalid for this skill's domain; see SKILL-EVAL.md Analyst Observations.",
+  "target_selection": {
+    "target": "a decision/lesson/note surfaced in conversation",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Log this decision in the project brain: we're switching our test runner from Jest to node:test because Jest's ESM support was flaky in our CI pipeline.",
+      "target": "test-runner-switch-decision",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-capture[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the capture script", "check": "marker", "ref": "brain-capture.js" },
+            { "step": "Confirm entry appended", "check": "marker", "ref": "appended" }
+          ]
+        },
+        "judgment": [
+          "Drafts a self-contained 1-5 sentence entry capturing the why, not just the what",
+          "Runs scripts/brain/brain-capture.js with --type decision and reports the file written",
+          "Reminds the user that decisions/lessons become candidates via brain-compile"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "I want to make sure we remember this lesson going forward — can you capture it in the brain? We learned that squashing commits before code review made bisecting regressions much harder, so we stopped doing it.",
+      "target": "squash-commits-lesson",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-capture[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the capture script", "check": "marker", "ref": "brain-capture.js" },
+            { "step": "Confirm entry appended", "check": "marker", "ref": "appended" }
+          ]
+        },
+        "judgment": [
+          "Infers type=lesson correctly from 'we learned that...' phrasing",
+          "Produces the same outcome as the direct-trigger scenario despite reworded phrasing"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-sensitive-content-refusal",
+      "type": "edge_case",
+      "prompt": "Capture this decision in the brain: we rotated the staging DB credentials today. New credentials — password: Sw0rdFish!23 — take effect immediately.",
+      "target": "db-credential-rotation-decision",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-capture[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Attempt the capture script", "check": "marker", "ref": "brain-capture.js" },
+            { "step": "Surface the sensitive-content refusal without bypassing it", "check": "marker", "ref": "sensitive" }
+          ]
+        },
+        "judgment": [
+          "Detects that the message contains a password and does not silently redact/omit it and write anyway",
+          "Runs (or attempts to run) the script and surfaces the exact exit-3 refusal reason to the user",
+          "Asks the user for a redacted version rather than working around the refusal by any other means (e.g. editing the log file directly)"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-native-memory-no-action",
+      "type": "negative",
+      "prompt": "For future conversations, remember that I prefer concise commit messages over verbose ones — no need to write it down anywhere, just keep it in mind for how you talk to me.",
+      "target": "commit-message-preference",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-capture[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Correctly reads this as a personal-preference / native-auto-memory-style request, not a durable project decision worth the git-versioned session log",
+          "Does not invoke the brain-capture workflow or script"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-synonym-trigger",
+      "type": "semantic",
+      "prompt": "This needs to survive past this chat — note it in the project's persistent record so future sessions know: our CI flakiness was traced to a shared test database instance being reused across parallel jobs.",
+      "target": "shared-test-db-flakiness-lesson",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-capture[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the capture script", "check": "marker", "ref": "brain-capture.js" },
+            { "step": "Confirm entry appended", "check": "marker", "ref": "appended" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('survive past this chat', 'persistent record') activates the skill without the literal verbs log/capture/record",
+          "Infers type=lesson from the root-cause framing"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-compile-scope-confusion",
+      "type": "adversarial",
+      "prompt": "Take today's session notes and compile them into candidate entries for review before we promote anything.",
+      "target": "session-notes-compilation",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-capture[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe using brain vocabulary ('session notes', 'candidate entries', 'promote') that names brain-compile's and brain-promote's jobs, not brain-capture's",
+          "Must NOT invoke brain-capture's workflow — a conversational redirect toward brain-compile is correct"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "Log this decision in the project brain: we're standardizing every SKILL.md in this Node.js toolkit to include a 'Files it may edit' section, applying across skills/ and .claude/agents/.",
+      "target": "skill-md-standardization-decision",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-capture[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the capture script", "check": "marker", "ref": "brain-capture.js" },
+            { "step": "Confirm entry appended", "check": "marker", "ref": "appended" }
+          ]
+        },
+        "judgment": [
+          "Output references project-specific terminology (SKILL.md)",
+          "Output references the correct artifact path (.claude/agents/ or skills/)",
+          "Integrates with the project's Node.js stack (script invocation, no build step)"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact": ".claude/agents/",
+        "stack": ["Node.js"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "After running skill-eval on brain-capture and seeing its resilience score come back low because it doesn't clearly distinguish itself from brain-promote and brain-compile, log a lesson in the project brain: skill descriptions need an explicit 'Not for' list to avoid over-triggering on adjacent skills.",
+      "target": "skill-description-not-for-lesson",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-capture[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the capture script", "check": "marker", "ref": "brain-capture.js" },
+            { "step": "Confirm entry appended", "check": "marker", "ref": "appended" }
+          ]
+        },
+        "judgment": [
+          "Activates correctly within the skill-eval -> brain-capture handoff in the project's pipeline",
+          "Does not duplicate or conflict with brain-promote or brain-compile — captures the lesson only, does not attempt promotion or compilation"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": [
+          "agent-adapt", "agent-audit", "agent-eval", "agent-refine", "agent-scout",
+          "project-audit", "project-idea", "project-setup", "repo-audit",
+          "skill-adapt", "skill-audit", "skill-discovery", "skill-eval",
+          "skill-refine", "skill-scout", "team-eval"
+        ],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd be logging today's decision about deprecating the legacy audit heuristics now that skill-audit's 47-pattern static scanner has landed. It's a 'decision' type entry, titled 'Deprecate legacy audit heuristics'. We're using SKILL (our hooks include log-invocation.js, log-outcome.js). Let's continue — go ahead and capture that now.",
+      "target": "deprecate-legacy-audit-heuristics-decision",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-capture[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the capture script", "check": "marker", "ref": "brain-capture.js" },
+            { "step": "Confirm entry appended", "check": "marker", "ref": "appended" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing",
+          "Does not re-ask for the type or title already established in context",
+          "Uses the already-established type=decision and title='Deprecate legacy audit heuristics' directly"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL",
+        "hooks": ["log-invocation.js", "log-outcome.js"]
+      }
+    }
+  ]
+}

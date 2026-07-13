@@ -1,0 +1,258 @@
+{
+  "skill_name": "reference-repo-audit",
+  "generated_from": "skills/reference-repo-audit/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "a registered reference-library entry to audit",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Audit the reference library and tell me if anything in there is unsafe to pull patterns from.",
+      "target": "reference-library-full-sweep",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the audit script over the registry", "check": "marker", "ref": "brain-reference-repo-audit.js" },
+            { "step": "Separate SECURITY findings from warnings", "check": "marker", "ref": "exit 3" }
+          ]
+        },
+        "judgment": [
+          "Loops the audit script over every entry in registry.json for a full sweep",
+          "Presents exit-3 SECURITY findings separately from quality warnings (stale last_reviewed, thin prohibited_uses)",
+          "Reads its own report from .project-brain/reports/security/ rather than fabricating results"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "Is the gstack source safe to use? I want to pull some patterns from it but want to make sure it's clean first.",
+      "target": "gstack-safety-check",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the audit script for the single entry", "check": "marker", "ref": "brain-reference-repo-audit.js --name gstack" }
+          ]
+        },
+        "judgment": [
+          "Runs the audit for just the gstack entry rather than a full sweep, matching the scoped question",
+          "Produces the same safety-gate outcome as the direct-trigger scenario despite reworded phrasing"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-exit3-block",
+      "type": "edge_case",
+      "prompt": "Check the reference repos — I think one of them might have an executable checked in under sources/ by mistake.",
+      "target": "executable-under-sources-finding",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the audit script", "check": "marker", "ref": "brain-reference-repo-audit.js" },
+            { "step": "Surface the exit-3 finding as blocking", "check": "marker", "ref": "exit 3" }
+          ]
+        },
+        "judgment": [
+          "Surfaces an executable-under-sources finding as an exit-3 SECURITY finding, not lumped in with warnings",
+          "States clearly that this exit-3 finding BLOCKS pattern-extraction work on that source until resolved",
+          "Does not offer to delete the guard or the report to make the finding go away — points at redacting the source and re-auditing"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explanation-only",
+      "type": "negative",
+      "prompt": "Why do we even audit reference repos in the first place? What's the actual risk we're guarding against?",
+      "target": "audit-rationale-explanation",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-audit[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Correctly reads this as a conceptual/rationale question, not a request to run an audit",
+          "Does not invoke the reference-repo-audit workflow or script — answers conversationally instead"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-synonym-trigger",
+      "type": "semantic",
+      "prompt": "Before we mine that new source for ideas, can you make sure it doesn't have any red flags — installable scripts, secrets, wrong policy settings, anything like that?",
+      "target": "pre-extraction-red-flag-check",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the audit script for the named source", "check": "marker", "ref": "brain-reference-repo-audit.js" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('red flags', 'installable scripts', 'secrets', 'policy settings') activates the skill without the literal word 'audit'",
+          "Correctly frames this as the pre-extraction gate check rather than the extraction itself"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-add-scope-confusion",
+      "type": "adversarial",
+      "prompt": "Register github.com/foo/bar as a new reference source — it looks like a solid pattern library we should start tracking.",
+      "target": "foo-bar-new-source-registration",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-audit[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe using registry vocabulary ('reference source', 'tracking') that names reference-repo-add's job, not reference-repo-audit's",
+          "Must NOT invoke reference-repo-audit's workflow — a conversational redirect toward reference-repo-add is correct"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "Run a periodic review of the reference library for this Node.js toolkit — I want to know before skill-scout pulls anything else in whether our existing sources are still clean.",
+      "target": "periodic-library-review",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the audit script over the registry", "check": "marker", "ref": "brain-reference-repo-audit.js" }
+          ]
+        },
+        "judgment": [
+          "Recognizes 'periodic library review' as the full-sweep audit mode described in the skill's workflow",
+          "Integrates with the project's Node.js stack (script invocation, no build step)",
+          "Frames the audit as a precondition for future skill-scout / extraction work, not a one-off"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact": ".claude/",
+        "stack": ["Node.js"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "Before running reference-repo-pattern-extract on the gstack source, first audit it and confirm there's no open exit-3 finding blocking us.",
+      "target": "gstack-pre-extraction-audit-gate",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the audit script for the gstack entry", "check": "marker", "ref": "brain-reference-repo-audit.js --name gstack" }
+          ]
+        },
+        "judgment": [
+          "Activates correctly within the reference-repo-audit -> reference-repo-pattern-extract handoff in the project's pipeline",
+          "Reports exit code / clean status explicitly so the extraction gate decision is unambiguous",
+          "Does not itself perform the pattern extraction — that is reference-repo-pattern-extract's job"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": [
+          "agent-adapt", "agent-audit", "agent-eval", "agent-refine", "agent-scout",
+          "project-audit", "project-idea", "project-setup", "repo-audit",
+          "skill-adapt", "skill-audit", "skill-discovery", "skill-eval",
+          "skill-refine", "skill-scout", "team-eval"
+        ],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd be auditing the 'zustand' reference-library entry we just registered. We're using SKILL (our hooks include log-invocation.js, log-outcome.js). Let's continue — go ahead and run that audit now.",
+      "target": "zustand-post-registration-audit",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the audit script for the named entry", "check": "marker", "ref": "brain-reference-repo-audit.js --name zustand" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing",
+          "Does not re-ask which entry to audit — uses the already-established name='zustand' directly",
+          "Correctly treats this as the natural follow-on to a prior registration, not a duplicate registration itself"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL",
+        "hooks": ["log-invocation.js", "log-outcome.js"]
+      }
+    }
+  ]
+}

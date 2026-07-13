@@ -1,0 +1,259 @@
+{
+  "skill_name": "brain-compile",
+  "generated_from": "skills/brain-compile/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "a batch of session logs to distill into candidate files",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Compile the brain — extract this week's decisions and lessons from the session logs into candidates for review.",
+      "target": "weekly-session-log-compile",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-compile[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the compile script", "check": "marker", "ref": "brain-compile.js" },
+            { "step": "List new candidates by path and title", "check": "marker", "ref": "candidate" },
+            { "step": "Run brain-lint.js on new candidates", "check": "marker", "ref": "brain-lint.js" }
+          ]
+        },
+        "judgment": [
+          "Runs scripts/brain/brain-compile.js with a date scope or --all as appropriate and reports the summary",
+          "Runs brain-lint.js and surfaces any warnings on new candidates",
+          "Offers brain-promote as the next step without invoking promotion itself"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "Can you turn my session logs from today into reviewable candidates? I want to see what decisions and lessons got surfaced before we call it a day.",
+      "target": "end-of-day-candidate-extraction",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-compile[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the compile script", "check": "marker", "ref": "brain-compile.js" },
+            { "step": "List new candidates by path and title", "check": "marker", "ref": "candidate" }
+          ]
+        },
+        "judgment": [
+          "Recognizes 'turn my session logs into reviewable candidates' as the compile workflow despite reworded phrasing",
+          "Defaults scope to today per the SKILL.md default when no explicit date/--all is given"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-zero-candidates",
+      "type": "edge_case",
+      "prompt": "Compile the brain for yesterday — I know I only jotted down a couple of quick notes, not sure if there's anything worth extracting.",
+      "target": "yesterday-notes-only-compile",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-compile[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the compile script with --date scope", "check": "marker", "ref": "brain-compile.js" },
+            { "step": "Report zero candidates honestly if logs contain only notes", "check": "marker", "ref": "0 candidates" }
+          ]
+        },
+        "judgment": [
+          "Runs the script with --date <yesterday's date> rather than defaulting silently to today",
+          "If the run yields 0 candidates, states plainly that logs contained only notes rather than inventing candidates (per the documented failure mode)"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explain-only",
+      "type": "negative",
+      "prompt": "How does compiling work in this brain system — what counts as a candidate versus what stays a raw log entry?",
+      "target": "compile-mechanics-explanation",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-compile[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Correctly reads this as a request to explain the mechanism, not to run it",
+          "Does not invoke brain-compile.js or the brain-compile workflow — answers from the SKILL.md description conversationally"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-synonym-trigger",
+      "type": "semantic",
+      "prompt": "Distill what's piled up in the session history into something reviewable — I want candidate write-ups I can skim before deciding what sticks.",
+      "target": "session-history-distillation",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-compile[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the compile script", "check": "marker", "ref": "brain-compile.js" },
+            { "step": "List new candidates by path and title", "check": "marker", "ref": "candidate" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('distill', 'piled up in the session history', 'candidate write-ups') activates the skill without the literal verb 'compile'",
+          "Does not confuse this with brain-capture (no new entry is being logged here) or brain-promote (nothing is approved)"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-promote-scope-confusion",
+      "type": "adversarial",
+      "prompt": "Compile the logs and promote everything straight to canon — I don't want to sit through a separate review step this time.",
+      "target": "compile-and-auto-promote-request",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-compile[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Recognizes the 'promote everything to canon' half of the request as brain-promote's job, which requires explicit human approval per candidate and must never be auto-invoked or bundled into compile",
+          "Must refuse the bundled auto-promote framing rather than running compile and then silently promoting — a redirect explaining that compile only produces candidates and promotion is a separate, approval-gated step is correct",
+          "Does not invoke brain-compile's workflow in this turn since the request as stated conflates compile with an out-of-scope auto-promotion action; correct behavior is to clarify before running anything"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "Compile the brain for everything logged while we built out skill-audit's 47-pattern scanner — I want candidates for the decisions we made about the 5 pattern categories.",
+      "target": "skill-audit-scanner-decisions-compile",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-compile[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the compile script with --all or a date range", "check": "marker", "ref": "brain-compile.js" },
+            { "step": "List new candidates by path and title", "check": "marker", "ref": "candidate" }
+          ]
+        },
+        "judgment": [
+          "Runs scripts/brain/brain-compile.js, choosing --all or a date range since the scope spans 'everything logged while we built' rather than a single day",
+          "Output references project-specific terminology (skill-audit, the 47-pattern scanner) in describing what candidates cover",
+          "Does not attempt to promote the resulting candidates to canon"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "installed_skills": ["skill-audit"],
+        "stack": ["Node.js"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "The Stop-hook suggestion just mentioned uncompiled entries again — go ahead and compile the brain now so candidates are current before tomorrow's brain-weekly-review.",
+      "target": "stop-hook-triggered-compile",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-compile[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the compile script", "check": "marker", "ref": "brain-compile.js" },
+            { "step": "List new candidates by path and title", "check": "marker", "ref": "candidate" },
+            { "step": "Run brain-lint.js on new candidates", "check": "marker", "ref": "brain-lint.js" }
+          ]
+        },
+        "judgment": [
+          "Recognizes the Stop-hook suggestion as one of the documented 'When to use' triggers and runs the workflow rather than just acknowledging the hook message",
+          "Runs brain-lint.js after compiling and surfaces warnings, since this run is explicitly framed as prep for a downstream review",
+          "Does not attempt the weekly review itself — only compiles so candidates are current for it"
+        ]
+      },
+      "project_context_used": {
+        "hooks": ["log-invocation.js", "log-outcome.js"],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We agreed I'd wrap up today's work by compiling the brain — scope is just today, no need to specify --all. Go ahead and run it now.",
+      "target": "resumed-today-compile",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-compile[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the compile script with default (today) scope", "check": "marker", "ref": "brain-compile.js" },
+            { "step": "List new candidates by path and title", "check": "marker", "ref": "candidate" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing and does not re-ask which scope to use",
+          "Uses the already-established today-only scope (default, no --all flag) directly",
+          "Does not promote any resulting candidates — stays within brain-compile's bounds"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL"
+      }
+    }
+  ]
+}

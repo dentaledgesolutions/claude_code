@@ -1,0 +1,261 @@
+{
+  "skill_name": "brain-context-pack",
+  "generated_from": "skills/brain-context-pack/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "a substantial upcoming task that needs constraining prior context",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Pack context for rewriting the skill-audit secrets-detection patterns before I start — I want to know what's already been decided.",
+      "target": "skill-audit-secrets-rewrite-context-pack",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-context-pack[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "State task intent in <=6 words", "check": "marker", "ref": "intent" },
+            { "step": "Run the context-pack script", "check": "marker", "ref": "brain-context-pack.js" },
+            { "step": "Read relevant_canon and relevant_decisions files", "check": "marker", "ref": "relevant_canon" },
+            { "step": "Summarize constraining decisions, lessons, and gaps", "check": "marker", "ref": "constrain" }
+          ]
+        },
+        "judgment": [
+          "Runs scripts/brain/brain-context-pack.js --intent with a concise (<=6 word) task intent",
+          "Reads every file listed under relevant_canon and relevant_decisions and skims lesson hits",
+          "Summarizes which prior decisions constrain the task, which lessons apply, and names any gaps rather than papering over them"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "What should I know before touching the telemetry aggregator's rejection_rate calculation? Load whatever context exists so I don't repeat a past mistake.",
+      "target": "telemetry-aggregator-rejection-rate-context",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-context-pack[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the context-pack script", "check": "marker", "ref": "brain-context-pack.js" },
+            { "step": "Summarize constraining decisions, lessons, and gaps", "check": "marker", "ref": "constrain" }
+          ]
+        },
+        "judgment": [
+          "'What should I know before doing Y' phrasing matches the documented trigger directly and loads full task-scoped context, not a single lookup",
+          "Produces the same summarize-constraints-and-gaps output as the direct-trigger scenario"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-conflict-surfaced",
+      "type": "edge_case",
+      "prompt": "Load the brain for this task — I'm about to have skill-eval skip the analyst pass to save time on a big batch run.",
+      "target": "skip-analyst-pass-context-pack",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-context-pack[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the context-pack script", "check": "marker", "ref": "brain-context-pack.js" },
+            { "step": "State the conflict before proceeding", "check": "marker", "ref": "conflict" }
+          ]
+        },
+        "judgment": [
+          "Runs the workflow and, per the Second Brain Protocol rule, states the conflict explicitly before proceeding if memory (e.g. CLAUDE.md's 'never skip the analyst pass' rule) contradicts the requested task",
+          "Does not silently proceed with the skip — surfaces the tension so the user can decide with full information"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explain-only",
+      "type": "negative",
+      "prompt": "What's a context pack, conceptually — how is it different from just reading the whole .project-brain directory myself?",
+      "target": "context-pack-concept-explanation",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-context-pack[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Correctly reads this as a request to explain the concept, not to run it for an actual upcoming task",
+          "Does not invoke brain-context-pack.js or the workflow — answers conversationally from the SKILL.md description"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-synonym-trigger",
+      "type": "semantic",
+      "prompt": "Before I dive into overhauling the agent-refine mutation levers, get me up to speed on anything the project already knows that bears on this.",
+      "target": "agent-refine-lever-overhaul-context",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-context-pack[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the context-pack script", "check": "marker", "ref": "brain-context-pack.js" },
+            { "step": "Summarize constraining decisions, lessons, and gaps", "check": "marker", "ref": "constrain" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('get me up to speed on anything ... that bears on this') activates the skill without the literal words 'pack' or 'load'",
+          "Recognizes this as a substantial task requiring full context load, not a single-fact lookup"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-one-off-lookup-confusion",
+      "type": "adversarial",
+      "prompt": "Just search the brain for the caching decision — that's all I need, nothing fancy.",
+      "target": "caching-decision-one-off-lookup",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-context-pack[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Recognizes 'just search the brain for X, that's all I need' as an explicit single-item lookup, which is brain-search's job, not a task-scoped context load",
+          "Must NOT invoke brain-context-pack's workflow — routing to brain-search (or a direct search) is correct",
+          "Does not run brain-context-pack.js against a narrow one-off query"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "Pack context for adding a 'Files it may edit' section standard across all skills/ SKILL.md files — what's already been decided about SKILL.md conventions in this Node.js toolkit?",
+      "target": "skill-md-conventions-context-pack",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-context-pack[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "State task intent in <=6 words", "check": "marker", "ref": "intent" },
+            { "step": "Run the context-pack script", "check": "marker", "ref": "brain-context-pack.js" },
+            { "step": "Summarize constraining decisions, lessons, and gaps", "check": "marker", "ref": "constrain" }
+          ]
+        },
+        "judgment": [
+          "Output references project-specific terminology (SKILL.md, skills/ directory)",
+          "Integrates with the project's Node.js stack (node scripts/brain/brain-context-pack.js invocation)",
+          "Names gaps explicitly if no prior SKILL.md-convention decisions exist ('no decisions recorded on this topic yet') rather than inventing constraints"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact_paths": ["skills/", ".claude/agents/"],
+        "stack": ["Node.js"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "I'm about to run skill-refine on skill-scout after its dispatch accuracy came back low — pack context for that so I know what prior refine attempts and lessons already apply before I touch the levers.",
+      "target": "skill-refine-scout-context-pack",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-context-pack[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the context-pack script", "check": "marker", "ref": "brain-context-pack.js" },
+            { "step": "Summarize constraining decisions, lessons, and gaps", "check": "marker", "ref": "constrain" }
+          ]
+        },
+        "judgment": [
+          "Activates correctly as a pre-step before the skill-refine pipeline stage, loading task-scoped context rather than deferring to the SessionStart hook's general protocol bootstrap",
+          "Does not itself run skill-refine or skill-scout — stays scoped to surfacing constraining decisions/lessons",
+          "Surfaces any sensitive-content warnings verbatim if present in the loaded context"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": ["skill-refine", "skill-scout"],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We agreed that before I start rewriting the telemetry privacy doc, you'd pack context for it first so I don't contradict earlier decisions about what events-*.jsonl may contain. We're using SKILL terminology (our hooks include log-invocation.js, log-outcome.js). Go ahead and do that now.",
+      "target": "resumed-telemetry-privacy-context-pack",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-context-pack[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the context-pack script", "check": "marker", "ref": "brain-context-pack.js" },
+            { "step": "Summarize constraining decisions, lessons, and gaps", "check": "marker", "ref": "constrain" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing and does not re-ask what the task is",
+          "Uses the already-established intent (telemetry privacy doc rewrite / events-*.jsonl constraints) directly as the --intent value",
+          "States any conflicts between recorded decisions and the planned rewrite before proceeding, per the Second Brain Protocol rule"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL",
+        "hooks": ["log-invocation.js", "log-outcome.js"]
+      }
+    }
+  ]
+}

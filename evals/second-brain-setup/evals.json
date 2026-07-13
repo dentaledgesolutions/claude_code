@@ -1,0 +1,264 @@
+{
+  "skill_name": "second-brain-setup",
+  "generated_from": "skills/second-brain-setup/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "a freshly bootstrapped .project-brain/ capsule needing personalization",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-setup-the-brain",
+      "type": "direct",
+      "prompt": "Let's set up the second brain for this project now that the capsule exists.",
+      "target": "fresh-capsule-personalization",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?second-brain-setup[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Check .project-brain exists and passes brain-verify", "check": "marker", "ref": "brain-verify" },
+            { "step": "Run 5-round interview", "check": "marker", "ref": "round" },
+            { "step": "Show BRAIN.md diff for approval before writing", "check": "marker", "ref": "diff" },
+            { "step": "Capture completion note", "check": "marker", "ref": "brain-capture.js" }
+          ]
+        },
+        "judgment": [
+          "Confirms .project-brain/ exists and passes brain-verify before starting (precondition check)",
+          "Runs the 5-round interview one round per message, summarizing each round back before moving on",
+          "Shows the full BRAIN.md diff for approval before writing, and never touches the Protocol/Routing/Hard Rules sections"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-personalize-brain-md",
+      "type": "paraphrased",
+      "prompt": "Can we personalize BRAIN.md now? I want it to actually reflect how our team works instead of the generic template.",
+      "target": "personalize-brain-md-template",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?second-brain-setup[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Check .project-brain exists and passes brain-verify", "check": "marker", "ref": "brain-verify" },
+            { "step": "Run 5-round interview", "check": "marker", "ref": "round" },
+            { "step": "Show BRAIN.md diff for approval before writing", "check": "marker", "ref": "diff" }
+          ]
+        },
+        "judgment": [
+          "'Personalize BRAIN.md' is a listed trigger phrase and activates the skill correctly",
+          "Interviews across the 5 rounds (project & purpose, Claude's role, rules & boundaries, strengths & failure modes, goals & current state) rather than shortcutting to a single question",
+          "Writes in the user's own voice, leaving sections thin where interview answers were thin rather than fabricating detail"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-no-capsule-yet",
+      "type": "edge_case",
+      "prompt": "Configure the brain for this project — let's get BRAIN.md personalized.",
+      "target": "setup-attempted-without-capsule",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?second-brain-setup[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Check .project-brain exists and passes brain-verify", "check": "marker", "ref": "brain-verify" },
+            { "step": "Detect missing capsule and stop the interview", "check": "marker", "ref": "project-brain-bootstrap" }
+          ]
+        },
+        "judgment": [
+          "Skill triggers on the 'configure the brain' phrasing, but the precondition check (.project-brain exists, passes brain-verify) fails since no capsule exists yet",
+          "Stops before starting the 5-round interview and routes the user to project-brain-bootstrap first rather than proceeding on a nonexistent capsule",
+          "Does not fabricate or write any BRAIN.md content in the absence of a capsule to personalize"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explain-interview-questions",
+      "type": "negative",
+      "prompt": "What kinds of questions does the second-brain setup interview actually ask? I want to know before I commit the time.",
+      "target": "interview-question-explanation",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?second-brain-setup[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Recognized as a question about the process, not a request to actually start the interview",
+          "Answers conversationally (5 rounds: project & purpose, Claude's role, rules & boundaries, strengths & failure modes, goals & current state) without invoking the skill or beginning round 1"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-fill-in-human-context",
+      "type": "semantic",
+      "prompt": "The brain capsule feels pretty generic right now — none of it actually sounds like us. Can we fix that?",
+      "target": "generic-capsule-humanization",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?second-brain-setup[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Check .project-brain exists and passes brain-verify", "check": "marker", "ref": "brain-verify" },
+            { "step": "Run 5-round interview", "check": "marker", "ref": "round" },
+            { "step": "Show BRAIN.md diff for approval before writing", "check": "marker", "ref": "diff" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('feels generic', 'doesn't sound like us') activates the skill without the literal words 'set up' or 'configure' or 'personalize'",
+          "Correctly interprets this as a request to fill BRAIN.md's human sections and brain-profile identity fields, not a request to capture a note or bootstrap a new capsule"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-bootstrap-scope-confusion",
+      "type": "adversarial",
+      "prompt": "Create a .project-brain capsule here and bootstrap the second brain from scratch for this repo.",
+      "target": "capsule-bootstrap-request",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?second-brain-setup[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe using brain vocabulary ('create a capsule', 'bootstrap') that names project-brain-bootstrap's job, not second-brain-setup's",
+          "Must NOT invoke second-brain-setup's interview workflow — second-brain-setup only personalizes an EXISTING capsule, it never creates one",
+          "A conversational redirect toward project-brain-bootstrap (or letting that skill trigger instead) is correct"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-post-install-setup",
+      "type": "project-native",
+      "prompt": "We just ran install.sh with --with-second-brain for the claude_code toolkit — let's personalize BRAIN.md now.",
+      "target": "post-install-personalization",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?second-brain-setup[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Check .project-brain exists and passes brain-verify", "check": "marker", "ref": "brain-verify" },
+            { "step": "Run 5-round interview", "check": "marker", "ref": "round" },
+            { "step": "Show BRAIN.md diff for approval before writing", "check": "marker", "ref": "diff" },
+            { "step": "Capture completion note", "check": "marker", "ref": "brain-capture.js" }
+          ]
+        },
+        "judgment": [
+          "Correctly triggers immediately after install.sh --with-second-brain, exactly the listed post-install trigger scenario",
+          "References project-native artifact paths (.claude/agents/, install.sh) correctly if surfaced during the interview or the context/*.md stub updates",
+          "Ends with a scripts/brain/brain-capture.js --type note call to log setup completion, consistent with this project's Node.js script toolkit"
+        ]
+      },
+      "project_context_used": {
+        "stack": ["Node.js"],
+        "artifact_paths": ["./install.sh", ".claude/agents/"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration-with-pipeline",
+      "type": "project-workflow",
+      "prompt": "Now that skill-eval and skill-refine are both installed and running in claude_code, let's configure the brain so its 'Claude's role here' section reflects that this project is the skill/agent pipeline toolkit itself.",
+      "target": "pipeline-aware-brain-configuration",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?second-brain-setup[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Check .project-brain exists and passes brain-verify", "check": "marker", "ref": "brain-verify" },
+            { "step": "Run 5-round interview", "check": "marker", "ref": "round" },
+            { "step": "Show BRAIN.md diff for approval before writing", "check": "marker", "ref": "diff" }
+          ]
+        },
+        "judgment": [
+          "Activates correctly on 'configure the brain' framed around the project's actual pipeline (skill-eval, skill-refine) rather than generic content",
+          "Round 2 (Claude's role here) captures that this project IS the skill/agent pipeline toolkit, in the user's own words, without fabricating detail beyond what's given",
+          "Never touches decisions/ or canon/ — stays scoped to BRAIN.md human sections and context/*.md stubs"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": ["skill-eval", "skill-refine"],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-interview-round",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We finished round 3 on rules & boundaries — blunt communication style, no fabricated confidence. Let's continue with round 4, strengths and failure modes.",
+      "target": "resumed-round-4-continuation",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?second-brain-setup[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run 5-round interview", "check": "marker", "ref": "round" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite the resumption/continuation framing, picking up the interview rather than restarting it",
+          "Does not re-ask rounds 1-3 already established in context (project & purpose, Claude's role, rules & boundaries)",
+          "Proceeds directly to round 4 (strengths & failure modes) using the already-established blunt communication style from round 3"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL"
+      }
+    }
+  ]
+}

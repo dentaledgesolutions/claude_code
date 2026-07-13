@@ -1,0 +1,261 @@
+{
+  "skill_name": "project-brain-bootstrap",
+  "generated_from": "skills/project-brain-bootstrap/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "a fresh or existing .project-brain/ capsule",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Set up a project brain here — this repo doesn't have one yet and I want persistent memory going forward.",
+      "target": "fresh-capsule-bootstrap",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?project-brain-bootstrap[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Check for existing .project-brain/", "check": "marker", "ref": ".project-brain" },
+            { "step": "Run brain-self-install.sh", "check": "marker", "ref": "brain-self-install.sh" },
+            { "step": "Confirm brain-verify passed", "check": "marker", "ref": "brain-verify" }
+          ]
+        },
+        "judgment": [
+          "Checks whether .project-brain/ already exists before doing anything",
+          "Runs scripts/brain/brain-self-install.sh against the target repo",
+          "Confirms brain-verify passed and points the user at next steps (brain-capture, hooks)"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "Can you get the second brain bootstrapped for this project? We want the capsule structure in place before the team starts logging decisions.",
+      "target": "second-brain-bootstrap-request",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?project-brain-bootstrap[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Check for existing .project-brain/", "check": "marker", "ref": ".project-brain" },
+            { "step": "Run brain-self-install.sh", "check": "marker", "ref": "brain-self-install.sh" }
+          ]
+        },
+        "judgment": [
+          "Recognizes 'bootstrapped' + 'capsule structure' as the same request despite reworded phrasing",
+          "Produces the same capsule-creation outcome as the direct-trigger scenario"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-capsule-already-exists",
+      "type": "edge_case",
+      "prompt": "This project has no .project-brain — actually wait, I think we set one up months ago. Can you bootstrap it anyway just to be safe?",
+      "target": "capsule-already-exists-stop",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?project-brain-bootstrap[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Check for existing .project-brain/", "check": "marker", "ref": ".project-brain" },
+            { "step": "STOP without running brain-self-install.sh", "check": "marker", "ref": "stop" }
+          ]
+        },
+        "judgment": [
+          "Triggers and checks for an existing capsule first, per workflow step 1",
+          "On finding .project-brain/ already exists, STOPS and reports rather than running brain-self-install.sh or overwriting anything",
+          "Does not treat 'bootstrap it anyway' as license to force an overwrite — the skill's explicit stop condition wins over the user's 'just to be safe' framing"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explanation-question",
+      "type": "negative",
+      "prompt": "What does bootstrapping a brain involve, exactly? I'm trying to understand the process before I commit to it.",
+      "target": "bootstrap-explanation-question",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?project-brain-bootstrap[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Correctly reads this as an informational question about the process, not a request to actually create a capsule",
+          "Answers conversationally without invoking the bootstrap workflow or running brain-self-install.sh"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-no-capsule-yet",
+      "type": "semantic",
+      "prompt": "I checked and there's no .project-brain directory anywhere in this repo — we need the persistent-memory structure created from scratch before we can start using any of the brain skills.",
+      "target": "no-capsule-detected",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?project-brain-bootstrap[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-self-install.sh", "check": "marker", "ref": "brain-self-install.sh" },
+            { "step": "Confirm brain-verify passed", "check": "marker", "ref": "brain-verify" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('no .project-brain directory', 'persistent-memory structure created from scratch') activates the skill without the literal words 'bootstrap' or 'set up'",
+          "Runs brain-self-install.sh to create the capsule"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-second-brain-setup-confusion",
+      "type": "adversarial",
+      "prompt": "Let's configure the brain mode and personalize BRAIN.md with our team's actual working style and preferences.",
+      "target": "brain-personalization-request",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?project-brain-bootstrap[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe using brain vocabulary ('configure the brain mode', 'personalize BRAIN.md') that names second-brain-setup's job (Phase 5 interview), not bootstrap's capsule creation",
+          "Must NOT invoke project-brain-bootstrap — a redirect toward second-brain-setup is correct, since a capsule presumably already exists to be personalized"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-toolkit-terminology",
+      "type": "project-native",
+      "prompt": "This project has no .project-brain — go ahead and bootstrap the second brain for this Node.js toolkit repo before we wire up the SKILL pipeline hooks.",
+      "target": "toolkit-repo-bootstrap",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?project-brain-bootstrap[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-self-install.sh", "check": "marker", "ref": "brain-self-install.sh" },
+            { "step": "Confirm brain-verify passed", "check": "marker", "ref": "brain-verify" },
+            { "step": "Merge hooks into .claude/settings.local.json", "check": "marker", "ref": ".claude/settings.local.json" }
+          ]
+        },
+        "judgment": [
+          "Output references project-specific terminology (SKILL, .claude/settings.local.json hook merge)",
+          "Correctly distinguishes from running the toolkit's own install.sh — this is capsule creation, not whole-toolkit installation",
+          "Integrates with the project's Node.js stack (script invocation, no build step)"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact": ".claude/",
+        "stack": ["Node.js"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "We just finished project-setup and generated evals/project-context.json for claude_code, but there's still no .project-brain/ here. Bootstrap the second brain now so brain-capture and the other pipeline skills have somewhere to write.",
+      "target": "post-project-setup-bootstrap",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?project-brain-bootstrap[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-self-install.sh", "check": "marker", "ref": "brain-self-install.sh" },
+            { "step": "Confirm brain-verify passed", "check": "marker", "ref": "brain-verify" },
+            { "step": "Capture a bootstrap note via brain-capture.js", "check": "marker", "ref": "brain-capture.js" }
+          ]
+        },
+        "judgment": [
+          "Activates correctly as a follow-on step after project-setup in the project's pipeline, distinct from the skill/agent pipeline stages",
+          "Captures a bootstrap note via brain-capture.js as the final workflow step and points the user at brain-capture for future use"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": [
+          "project-setup", "skill-scout", "skill-audit", "skill-adapt", "skill-eval"
+        ],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We confirmed claude_code has no .project-brain/ capsule and agreed the default target is this repo's root. Let's continue — go ahead and run the bootstrap now.",
+      "target": "resumed-bootstrap-confirmation",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?project-brain-bootstrap[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-self-install.sh", "check": "marker", "ref": "brain-self-install.sh" },
+            { "step": "Confirm brain-verify passed", "check": "marker", "ref": "brain-verify" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing",
+          "Does not re-ask whether a capsule already exists or what the target is — both already established in context",
+          "Proceeds directly to running brain-self-install.sh against the already-agreed target (repo root)"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL"
+      }
+    }
+  ]
+}

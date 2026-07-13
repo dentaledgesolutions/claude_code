@@ -1,0 +1,259 @@
+{
+  "skill_name": "brain-search",
+  "generated_from": "skills/brain-search/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "a question about what the brain knows on a topic",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Search the brain for anything about our caching strategy — did we ever settle on an approach?",
+      "target": "caching-strategy-search",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-search[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Distill the question into search terms", "check": "marker", "ref": "search terms" },
+            { "step": "Run the search script", "check": "marker", "ref": "brain-search.js" },
+            { "step": "Present hits grouped by authority", "check": "marker", "ref": "authority" }
+          ]
+        },
+        "judgment": [
+          "Runs scripts/brain/brain-search.js --query with 2-5 distilled terms and --json --limit 8",
+          "Presents hits grouped by authority (canon first) with title, path, and a one-line gist",
+          "States the authority level explicitly for each hit rather than treating all results as equally authoritative"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "Did we decide anything about how we handle flaky CI tests? Check the project brain before I re-litigate this.",
+      "target": "flaky-ci-decision-lookup",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-search[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the search script", "check": "marker", "ref": "brain-search.js" },
+            { "step": "Present hits grouped by authority", "check": "marker", "ref": "authority" }
+          ]
+        },
+        "judgment": [
+          "'Did we decide anything about Y' and 'check the project brain' both match documented trigger phrasing directly",
+          "Produces the same authority-labeled output structure as the direct-trigger scenario"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-zero-hits",
+      "type": "edge_case",
+      "prompt": "What do we know about rate-limiting our outbound webhook calls? I don't think we've talked about it but wanted to check first.",
+      "target": "webhook-rate-limiting-zero-hits",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-search[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the search script", "check": "marker", "ref": "brain-search.js" },
+            { "step": "State zero hits plainly and suggest related terms", "check": "marker", "ref": "zero hits" }
+          ]
+        },
+        "judgment": [
+          "Still runs the search rather than assuming the answer is 'no' without checking",
+          "On zero hits, states this plainly and suggests related search terms rather than fabricating brain content or guessing at prior decisions"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explain-only",
+      "type": "negative",
+      "prompt": "How does brain search rank results — what makes canon show up before a session note?",
+      "target": "brain-search-ranking-explanation",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-search[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Correctly reads this as a request to explain the authority-ranking mechanism, not to run a search",
+          "Does not invoke brain-search.js or the brain-search workflow — answers conversationally from the SKILL.md description"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-synonym-trigger",
+      "type": "semantic",
+      "prompt": "Before I propose this again, has this repo's memory got anything on file about why we moved off the old deploy script?",
+      "target": "deploy-script-history-lookup",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-search[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the search script", "check": "marker", "ref": "brain-search.js" },
+            { "step": "Present hits grouped by authority", "check": "marker", "ref": "authority" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('this repo's memory got anything on file about') activates the skill without the literal verb 'search'",
+          "Distills the question into concrete search terms (e.g. 'deploy script', 'migration') rather than passing the raw sentence"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-code-search-confusion",
+      "type": "adversarial",
+      "prompt": "Search the codebase for the auth() function — I need to see where it's defined and everywhere it's called.",
+      "target": "auth-function-code-search",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-search[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Recognizes 'search the codebase' targeting a specific function is a Grep/Explore task, not a brain-search task, despite the word 'search' appearing",
+          "Must NOT invoke brain-search's workflow — using Grep or an Explore-style code search is the correct response",
+          "Does not run scripts/brain/brain-search.js against a source-code query"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "Check the project brain — did we ever record a decision about how skill-audit's 47-pattern scanner should categorize prompt-injection findings?",
+      "target": "skill-audit-pattern-categorization-search",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-search[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the search script", "check": "marker", "ref": "brain-search.js" },
+            { "step": "Present hits grouped by authority", "check": "marker", "ref": "authority" }
+          ]
+        },
+        "judgment": [
+          "Output references project-specific terminology (skill-audit, 47-pattern scanner, prompt injection) drawn from the actual hit content",
+          "Distills the query into terms like 'skill-audit prompt injection categorization' rather than passing the whole sentence verbatim",
+          "Integrates with the project's Node.js stack (node scripts/brain/brain-search.js invocation)"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "installed_skills": ["skill-audit"],
+        "stack": ["Node.js"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "Before I re-run skill-refine on skill-scout, check the project brain for any past lessons about its autoresearch loop converging too slowly.",
+      "target": "skill-refine-convergence-lesson-search",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-search[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the search script", "check": "marker", "ref": "brain-search.js" },
+            { "step": "Present hits grouped by authority", "check": "marker", "ref": "authority" }
+          ]
+        },
+        "judgment": [
+          "Activates correctly as a pre-check before the skill-refine pipeline step, not as part of skill-refine itself",
+          "If the user acts on a canon/active hit, reminds them changes go through candidates + brain-promote",
+          "Does not attempt to run skill-refine or skill-scout itself — stays scoped to the lookup"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": ["skill-refine", "skill-scout"],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We were about to start work on tightening skill-audit's secrets-detection patterns, and you said you'd check the brain first for prior lessons on false positives in that category. We're using SKILL terminology (our hooks include log-invocation.js, log-outcome.js). Go ahead and run that search now.",
+      "target": "resumed-secrets-detection-false-positive-search",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-search[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the search script", "check": "marker", "ref": "brain-search.js" },
+            { "step": "Present hits grouped by authority", "check": "marker", "ref": "authority" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing and does not re-ask what to search for",
+          "Uses the already-established topic (secrets-detection false positives in skill-audit) directly as search terms",
+          "Labels authority level of any hits found (canon vs session note) per the skill's success criteria"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL",
+        "hooks": ["log-invocation.js", "log-outcome.js"]
+      }
+    }
+  ]
+}

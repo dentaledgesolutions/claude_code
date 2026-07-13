@@ -1,0 +1,260 @@
+{
+  "skill_name": "brain-kernel",
+  "generated_from": "skills/brain-kernel/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "an unclear or general second-brain request needing diagnosis and routing",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-brain-status-request",
+      "type": "direct",
+      "prompt": "Brain status — how's the project brain doing right now?",
+      "target": "brain-status-diagnosis",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-kernel[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-verify.js", "check": "marker", "ref": "brain-verify.js" },
+            { "step": "Run brain-lint.js", "check": "marker", "ref": "brain-lint.js" },
+            { "step": "Report one-screen status and route", "check": "marker", "ref": "route" }
+          ]
+        },
+        "judgment": [
+          "Runs brain-verify.js and brain-lint.js to diagnose structure and quality/security state",
+          "Reports a one-screen summary: structure OK, security findings, N candidates pending, days since last review",
+          "Routes to the correct next skill based on findings rather than performing a governed write itself"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-vague-help-request",
+      "type": "paraphrased",
+      "prompt": "Can you help me with our project memory setup? Not sure what state it's in or what needs doing.",
+      "target": "vague-memory-help-request",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-kernel[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-verify.js", "check": "marker", "ref": "brain-verify.js" },
+            { "step": "Run brain-lint.js", "check": "marker", "ref": "brain-lint.js" },
+            { "step": "Report one-screen status and route", "check": "marker", "ref": "route" }
+          ]
+        },
+        "judgment": [
+          "Correctly identifies this as an unclear-operation request ('help me with project memory' is a listed router trigger) rather than assuming a specific operation",
+          "Diagnoses capsule state before recommending any specific next step",
+          "Routes based on findings table (e.g. no capsule -> project-brain-bootstrap, placeholder BRAIN.md -> second-brain-setup) rather than guessing"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-no-capsule-found",
+      "type": "edge_case",
+      "prompt": "Do something with the brain — I think we set one up a while back but I honestly don't remember.",
+      "target": "missing-capsule-edge-case",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-kernel[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-verify.js and detect no capsule", "check": "marker", "ref": "brain-verify.js" },
+            { "step": "Route to project-brain-bootstrap", "check": "marker", "ref": "project-brain-bootstrap" }
+          ]
+        },
+        "judgment": [
+          "Triggers on the vague 'do something with the brain' phrasing and runs diagnosis first rather than assuming state",
+          "When brain-verify.js finds no .project-brain/ capsule, routes to project-brain-bootstrap per the findings table instead of attempting any brain operation itself",
+          "Does not fabricate a status report when there is nothing to diagnose — clearly states no capsule exists"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explain-brain-kernel",
+      "type": "negative",
+      "prompt": "What is the brain-kernel skill for, exactly? How is it different from the other brain skills?",
+      "target": "brain-kernel-explanation",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-kernel[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Recognized as a meta-question about the skill itself, not a request to diagnose or route anything",
+          "Answers conversationally (router for unclear brain requests, diagnoses then routes, never performs governed writes) without invoking the skill"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-general-wellness-check",
+      "type": "semantic",
+      "prompt": "It's been a while — can you give me a general sense of where things stand with our persistent project knowledge?",
+      "target": "general-knowledge-wellness-check",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-kernel[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-verify.js", "check": "marker", "ref": "brain-verify.js" },
+            { "step": "Run brain-lint.js", "check": "marker", "ref": "brain-lint.js" },
+            { "step": "Report one-screen status and route", "check": "marker", "ref": "route" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('general sense', 'persistent project knowledge', 'it's been a while') activates the router without naming a specific operation",
+          "Surfaces days-since-last-review as part of the status report, which is directly relevant to the 'it's been a while' framing",
+          "Routes to brain-weekly-review if staleness is found (>7 days), per the findings table"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-named-operation-compile",
+      "type": "adversarial",
+      "prompt": "Compile the brain — take today's session notes and turn them into candidate entries for review.",
+      "target": "named-operation-compile-request",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-kernel[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "The user names a specific operation ('compile the brain') — brain-kernel must NOT trigger here; this goes directly to brain-compile",
+          "Must not run a diagnosis-then-route cycle for a request that already unambiguously names its destination skill",
+          "A conversational handoff naming brain-compile directly (or letting brain-compile trigger) is correct; invoking brain-kernel's router workflow is the failure mode being tested"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-pipeline-checkin",
+      "type": "project-native",
+      "prompt": "How's the brain doing? We've been heads-down on skill-eval and agent-eval work in this Node.js toolkit and I haven't checked in on project memory in a while.",
+      "target": "pipeline-work-brain-checkin",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-kernel[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-verify.js", "check": "marker", "ref": "brain-verify.js" },
+            { "step": "Run brain-lint.js", "check": "marker", "ref": "brain-lint.js" },
+            { "step": "Report one-screen status and route", "check": "marker", "ref": "route" }
+          ]
+        },
+        "judgment": [
+          "Triggers on the vague 'how's the brain doing' status check despite project-specific framing around skill-eval/agent-eval work",
+          "Runs scripts/brain/brain-verify.js and scripts/brain/brain-lint.js via Node.js, consistent with this project's script-only toolkit",
+          "Reports session-log activity relevant to the 'heads-down' period the user described, then routes appropriately (e.g. to brain-weekly-review if stale)"
+        ]
+      },
+      "project_context_used": {
+        "stack": ["Node.js"],
+        "installed_skills": ["skill-eval", "agent-eval"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-named-promote-operation",
+      "type": "project-workflow",
+      "prompt": "We just finished the skill-eval cycle on brain-capture — now let's promote the candidates that came out of it.",
+      "target": "named-promote-after-eval-cycle",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-kernel[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "The user names the specific operation 'promote the candidates' — this routes directly to /brain-promote, not through brain-kernel's diagnose-and-route cycle",
+          "brain-kernel correctly stays out of the way for an already-disambiguated request even when it follows naturally from a pipeline step (skill-eval) mentioned in project context",
+          "Suggesting the user run /brain-promote (since it is user-invoked only) without running brain-kernel's own diagnostic workflow is the correct behavior"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": ["skill-eval"],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-status-check",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We were talking about our second-brain setup for claude_code but got sidetracked. Let's pick back up — what's the overall state of things, and what should we do next?",
+      "target": "resumed-general-status-and-routing",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-kernel[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-verify.js", "check": "marker", "ref": "brain-verify.js" },
+            { "step": "Run brain-lint.js", "check": "marker", "ref": "brain-lint.js" },
+            { "step": "Report one-screen status and route", "check": "marker", "ref": "route" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite the resumption framing — 'what's the overall state of things, what should we do next' is still an unclear-operation request that needs diagnosis",
+          "Does not assume the earlier sidetracked topic implies a specific operation; still runs the diagnose step before recommending a route",
+          "Uses the established project_name (claude_code) in its status report rather than re-asking which project"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL"
+      }
+    }
+  ]
+}

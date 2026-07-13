@@ -1,0 +1,266 @@
+{
+  "skill_name": "capture-learning",
+  "generated_from": "skills/capture-learning/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "a correction/mistake surfaced in conversation",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Learn from this — I had to correct you three times today about editing SKILL.md.baseline files. Please capture that so it doesn't happen again.",
+      "target": "skill-md-baseline-edit-mistake",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?capture-learning[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Draft candidate learning with How to apply", "check": "marker", "ref": "How to apply" },
+            { "step": "Present draft for confirmation via AskUserQuestion", "check": "marker", "ref": "AskUserQuestion" },
+            { "step": "Run brain-capture.js only after confirmation", "check": "marker", "ref": "brain-capture.js" },
+            { "step": "Run brain-compile", "check": "marker", "ref": "brain-compile" }
+          ]
+        },
+        "judgment": [
+          "Drafts an anti-pattern (repeated mistake, 'never this') with a behavioral How-to-apply rule, not a blame note",
+          "Presents the draft for per-item confirmation before writing anything",
+          "Runs brain-capture.js with --type lesson (title prefixed anti-pattern:) only after confirmation, then brain-compile"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "Don't do that again — you kept re-running the full test suite instead of just the changed package's tests. Can we make sure that sticks for next time?",
+      "target": "full-suite-rerun-mistake",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?capture-learning[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Draft candidate learning with How to apply", "check": "marker", "ref": "How to apply" },
+            { "step": "Present draft for confirmation", "check": "marker", "ref": "AskUserQuestion" },
+            { "step": "Run brain-capture.js only after confirmation", "check": "marker", "ref": "brain-capture.js" }
+          ]
+        },
+        "judgment": [
+          "Recognizes 'don't do that again' as the aprende trigger despite no literal 'learn from this' phrasing",
+          "Produces the same confirm-then-write outcome as the direct-trigger scenario"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-user-rejects-draft",
+      "type": "edge_case",
+      "prompt": "/aprende — I corrected your approach to the retry logic twice this session. Draft the lesson, but I want final say before anything gets written.",
+      "target": "retry-logic-lesson-user-review",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?capture-learning[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Draft candidate learning", "check": "marker", "ref": "How to apply" },
+            { "step": "Present draft and wait for explicit confirm/edit/reject", "check": "marker", "ref": "AskUserQuestion" },
+            { "step": "Do not run brain-capture.js until confirmation received", "check": "marker", "ref": "confirmation" }
+          ]
+        },
+        "judgment": [
+          "Triggers on the explicit /aprende slash pattern and drafts the lesson",
+          "Correctly treats 'final say' as reinforcing the skill's own hard rule — presents the draft and stops short of writing until the user confirms, edits, or rejects it",
+          "If the user rejects the draft in this turn, no brain-capture.js call happens and no trace is left, per 'zero writes before confirmation'"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-conceptual-question",
+      "type": "negative",
+      "prompt": "What's the actual difference between a lesson and an anti-pattern in the brain system? I keep mixing up when to use which.",
+      "target": "lesson-vs-anti-pattern-question",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?capture-learning[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Correctly reads this as a conceptual/explanatory question, not a request to capture a specific correction",
+          "Answers conversationally (lesson = do this, anti-pattern = never this) without drafting or writing anything"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-repeated-failure-synonym",
+      "type": "semantic",
+      "prompt": "This is the second time this session I've had to walk you back from force-pushing over a teammate's branch — we need to make sure this behavior is corrected going forward, not just fixed for now.",
+      "target": "force-push-repeated-error",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?capture-learning[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Draft candidate anti-pattern with How to apply", "check": "marker", "ref": "How to apply" },
+            { "step": "Present draft for confirmation", "check": "marker", "ref": "AskUserQuestion" },
+            { "step": "Run brain-capture.js only after confirmation", "check": "marker", "ref": "brain-capture.js" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('second time... walked you back', 'corrected going forward') identifies a repeated-error learning signal without the literal words 'learn' or 'aprende'",
+          "Classifies as anti-pattern (never force-push over a teammate's branch) rather than a routine lesson"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-routine-decision-confusion",
+      "type": "adversarial",
+      "prompt": "Just log this decision that we chose Postgres over SQLite for the new service — nothing dramatic, just want it on record.",
+      "target": "postgres-decision-logging",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?capture-learning[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe: a routine decision with no correction/mistake signal — this is brain-capture's job (type=decision), not capture-learning's",
+          "Must NOT invoke capture-learning's draft-then-confirm workflow — there was no error or reversal to learn from"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "/aprende — I had to correct you twice today for hardcoding a skill count instead of discovering skills dynamically via `find skills/ -mindepth 1 -maxdepth 1 -type d`. Capture that as an anti-pattern.",
+      "target": "hardcoded-skill-count-anti-pattern",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?capture-learning[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Draft candidate anti-pattern with How to apply", "check": "marker", "ref": "How to apply" },
+            { "step": "Present draft for confirmation", "check": "marker", "ref": "AskUserQuestion" },
+            { "step": "Run brain-capture.js with anti-pattern: prefix", "check": "marker", "ref": "anti-pattern:" }
+          ]
+        },
+        "judgment": [
+          "Output references the project's actual CLAUDE.md rule (discover skills dynamically, never hardcode a skill count)",
+          "Uses the anti-pattern: title prefix so brain-compile classifies it correctly",
+          "Integrates with the project's Node.js stack (script invocation only, no build step) and writes nothing before confirmation"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact": "skills/",
+        "stack": ["Node.js"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "During skill-refine on skill-scout, I had to stop you from committing evals/ artifacts — remember, evals/ is gitignored and should never be committed. Learn from this so it doesn't happen again in future refine loops.",
+      "target": "evals-gitignore-anti-pattern",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?capture-learning[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Draft candidate anti-pattern with How to apply", "check": "marker", "ref": "How to apply" },
+            { "step": "Present draft for confirmation", "check": "marker", "ref": "AskUserQuestion" },
+            { "step": "Run brain-capture.js only after confirmation", "check": "marker", "ref": "brain-capture.js" },
+            { "step": "Run brain-compile", "check": "marker", "ref": "brain-compile" }
+          ]
+        },
+        "judgment": [
+          "Activates correctly within the skill-refine loop context in the project's pipeline, without duplicating skill-refine's own iteration log",
+          "Does not attempt to log this as a routine decision (brain-capture) — treats it as a correction worth an anti-pattern entry, confirmed before write"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": [
+          "skill-refine", "skill-scout", "skill-eval", "skill-audit", "skill-adapt"
+        ],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We agreed the mistake worth capturing is that you deployed via ecc-agentshield --opus automatically without asking, which the project rules forbid — it makes live API calls. We already drafted the anti-pattern and I approved it. Let's continue — go ahead and write it now.",
+      "target": "agentshield-opus-auto-call-anti-pattern",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?capture-learning[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-capture.js using the already-confirmed draft", "check": "marker", "ref": "brain-capture.js" },
+            { "step": "Run brain-compile", "check": "marker", "ref": "brain-compile" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing",
+          "Does not re-draft or re-ask for confirmation already given earlier in the session — proceeds straight to the write since approval was already established",
+          "Writes the anti-pattern (title prefixed anti-pattern:) referencing the --opus auto-call rule and reports the file written"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL"
+      }
+    }
+  ]
+}

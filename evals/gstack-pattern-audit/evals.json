@@ -1,0 +1,266 @@
+{
+  "skill_name": "gstack-pattern-audit",
+  "generated_from": "skills/gstack-pattern-audit/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "the GStack reference source",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Analyze gstack and pull out anything from its sprint-loop and QA patterns we could reuse.",
+      "target": "gstack-sprint-loop-analysis",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/gstack-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?gstack-pattern-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Confirm gstack passes a clean audit (exit 0)", "check": "marker", "ref": "brain-reference-repo-audit.js --name gstack" },
+            { "step": "WebFetch the live GStack README/skill list", "check": "marker", "ref": "WebFetch" },
+            { "step": "Write synthesis findings", "check": "marker", "ref": ".project-brain/synthesis/gstack-patterns/" },
+            { "step": "Refresh the source card", "check": "marker", "ref": "brain-reference-repo-refresh.js --name gstack" }
+          ]
+        },
+        "judgment": [
+          "Confirms the gstack entry passes a clean audit before comparing it against the source card",
+          "WebFetches the live GStack repo read-only and writes findings to .project-brain/synthesis/gstack-patterns/<topic>.md with status:candidate",
+          "Refreshes last_reviewed on the gstack source card via brain-reference-repo-refresh.js"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "What can we learn from GStack's review-chain approach that might be worth adapting for our own CEO/design/eng review flow?",
+      "target": "gstack-review-chain-learnings",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/gstack-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?gstack-pattern-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Confirm gstack passes a clean audit (exit 0)", "check": "marker", "ref": "brain-reference-repo-audit.js --name gstack" },
+            { "step": "Write synthesis findings", "check": "marker", "ref": ".project-brain/synthesis/gstack-patterns/" }
+          ]
+        },
+        "judgment": [
+          "Produces the same synthesis-writing outcome as the direct-trigger scenario despite the 'what can we learn from' phrasing",
+          "Focuses the comparison on the review-chain topic named in the prompt"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-dirty-audit-blocks-extraction",
+      "type": "edge_case",
+      "prompt": "Extract gstack patterns for us — go ahead and start comparing it to the source card.",
+      "target": "gstack-extraction-with-stale-audit",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?gstack-pattern-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the gstack audit as the required first step", "check": "marker", "ref": "brain-reference-repo-audit.js --name gstack" },
+            { "step": "Stop and report if the audit is not exit 0", "check": "marker", "ref": "exit 0" }
+          ]
+        },
+        "judgment": [
+          "Activates and runs the gstack audit as step 1 rather than assuming it is already clean",
+          "If the audit does not return exit 0, the workflow stops there and reports the blocking finding instead of proceeding to WebFetch/synthesis — this is an explicit stop condition, not a full-workflow failure",
+          "Does not fabricate a clean-audit result to keep moving"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explanation-only",
+      "type": "negative",
+      "prompt": "What is GStack, anyway? I keep seeing it referenced in our reference-repositories but don't actually know what it is.",
+      "target": "gstack-explanation",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?gstack-pattern-audit[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Correctly reads this as a 'what is X' explanation question, not a request to extract or compare patterns",
+          "Does not invoke the gstack-pattern-audit workflow, WebFetch the live repo, or write synthesis output"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-synonym-trigger",
+      "type": "semantic",
+      "prompt": "Let's see if GStack's QA and review-chain approach has anything worth distilling into our own governed reference material.",
+      "target": "gstack-distillation-request",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/gstack-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?gstack-pattern-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Confirm gstack passes a clean audit (exit 0)", "check": "marker", "ref": "brain-reference-repo-audit.js --name gstack" },
+            { "step": "Write synthesis findings", "check": "marker", "ref": ".project-brain/synthesis/gstack-patterns/" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('distilling into governed reference material') activates the skill without the literal words 'analyze' or 'extract'",
+          "Correctly identifies GStack as the target rather than triggering the generic reference-repo-pattern-extract"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-generic-source-confusion",
+      "type": "adversarial",
+      "prompt": "Extract patterns from the aprende-skill source — see what candidate skills or agents we could pull out of it.",
+      "target": "aprende-skill-generic-extraction-request",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?gstack-pattern-audit[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe using pattern-extraction vocabulary against a non-GStack source (aprende-skill)",
+          "Must NOT invoke gstack-pattern-audit's workflow — this is the generic reference-repo-pattern-extract's job, not gstack-specific",
+          "Response either redirects to reference-repo-pattern-extract or asks whether gstack was meant, without WebFetching GStack"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "Compare GStack's skill list against our own skills/ directory in this Node.js toolkit and see what patterns are worth adopting into our SKILL.md conventions.",
+      "target": "gstack-vs-skills-dir-comparison",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/gstack-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?gstack-pattern-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Confirm gstack passes a clean audit (exit 0)", "check": "marker", "ref": "brain-reference-repo-audit.js --name gstack" },
+            { "step": "Write synthesis findings", "check": "marker", "ref": ".project-brain/synthesis/gstack-patterns/" }
+          ]
+        },
+        "judgment": [
+          "Output references project-specific terminology (SKILL.md, skills/) when framing what was learned from GStack",
+          "Integrates with the project's Node.js stack (script invocation, no build step)",
+          "Writes findings as synthesis candidates, not directly into skills/ — nothing gets installed as part of this workflow"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact": ".claude/",
+        "stack": ["Node.js"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "Now that skill-scout found a couple of GStack skills we might want, run the gstack pattern audit first so we have synthesis candidates before deciding what to send through skill-adapt.",
+      "target": "gstack-pre-adapt-synthesis",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/gstack-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?gstack-pattern-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Confirm gstack passes a clean audit (exit 0)", "check": "marker", "ref": "brain-reference-repo-audit.js --name gstack" },
+            { "step": "Write synthesis findings", "check": "marker", "ref": ".project-brain/synthesis/gstack-patterns/" }
+          ]
+        },
+        "judgment": [
+          "Activates correctly within the skill-scout -> gstack-pattern-audit -> skill-adapt handoff in the project's pipeline",
+          "Produces synthesis-authority candidates only — does not itself run skill-adapt or install anything",
+          "Does not duplicate or conflict with skill-scout's discovery role"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": [
+          "agent-adapt", "agent-audit", "agent-eval", "agent-refine", "agent-scout",
+          "project-audit", "project-idea", "project-setup", "repo-audit",
+          "skill-adapt", "skill-audit", "skill-discovery", "skill-eval",
+          "skill-refine", "skill-scout", "team-eval"
+        ],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd be looking at GStack's review-chain pattern specifically, since our gstack source card is already clean. We're using SKILL (our hooks include log-invocation.js, log-outcome.js). Let's continue — go ahead and run that extraction now.",
+      "target": "gstack-review-chain-resumed-extraction",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/gstack-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?gstack-pattern-audit[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Write synthesis findings for review-chain topic", "check": "marker", "ref": ".project-brain/synthesis/gstack-patterns/" },
+            { "step": "Refresh the source card", "check": "marker", "ref": "brain-reference-repo-refresh.js --name gstack" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing",
+          "Does not re-run the audit gate from scratch or re-ask which topic — uses the already-established review-chain focus and clean-audit status",
+          "Proceeds directly to WebFetch/synthesis/refresh given the established context"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL",
+        "hooks": ["log-invocation.js", "log-outcome.js"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,266 @@
+{
+  "skill_name": "reference-repo-add",
+  "generated_from": "skills/reference-repo-add/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "an external repo to register as source material",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Register https://github.com/vercel/turborepo as a reference repo — it's a methodology-source for how they structure monorepo build pipelines.",
+      "target": "turborepo-source-registration",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-add[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Confirm name/url/types with the user", "check": "marker", "ref": "types" },
+            { "step": "Run the add script", "check": "marker", "ref": "brain-reference-repo-add.js" },
+            { "step": "Open and fill the scaffolded source card", "check": "marker", "ref": "source-card.md" },
+            { "step": "Run the audit and report result", "check": "marker", "ref": "brain-reference-repo-audit.js" }
+          ]
+        },
+        "judgment": [
+          "Confirms kebab-case name, url, and a valid types value (methodology-source) before running the script",
+          "Runs scripts/brain/brain-reference-repo-add.js and reports the scaffolded source-card.md path",
+          "Never clones or installs the repo — registration is metadata + card only"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "Can you add this repo to our reference library? It's https://github.com/sveltejs/kit — I want it tracked as a candidate-skill-source in case we adapt one of its patterns later.",
+      "target": "sveltekit-source-registration",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-add[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Confirm name/url/types with the user", "check": "marker", "ref": "types" },
+            { "step": "Run the add script", "check": "marker", "ref": "brain-reference-repo-add.js" }
+          ]
+        },
+        "judgment": [
+          "Infers types=candidate-skill-source correctly from the stated intent",
+          "Produces the same outcome as the direct-trigger scenario despite reworded phrasing ('add to reference library' vs 'register')"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-bundled-install-request",
+      "type": "edge_case",
+      "prompt": "Register github.com/rails/rails as a reference repo for our backend patterns, and go ahead and clone it locally so we can browse the source directly.",
+      "target": "rails-source-registration-with-clone-request",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-add[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the add script for registration only", "check": "marker", "ref": "brain-reference-repo-add.js" },
+            { "step": "Refuse the bundled clone request", "check": "marker", "ref": "never clone" }
+          ]
+        },
+        "judgment": [
+          "Proceeds with registration (metadata + source card) since that part of the request is valid",
+          "Explicitly refuses the clone-locally part — install_policy stays do-not-install-directly and nothing is cloned",
+          "Does not silently drop the refusal — tells the user why cloning is out of scope for this skill"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-query-only",
+      "type": "negative",
+      "prompt": "What's in the reference library right now? Just give me a rundown of what sources we're already tracking.",
+      "target": "reference-library-contents-query",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-add[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Correctly reads this as a read-only query about existing registry contents, not a registration request",
+          "Does not invoke the reference-repo-add workflow or script — answers by reading the registry directly"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-synonym-trigger",
+      "type": "semantic",
+      "prompt": "We should start keeping tabs on this design-system project as governed source material for the team — https://github.com/shopify/polaris — so future work can cite its risk profile before anyone borrows from it.",
+      "target": "polaris-source-tracking",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-add[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Confirm name/url/types with the user", "check": "marker", "ref": "types" },
+            { "step": "Run the add script", "check": "marker", "ref": "brain-reference-repo-add.js" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('keeping tabs on', 'governed source material') activates the skill without literal verbs register/add/track",
+          "Recognizes 'risk profile' language as pointing at registry tracking, not an immediate audit"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-direct-install-confusion",
+      "type": "adversarial",
+      "prompt": "Install the aprende-skill repo into our skills dir — https://github.com/example/aprende-skill looks useful, let's get it running.",
+      "target": "aprende-skill-direct-install-request",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-add[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe requesting a direct skill install — this is NOT reference-repo-add's job even though it names a repo/skill",
+          "Must NOT invoke reference-repo-add's workflow — direct install is forbidden; the correct path is skill-scout -> skill-audit -> skill-adapt -> skill-eval",
+          "Response redirects the user toward the scout/audit/adapt/eval pipeline instead of registering or cloning anything"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "Register github.com/anthropics/some-agent-toolkit as a reference repo — it's an agent-pattern-source we might mine later for patterns to feed into .claude/agents/.",
+      "target": "agent-toolkit-source-registration",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-add[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Confirm name/url/types with the user", "check": "marker", "ref": "types" },
+            { "step": "Run the add script", "check": "marker", "ref": "brain-reference-repo-add.js" }
+          ]
+        },
+        "judgment": [
+          "Output references project-specific terminology (.claude/agents/) and the agent-pattern-source type correctly",
+          "Integrates with the project's Node.js stack (script invocation, no build step)",
+          "Confirms this is registration only — no agent gets installed into .claude/agents/ as part of this workflow"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact": ".claude/agents/",
+        "stack": ["Node.js"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "skill-scout just surfaced a promising candidate at github.com/example/lint-fixer-skill. Before we run skill-audit on it, register it as a reference repo first — type candidate-skill-source — so we have a governance record of where it came from.",
+      "target": "lint-fixer-skill-source-registration",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-add[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Confirm name/url/types with the user", "check": "marker", "ref": "types" },
+            { "step": "Run the add script", "check": "marker", "ref": "brain-reference-repo-add.js" },
+            { "step": "Run the audit and report result", "check": "marker", "ref": "brain-reference-repo-audit.js" }
+          ]
+        },
+        "judgment": [
+          "Activates correctly within the skill-scout -> reference-repo-add -> skill-audit handoff in the project's pipeline",
+          "Uses types=candidate-skill-source as stated, does not itself run skill-audit or skill-adapt — registration only"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": [
+          "agent-adapt", "agent-audit", "agent-eval", "agent-refine", "agent-scout",
+          "project-audit", "project-idea", "project-setup", "repo-audit",
+          "skill-adapt", "skill-audit", "skill-discovery", "skill-eval",
+          "skill-refine", "skill-scout", "team-eval"
+        ],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed I'd be registering github.com/pmndrs/zustand as a reference repo, name 'zustand', types methodology-source. We're using SKILL (our hooks include log-invocation.js, log-outcome.js). Let's continue — go ahead and register it now.",
+      "target": "zustand-source-registration",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-add[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run the add script", "check": "marker", "ref": "brain-reference-repo-add.js" },
+            { "step": "Open and fill the scaffolded source card", "check": "marker", "ref": "source-card.md" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing",
+          "Does not re-ask for the name, url, or types already established in context",
+          "Uses the already-established name='zustand' and types=methodology-source directly"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL",
+        "hooks": ["log-invocation.js", "log-outcome.js"]
+      }
+    }
+  ]
+}

@@ -1,0 +1,265 @@
+{
+  "skill_name": "brain-weekly-review",
+  "generated_from": "skills/brain-weekly-review/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "the current .project-brain/ state (stale items, active decisions, pending candidates)",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Let's do the weekly review of the project brain — it's been a week since the last one.",
+      "target": "weekly-brain-review",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-weekly-review[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-lint.js first", "check": "marker", "ref": "brain-lint.js" },
+            { "step": "Read BRAIN.md, index.md, decisions/active/ titles", "check": "marker", "ref": "decisions/active" },
+            { "step": "Interview delta list one item at a time", "check": "marker", "ref": "still accurate" },
+            { "step": "Stamp BRAIN.md Last reviewed date", "check": "marker", "ref": "Last reviewed" }
+          ]
+        },
+        "judgment": [
+          "Scans first (brain-lint.js) and reads current brain state before asking anything, per workflow step 1",
+          "Interviews the user delta-only — 'still accurate, changed, or superseded' — not a full re-ask of every item",
+          "Stamps BRAIN.md's Last reviewed line and captures a review summary via brain-capture.js"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "Can we refresh the brain today? I want to make sure everything's still accurate before next sprint planning.",
+      "target": "brain-refresh-request",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-weekly-review[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-lint.js first", "check": "marker", "ref": "brain-lint.js" },
+            { "step": "Interview delta list", "check": "marker", "ref": "still accurate" }
+          ]
+        },
+        "judgment": [
+          "Recognizes 'refresh the brain' as the weekly-review trigger despite reworded phrasing",
+          "Produces the same scan-then-interview outcome as the direct-trigger scenario"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-lint-reports-stale-items",
+      "type": "edge_case",
+      "prompt": "brain-lint says several items are stale — can you handle whatever it's flagging?",
+      "target": "lint-flagged-stale-items",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-weekly-review[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-lint.js to confirm the stale items", "check": "marker", "ref": "brain-lint.js" },
+            { "step": "Interview only the flagged deltas, not the whole brain", "check": "marker", "ref": "still accurate" },
+            { "step": "Update status fields only, no restructuring", "check": "marker", "ref": "status" }
+          ]
+        },
+        "judgment": [
+          "Triggers on the brain-lint-stale-items condition explicitly named in the skill's description",
+          "Runs brain-lint.js itself to build the delta list rather than assuming which items are stale from the user's summary",
+          "Edge case handled without restructuring the brain or promoting anything — status-field updates only, consistent with the skill's hard rules"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explanation-question",
+      "type": "negative",
+      "prompt": "When should I actually be doing a brain review — is there a recommended cadence, or is it just whenever things feel stale?",
+      "target": "review-cadence-question",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-weekly-review[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Correctly reads this as a question about when/how often to review, not a request to run the review now",
+          "Answers conversationally without invoking brain-lint.js or the interview workflow"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-maintenance-ritual-synonym",
+      "type": "semantic",
+      "prompt": "It's been a while since we did our periodic brain maintenance pass — let's make sure nothing in there has gone stale or out of date.",
+      "target": "periodic-maintenance-pass",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-weekly-review[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-lint.js first", "check": "marker", "ref": "brain-lint.js" },
+            { "step": "Interview delta list", "check": "marker", "ref": "still accurate" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('periodic brain maintenance pass', 'gone stale or out of date') activates the skill without the literal words 'weekly review'",
+          "Scans with brain-lint.js before interviewing, per the skill's scan-first rule"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-promote-scope-confusion",
+      "type": "adversarial",
+      "prompt": "Go ahead and promote the pending candidates to canon — I think they've been sitting there long enough.",
+      "target": "pending-candidates-promotion",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-weekly-review[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe using brain vocabulary ('pending candidates', 'promote', 'canon') that names brain-promote's job, not brain-weekly-review's",
+          "Must NOT invoke brain-weekly-review's status-update workflow to perform a promotion; if weekly-review is already mid-session it may hand off pending candidates to /brain-promote per its workflow step 3, but must not promote them itself",
+          "Correct response is a redirect toward brain-promote (or explaining that promotion is a separate, explicit human-approval step)"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "Let's run the weekly brain review for this Node.js toolkit repo — check whether any of the SKILL pipeline decisions in .project-brain/decisions/active/ have gone stale.",
+      "target": "toolkit-repo-weekly-review",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-weekly-review[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-lint.js first", "check": "marker", "ref": "brain-lint.js" },
+            { "step": "Read decisions/active/ titles", "check": "marker", "ref": "decisions/active" },
+            { "step": "Stamp BRAIN.md Last reviewed date", "check": "marker", "ref": "Last reviewed" }
+          ]
+        },
+        "judgment": [
+          "Output references project-specific terminology (SKILL, .project-brain/decisions/active/)",
+          "Correctly distinguishes from brain-compile (log distillation) — this is a status refresh of already-compiled decisions",
+          "Integrates with the project's Node.js stack (script invocation, no build step)"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact": ".claude/",
+        "stack": ["Node.js"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "We just finished a round of skill-refine on skill-scout and skill-audit this week. Before we start next week's pipeline work, let's run the brain review to make sure the decisions logged during those refine loops are still accurate.",
+      "target": "post-refine-weekly-review",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-weekly-review[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Run brain-lint.js first", "check": "marker", "ref": "brain-lint.js" },
+            { "step": "Interview delta list", "check": "marker", "ref": "still accurate" },
+            { "step": "Capture review summary via brain-capture.js", "check": "marker", "ref": "brain-capture.js" }
+          ]
+        },
+        "judgment": [
+          "Activates correctly as a maintenance checkpoint between pipeline work cycles (skill-refine on skill-scout/skill-audit), without re-running or duplicating skill-refine's own logs",
+          "Does not restructure or promote anything found stale from the refine loops — only updates status fields and hands off any promotion-worthy items to brain-promote"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": [
+          "skill-refine", "skill-scout", "skill-audit", "skill-eval", "skill-adapt"
+        ],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We already ran brain-lint.js and confirmed the only stale item is the 'adopt ecc-agentshield scanner' decision from three months ago — I said it's now superseded. Let's continue — go ahead and apply that update and stamp the review date.",
+      "target": "resumed-review-superseded-decision",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?brain-weekly-review[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Move decision to decisions/superseded/ and set status: superseded", "check": "marker", "ref": "superseded" },
+            { "step": "Stamp BRAIN.md Last reviewed date", "check": "marker", "ref": "Last reviewed" },
+            { "step": "Capture review summary via brain-capture.js", "check": "marker", "ref": "brain-capture.js" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing",
+          "Does not re-run brain-lint.js or re-interview the already-resolved item — uses the already-established 'superseded' verdict directly",
+          "Moves the decision file to decisions/superseded/ and updates its status field only, without restructuring, then stamps the Last reviewed line in BRAIN.md"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL"
+      }
+    }
+  ]
+}

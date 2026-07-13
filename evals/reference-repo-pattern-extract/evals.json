@@ -1,0 +1,266 @@
+{
+  "skill_name": "reference-repo-pattern-extract",
+  "generated_from": "skills/reference-repo-pattern-extract/SKILL.md",
+  "project_context": "evals/project-context.json",
+  "generation_note": "Hand-authored — generate-seed-evals.js emits sibling-skill-target prompts unsuitable for brain skills",
+  "target_selection": {
+    "target": "a registered non-GStack reference source to extract patterns from",
+    "source": "manual",
+    "domain": "skill"
+  },
+  "evals": [
+    {
+      "id": 1,
+      "eval_name": "direct-primary-trigger",
+      "type": "direct",
+      "prompt": "Extract patterns from the aprende-skill source — what candidate skills or agents could we pull out of it?",
+      "target": "aprende-skill-pattern-extraction",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/aprende-skill-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-pattern-extract[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Require a clean audit first", "check": "marker", "ref": "brain-reference-repo-audit.js --name aprende-skill" },
+            { "step": "Map the card", "check": "marker", "ref": "brain-reference-repo-map.js --name aprende-skill --json" },
+            { "step": "WebFetch and write synthesis", "check": "marker", "ref": ".project-brain/synthesis/aprende-skill-patterns/" },
+            { "step": "Refresh the source card", "check": "marker", "ref": "brain-reference-repo-refresh.js --name aprende-skill" }
+          ]
+        },
+        "judgment": [
+          "Requires a clean audit (exit 0) for aprende-skill before running the map script",
+          "Runs brain-reference-repo-map.js --json and writes findings to .project-brain/synthesis/aprende-skill-patterns/<topic>.md as status:candidate",
+          "Refreshes the source card via brain-reference-repo-refresh.js"
+        ]
+      }
+    },
+    {
+      "id": 2,
+      "eval_name": "paraphrased-reword",
+      "type": "paraphrased",
+      "prompt": "What can we reuse from the design-system-repo source for our own component conventions?",
+      "target": "design-system-repo-reuse",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/design-system-repo-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-pattern-extract[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Require a clean audit first", "check": "marker", "ref": "brain-reference-repo-audit.js --name design-system-repo" },
+            { "step": "Map the card", "check": "marker", "ref": "brain-reference-repo-map.js --name design-system-repo --json" }
+          ]
+        },
+        "judgment": [
+          "Produces the same audit-gate-then-extract outcome as the direct-trigger scenario despite 'what can we reuse' phrasing",
+          "Correctly scopes to the design-system-repo source named in the prompt"
+        ]
+      }
+    },
+    {
+      "id": 3,
+      "eval_name": "edge-case-open-exit3-finding-blocks",
+      "type": "edge_case",
+      "prompt": "Mine the legacy-toolkit source for patterns — I know it had some flagged findings a while back but I think that's old news by now.",
+      "target": "legacy-toolkit-blocked-extraction",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-pattern-extract[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Require a clean audit first", "check": "marker", "ref": "brain-reference-repo-audit.js --name legacy-toolkit" },
+            { "step": "Stop when the audit reports an open exit-3 finding", "check": "marker", "ref": "exit 3" }
+          ]
+        },
+        "judgment": [
+          "Activates and re-runs the audit rather than trusting the user's assumption that the finding is stale",
+          "If the audit reports an open exit-3 finding, extraction is explicitly blocked — the workflow stops before the map/WebFetch/synthesis steps and reports the finding",
+          "Does not proceed to extraction on the assumption that an old finding no longer applies"
+        ]
+      }
+    },
+    {
+      "id": 4,
+      "eval_name": "negative-explanation-only",
+      "type": "negative",
+      "prompt": "What does pattern extraction actually produce? Like, what would end up in .project-brain if we ran it on a source?",
+      "target": "pattern-extraction-output-explanation",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-pattern-extract[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Correctly reads this as a conceptual question about the output/artifact shape, not a request to run extraction",
+          "Does not invoke the reference-repo-pattern-extract workflow, audit gate, or map script — answers conversationally"
+        ]
+      }
+    },
+    {
+      "id": 5,
+      "eval_name": "semantic-synonym-trigger",
+      "type": "semantic",
+      "prompt": "Is there anything in the design-system-repo source worth distilling into our own governed synthesis material before we consider adapting it?",
+      "target": "design-system-repo-distillation",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/design-system-repo-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-pattern-extract[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Require a clean audit first", "check": "marker", "ref": "brain-reference-repo-audit.js --name design-system-repo" },
+            { "step": "Map the card", "check": "marker", "ref": "brain-reference-repo-map.js --name design-system-repo --json" }
+          ]
+        },
+        "judgment": [
+          "Synonym phrasing ('distilling into governed synthesis material') activates the skill without literal verbs extract/mine/reuse",
+          "Correctly treats this as the generic extract workflow since design-system-repo is not GStack"
+        ]
+      }
+    },
+    {
+      "id": 6,
+      "eval_name": "adversarial-gstack-specific-confusion",
+      "type": "adversarial",
+      "prompt": "Analyze gstack and pull its sprint patterns — I want to know what we could reuse from its sprint-loop approach.",
+      "target": "gstack-sprint-pattern-request",
+      "expected": {
+        "triggers": false,
+        "skill_loaded": false,
+        "evidence": {
+          "artifacts": [],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-pattern-extract[\"'`]?\\s*\\)", "expect": "absent" }
+          ],
+          "workflow_steps": []
+        },
+        "judgment": [
+          "Adversarial probe naming GStack specifically, which has its own dedicated skill (gstack-pattern-audit)",
+          "Must NOT invoke reference-repo-pattern-extract's generic workflow — GStack routes to gstack-pattern-audit instead",
+          "Response redirects to gstack-pattern-audit rather than running the generic map/extract flow against GStack"
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "eval_name": "project-native-terminology",
+      "type": "project-native",
+      "prompt": "Mine the aprende-skill source for candidate_skills and candidate_agents we could route through skill-scout and skill-audit next, in this Node.js toolkit.",
+      "target": "aprende-skill-candidate-mapping",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/aprende-skill-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-pattern-extract[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Require a clean audit first", "check": "marker", "ref": "brain-reference-repo-audit.js --name aprende-skill" },
+            { "step": "Map the card", "check": "marker", "ref": "brain-reference-repo-map.js --name aprende-skill --json" }
+          ]
+        },
+        "judgment": [
+          "Output references project-specific terminology (candidate_skills, candidate_agents from the map script's JSON shape)",
+          "Integrates with the project's Node.js stack (script invocation, no build step)",
+          "Notes that any candidate_skills/candidate_agents found still need the full skill-scout -> skill-audit -> skill-adapt -> skill-eval pipeline — extraction alone does not install anything"
+        ]
+      },
+      "project_context_used": {
+        "term": "SKILL",
+        "artifact": ".claude/agents/",
+        "stack": ["Node.js"]
+      }
+    },
+    {
+      "id": 8,
+      "eval_name": "project-workflow-integration",
+      "type": "project-workflow",
+      "prompt": "Now that reference-repo-audit came back clean (exit 0) for the design-system-repo source, extract its patterns so we can decide what to route through skill-adapt.",
+      "target": "design-system-repo-post-audit-extraction",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/design-system-repo-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-pattern-extract[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Map the card", "check": "marker", "ref": "brain-reference-repo-map.js --name design-system-repo --json" },
+            { "step": "WebFetch and write synthesis", "check": "marker", "ref": ".project-brain/synthesis/design-system-repo-patterns/" }
+          ]
+        },
+        "judgment": [
+          "Activates correctly within the reference-repo-audit -> reference-repo-pattern-extract -> skill-adapt handoff in the project's pipeline",
+          "Trusts the stated clean-audit result but still runs the map step rather than skipping straight to skill-adapt",
+          "Produces synthesis-authority candidates only — does not itself run skill-adapt"
+        ]
+      },
+      "project_context_used": {
+        "installed_skills": [
+          "agent-adapt", "agent-audit", "agent-eval", "agent-refine", "agent-scout",
+          "project-audit", "project-idea", "project-setup", "repo-audit",
+          "skill-adapt", "skill-audit", "skill-discovery", "skill-eval",
+          "skill-refine", "skill-scout", "team-eval"
+        ],
+        "project_name": "claude_code"
+      }
+    },
+    {
+      "id": 9,
+      "eval_name": "multi-turn-resumed-context",
+      "type": "multi-turn",
+      "prompt": "[Continuing from earlier in our session] We discussed claude_code and agreed the design-system-repo audit was clean (exit 0), and I'd be extracting its component-conventions patterns next. We're using SKILL (our hooks include log-invocation.js, log-outcome.js). Let's continue — go ahead and extract its patterns now.",
+      "target": "design-system-repo-resumed-extraction",
+      "expected": {
+        "triggers": true,
+        "skill_loaded": true,
+        "workflow_executed": true,
+        "evidence": {
+          "artifacts": [".project-brain/synthesis/design-system-repo-patterns/"],
+          "transcript_markers": [
+            { "kind": "tool_call", "pattern": "Skill\\(\\s*[\"'`]?reference-repo-pattern-extract[\"'`]?\\s*\\)", "expect": "present" }
+          ],
+          "workflow_steps": [
+            { "step": "Map the card", "check": "marker", "ref": "brain-reference-repo-map.js --name design-system-repo --json" },
+            { "step": "WebFetch and write synthesis for component-conventions topic", "check": "marker", "ref": ".project-brain/synthesis/design-system-repo-patterns/" }
+          ]
+        },
+        "judgment": [
+          "Triggers correctly despite continuation/resumption framing",
+          "Does not re-run the audit or re-ask which source/topic — uses the already-established clean-audit status and component-conventions focus directly",
+          "Proceeds straight to map/WebFetch/synthesis given the established context"
+        ]
+      },
+      "project_context_used": {
+        "project_name": "claude_code",
+        "workflow_term": "SKILL",
+        "hooks": ["log-invocation.js", "log-outcome.js"]
+      }
+    }
+  ]
+}
