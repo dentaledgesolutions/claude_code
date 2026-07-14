@@ -25,7 +25,7 @@ Record one durable observation into the project brain's session log.
 2. Confirm type and wording with the user if you inferred either.
 3. Run: `node scripts/brain/brain-capture.js --type <type> --title "<title>" --message "<content>"`
 4. If the script exits 3 (sensitive content), tell the user what pattern was flagged and ask for a redacted version — never bypass the refusal.
-5. Report the file written and remind: decisions/lessons become candidates via brain-compile.
+5. Report the file written and remind the user of the next step in the pipeline: **brain-compile** turns captured decisions/lessons into review candidates. (Do not name brain-promote here — promotion to canon is a separate, later, human-approved step; the immediate next step after capture is compile.)
 
 ## Files it may edit
 - `.project-brain/sessions/daily/*` (via the script only)
