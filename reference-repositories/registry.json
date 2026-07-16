@@ -92,7 +92,7 @@
     },
     {
       "name": "graphify",
-      "url": "https://github.com/safishamsi/graphify",
+      "url": "https://github.com/Graphify-Labs/graphify",
       "status": "reference",
       "types": ["retrieval-source", "candidate-skill-source"],
       "install_policy": "do-not-install-directly",

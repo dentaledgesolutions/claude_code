@@ -137,7 +137,7 @@ claude_code becomes the installer, auditor, evaluator, and lifecycle manager for
 |---|---|---|
 | GBrain | https://github.com/garrytan/gbrain | Optional advanced retrieval/synthesis/graph/gap-analysis/MCP layer. |
 | gbrain-evals | https://github.com/garrytan/gbrain-evals | Evaluation harness and benchmark philosophy for agent memory systems. Used to design `SecondBrainBench`. |
-| Graphify | https://github.com/safishamsi/graphify | Project/corpus graph compiler for repos, code, docs, PDFs, images, and diagrams. |
+| Graphify | https://github.com/Graphify-Labs/graphify | Project/corpus graph compiler for repos, code, docs, PDFs, images, and diagrams. |
 | RAG-Anything | https://github.com/hkuds/rag-anything | Specialized multimodal document RAG layer for PDFs, Office docs, charts, tables, images, equations. |
 | LightRAG | https://github.com/hkuds/lightrag | Optional graph-RAG backend, especially useful as a foundation under RAG-Anything or for corpus-level RAG experiments. |
 
