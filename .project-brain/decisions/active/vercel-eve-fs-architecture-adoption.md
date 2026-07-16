@@ -1,16 +1,13 @@
 ---
 type: synthesis
-status: candidate
+status: active
 title: "Vercel Eve filesystem-centric architecture — adoption analysis for the Hermes orchestrator layer"
 description: "Whether to adopt Vercel Eve's filesystem-as-registry pattern into the planned Hermes orchestrator layer. Recommendation: adopt the PATTERN (convention-over-config folder registry + evals-as-deploy-gate), not the Eve runtime; keep it framework-agnostic and VPS-friendly."
 tags: [architecture, agents, orchestrator, hermes, eve, filesystem-registry, adoption, deferred]
 timestamp: 2026-07-16
 authority: synthesis
-sources:
-  - https://github.com/vercel/eve
-  - https://eve.dev/docs/introduction
-  - https://github.com/coleam00/eve-analyst
-  - "Session analysis 2026-07-16 (Claude Opus 4.8); web sources fetched + summarized — verify beta API details before building"
+sources: 
+promoted_at: 2026-07-16
 ---
 
 # Vercel Eve filesystem-centric architecture — adoption analysis
