@@ -20,3 +20,5 @@ _Generated from registry.json — do not hand-edit._
 | pleaseprompto-notebooklm-skill | reference | research-source, candidate-skill-source | do-not-install-directly | 2026-07-08 |
 | deep-research-notebooklm | reference | research-source, skill-pattern-source | do-not-install-directly | 2026-07-08 |
 | kj-os-template | reference | human-workflow-source | do-not-install-directly | 2026-07-08 |
+| eve | reference | methodology-source, agent-pattern-source, skill-pattern-source | do-not-install-directly | 2026-07-16 |
+| eve-analyst | reference | agent-pattern-source, eval-scenario-source, skill-pattern-source | do-not-install-directly | 2026-07-16 |

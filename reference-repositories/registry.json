@@ -4,161 +4,303 @@
       "name": "gstack",
       "url": "https://github.com/garrytan/gstack",
       "status": "reference",
-      "types": ["methodology-source", "skill-pattern-source", "agent-pattern-source", "candidate-skill-source", "eval-scenario-source"],
+      "types": [
+        "methodology-source",
+        "skill-pattern-source",
+        "agent-pattern-source",
+        "candidate-skill-source",
+        "eval-scenario-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["extract sprint methodology", "analyze skill patterns", "source candidate skills through audit pipeline", "generate eval scenarios"],
-      "risk_notes": ["large opinionated bundle with global install instructions and team-mode auto-update — never bypass the audit/eval pipeline"]
+      "preferred_use": [
+        "extract sprint methodology",
+        "analyze skill patterns",
+        "source candidate skills through audit pipeline",
+        "generate eval scenarios"
+      ],
+      "risk_notes": [
+        "large opinionated bundle with global install instructions and team-mode auto-update — never bypass the audit/eval pipeline"
+      ]
     },
     {
       "name": "infinite-brain-os",
       "url": "https://github.com/starmynd-org/infinite-brain-os",
       "status": "reference",
-      "types": ["governance-source", "methodology-source"],
+      "types": [
+        "governance-source",
+        "methodology-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["namespace + operator-approved canon patterns", "validate the _system contract + validator model"],
+      "preferred_use": [
+        "namespace + operator-approved canon patterns",
+        "validate the _system contract + validator model"
+      ],
       "risk_notes": []
     },
     {
       "name": "claude-memory-compiler",
       "url": "https://github.com/coleam00/claude-memory-compiler",
       "status": "reference",
-      "types": ["methodology-source", "skill-pattern-source"],
+      "types": [
+        "methodology-source",
+        "skill-pattern-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["hooks->capture->compile pipeline shape", "map its LLM compiler to the deterministic-script + intelligent-skill split"],
+      "preferred_use": [
+        "hooks->capture->compile pipeline shape",
+        "map its LLM compiler to the deterministic-script + intelligent-skill split"
+      ],
       "risk_notes": []
     },
     {
       "name": "second-brain-starter",
       "url": "https://github.com/coleam00/second-brain-starter",
       "status": "reference",
-      "types": ["methodology-source", "human-workflow-source"],
+      "types": [
+        "methodology-source",
+        "human-workflow-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["validate the memory-layer-first build order", "adopt the CLI-wrapper pattern (LLM never sees API keys)"],
+      "preferred_use": [
+        "validate the memory-layer-first build order",
+        "adopt the CLI-wrapper pattern (LLM never sees API keys)"
+      ],
       "risk_notes": []
     },
     {
       "name": "karpathy-llm-wiki",
       "url": "https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f",
       "status": "reference",
-      "types": ["methodology-source", "governance-source"],
+      "types": [
+        "methodology-source",
+        "governance-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["required frontmatter schema for brain-lint", "linter-agent validation pattern"],
+      "preferred_use": [
+        "required frontmatter schema for brain-lint",
+        "linter-agent validation pattern"
+      ],
       "risk_notes": []
     },
     {
       "name": "aprende-skill",
       "url": "https://github.com/Hainrixz/aprende-skill",
       "status": "reference",
-      "types": ["skill-pattern-source", "candidate-skill-source"],
+      "types": [
+        "skill-pattern-source",
+        "candidate-skill-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["confirm-before-write learnings model for capture-learning"],
+      "preferred_use": [
+        "confirm-before-write learnings model for capture-learning"
+      ],
       "risk_notes": []
     },
     {
       "name": "gbrain",
       "url": "https://github.com/garrytan/gbrain",
       "status": "reference",
-      "types": ["retrieval-source"],
+      "types": [
+        "retrieval-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["adapter rule: brain repo is system of record, GBrain syncs into Postgres for retrieval only"],
-      "risk_notes": ["optional/off by default (gbrain_enabled: false) — never the source of truth"]
+      "preferred_use": [
+        "adapter rule: brain repo is system of record, GBrain syncs into Postgres for retrieval only"
+      ],
+      "risk_notes": [
+        "optional/off by default (gbrain_enabled: false) — never the source of truth"
+      ]
     },
     {
       "name": "gbrain-evals",
       "url": "https://github.com/garrytan/gbrain-evals",
       "status": "reference",
-      "types": ["eval-scenario-source", "methodology-source"],
+      "types": [
+        "eval-scenario-source",
+        "methodology-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["sealed-answer methodology for SecondBrainBench (corpus + questions + hidden answer keys)"],
+      "preferred_use": [
+        "sealed-answer methodology for SecondBrainBench (corpus + questions + hidden answer keys)"
+      ],
       "risk_notes": []
     },
     {
       "name": "lightrag",
       "url": "https://github.com/HKUDS/LightRAG",
       "status": "reference",
-      "types": ["retrieval-source"],
+      "types": [
+        "retrieval-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["lab-layer retrieval reference (deferred until FTS is measurably needed)"],
-      "risk_notes": ["RAG-Anything merged upstream 2026-05 — collapsed to one lab entry"]
+      "preferred_use": [
+        "lab-layer retrieval reference (deferred until FTS is measurably needed)"
+      ],
+      "risk_notes": [
+        "RAG-Anything merged upstream 2026-05 — collapsed to one lab entry"
+      ]
     },
     {
       "name": "graphify",
       "url": "https://github.com/Graphify-Labs/graphify",
       "status": "reference",
-      "types": ["retrieval-source", "candidate-skill-source"],
+      "types": [
+        "retrieval-source",
+        "candidate-skill-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["named graph layer: incremental update + agent-navigable wiki output"],
-      "risk_notes": ["optional; Graphify-vs-Understand-Anything selection deferred to audit when the graph phase arrives"]
+      "preferred_use": [
+        "named graph layer: incremental update + agent-navigable wiki output"
+      ],
+      "risk_notes": [
+        "optional; Graphify-vs-Understand-Anything selection deferred to audit when the graph phase arrives"
+      ]
     },
     {
       "name": "understand-anything",
       "url": "https://github.com/Egonex-AI/Understand-Anything",
       "status": "reference",
-      "types": ["retrieval-source", "candidate-skill-source"],
+      "types": [
+        "retrieval-source",
+        "candidate-skill-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["credible Graphify alternative — decide by audit when the graph phase arrives"],
+      "preferred_use": [
+        "credible Graphify alternative — decide by audit when the graph phase arrives"
+      ],
       "risk_notes": []
     },
     {
       "name": "letta-code",
       "url": "https://github.com/letta-ai/letta-code",
       "status": "reference",
-      "types": ["methodology-source"],
+      "types": [
+        "methodology-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["MemFS (git-tracked agent memory) validates Markdown+Git doctrine", "sleeptime dreaming + /doctor noted as backlog extensions"],
-      "risk_notes": ["self-editing memory blocks rejected for canon paths — they bypass the approval gate"]
+      "preferred_use": [
+        "MemFS (git-tracked agent memory) validates Markdown+Git doctrine",
+        "sleeptime dreaming + /doctor noted as backlog extensions"
+      ],
+      "risk_notes": [
+        "self-editing memory blocks rejected for canon paths — they bypass the approval gate"
+      ]
     },
     {
       "name": "notebooklm-py",
       "url": "https://github.com/teng-lin/notebooklm-py",
       "status": "reference",
-      "types": ["research-source", "candidate-skill-source"],
+      "types": [
+        "research-source",
+        "candidate-skill-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["NotebookLM research lane: grounded output into support/sources/ at raw-source authority"],
+      "preferred_use": [
+        "NotebookLM research lane: grounded output into support/sources/ at raw-source authority"
+      ],
       "risk_notes": []
     },
     {
       "name": "pleaseprompto-notebooklm-skill",
       "url": "https://github.com/PleasePrompto/notebooklm-skill",
       "status": "reference",
-      "types": ["research-source", "candidate-skill-source"],
+      "types": [
+        "research-source",
+        "candidate-skill-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["NotebookLM research-lane skill pattern — adopt only through scout -> audit -> adapt -> eval"],
+      "preferred_use": [
+        "NotebookLM research-lane skill pattern — adopt only through scout -> audit -> adapt -> eval"
+      ],
       "risk_notes": []
     },
     {
       "name": "deep-research-notebooklm",
       "url": "https://github.com/davila7/claude-code-templates",
       "status": "reference",
-      "types": ["research-source", "skill-pattern-source"],
+      "types": [
+        "research-source",
+        "skill-pattern-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["deep-research skill patterns for the NotebookLM ingestion lane"],
+      "preferred_use": [
+        "deep-research skill patterns for the NotebookLM ingestion lane"
+      ],
       "risk_notes": []
     },
     {
       "name": "kj-os-template",
       "url": "local: user-provided Drive export",
       "status": "reference",
-      "types": ["human-workflow-source"],
+      "types": [
+        "human-workflow-source"
+      ],
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-08",
-      "preferred_use": ["5-round brain-setup interview", "weekly-update delta-only ritual", "parent-index sync after child scaffold"],
-      "risk_notes": ["bundles a vendored .env.local — never copy plugin dirs; the sensitive-path guard exists for exactly this case"]
+      "preferred_use": [
+        "5-round brain-setup interview",
+        "weekly-update delta-only ritual",
+        "parent-index sync after child scaffold"
+      ],
+      "risk_notes": [
+        "bundles a vendored .env.local — never copy plugin dirs; the sensitive-path guard exists for exactly this case"
+      ]
+    },
+    {
+      "name": "eve",
+      "url": "https://github.com/vercel/eve",
+      "status": "reference",
+      "types": [
+        "methodology-source",
+        "agent-pattern-source",
+        "skill-pattern-source"
+      ],
+      "install_policy": "do-not-install-directly",
+      "last_reviewed": "2026-07-16",
+      "preferred_use": [
+        "extract filesystem-as-registry pattern for the future Hermes orchestrator layer; convention-over-config folder layout; evals-as-deploy-gate"
+      ],
+      "risk_notes": [
+        "BETA framework; Vercel-ecosystem runtime (Vercel Sandbox + managed durability are hosted) — pattern-only adoption",
+        "never adopt the runtime without a fresh audit; never install directly"
+      ]
+    },
+    {
+      "name": "eve-analyst",
+      "url": "https://github.com/coleam00/eve-analyst",
+      "status": "reference",
+      "types": [
+        "agent-pattern-source",
+        "eval-scenario-source",
+        "skill-pattern-source"
+      ],
+      "install_policy": "do-not-install-directly",
+      "last_reviewed": "2026-07-16",
+      "preferred_use": [
+        "reference implementation of a production-shaped Eve agent; concrete folder layout",
+        "evals-as-deploy-gate",
+        "read-only guard",
+        "deny-all sandbox",
+        "HITL approval patterns"
+      ],
+      "risk_notes": [
+        "third-party (coleam00) reference agent built on BETA Eve; docs/pattern reference only — never install; verify against upstream before borrowing code"
+      ]
     }
   ]
 }
