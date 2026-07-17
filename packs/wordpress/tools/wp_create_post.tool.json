@@ -1,0 +1,20 @@
+{
+  "name": "wp_create_post",
+  "description": "Create a post/page as a DRAFT on the client's STAGING site. Staging-autonomous write — no per-action approval, but the runtime must resolve the target to the client's staging_site_url and refuse any non-staging target.",
+  "effect": "write",
+  "risk_tier": "standard",
+  "target": "staging",
+  "api": "WordPress REST API (POST /wp/v2/{posts|pages})",
+  "requires_approval": false,
+  "inputSchema": {
+    "type": "object",
+    "required": ["site_ref", "type", "title", "content"],
+    "properties": {
+      "site_ref": { "type": "string", "description": "per-client STAGING site handle from clients/<client>/binding" },
+      "type": { "type": "string", "description": "posts | pages" },
+      "title": { "type": "string" },
+      "content": { "type": "string", "description": "block/HTML content" },
+      "status": { "type": "string", "enum": ["draft", "pending"], "default": "draft", "description": "created as draft by default; publishing to production is a separate approval-gated step" }
+    }
+  }
+}

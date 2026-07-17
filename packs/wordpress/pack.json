@@ -1,0 +1,17 @@
+{
+  "name": "wordpress",
+  "version": "0.1.0",
+  "domain": "wordpress",
+  "description": "Staging-autonomous WordPress/Bricks pack: read content freely, and create/edit posts, pages, and Bricks templates autonomously — but only against the client's staging site. Promoting staging to production is a separate, approval-gated step outside this pack. Declarative; runtime deferred to Hermes.",
+  "install_policy": "do-not-install-directly",
+  "execution_mode": "staging-autonomous",
+  "risk_tier": "standard",
+  "last_reviewed": "2026-07-17",
+  "review_owner": "erick",
+  "review_cadence_days": 180,
+  "sources": [
+    "https://developer.wordpress.org/rest-api/",
+    "https://academy.bricksbuilder.io/"
+  ],
+  "tags": ["wordpress", "bricks", "cms", "web", "staging"]
+}

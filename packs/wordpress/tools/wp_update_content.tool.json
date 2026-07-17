@@ -1,0 +1,19 @@
+{
+  "name": "wp_update_content",
+  "description": "Update an existing post/page/CPT item on the client's STAGING site (content, title, meta, status within staging). Staging-autonomous write — runtime resolves and enforces the staging target.",
+  "effect": "write",
+  "risk_tier": "standard",
+  "target": "staging",
+  "api": "WordPress REST API (POST /wp/v2/{type}/{id})",
+  "requires_approval": false,
+  "inputSchema": {
+    "type": "object",
+    "required": ["site_ref", "type", "id", "fields"],
+    "properties": {
+      "site_ref": { "type": "string", "description": "per-client STAGING site handle from clients/<client>/binding" },
+      "type": { "type": "string", "description": "posts | pages | <custom post type>" },
+      "id": { "type": "integer" },
+      "fields": { "type": "object", "description": "fields to update (title, content, excerpt, status, meta)" }
+    }
+  }
+}

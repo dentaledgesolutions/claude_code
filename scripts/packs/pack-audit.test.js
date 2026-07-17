@@ -104,6 +104,18 @@ try {
   writeJson(path.join(base, 'tools', 't_write.tool.json'), { name: 't_write', description: 'mutates', effect: 'write' });
   assert.strictEqual(audit('test-pack').status, 3, 'hitl write tool without requires_approval must fail');
 
+  // 11. staging-autonomous pack with a staging_target + (unapproved) write tool → exit 0
+  base = seedClean();
+  { const m = JSON.parse(fs.readFileSync(path.join(base, 'pack.json'))); m.execution_mode = 'staging-autonomous'; writeJson(path.join(base, 'pack.json'), m);
+    const rj = JSON.parse(fs.readFileSync(path.join(TMP, 'packs', 'registry.json'))); rj.packs[0].execution_mode = 'staging-autonomous'; writeJson(path.join(TMP, 'packs', 'registry.json'), rj);
+    writeJson(path.join(base, 'guardrails', 'policy.json'), { execution_mode: 'staging-autonomous', staging_target: 'staging.example.com', approval: { required_for: [] } });
+    writeJson(path.join(base, 'tools', 't_write.tool.json'), { name: 't_write', description: 'edits staging', effect: 'write' }); }
+  assert.strictEqual(audit('test-pack').status, 0, 'staging-autonomous pack with a staging_target should pass');
+
+  // 12. staging-autonomous pack missing staging_target → exit 3
+  writeJson(path.join(base, 'guardrails', 'policy.json'), { execution_mode: 'staging-autonomous', staging_target: null, approval: { required_for: [] } });
+  assert.strictEqual(audit('test-pack').status, 3, 'staging-autonomous pack without staging_target must fail');
+
   fs.rmSync(TMP, { recursive: true, force: true });
   console.log('pack-audit.test.js: all assertions passed');
 } catch (e) {

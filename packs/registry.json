@@ -17,6 +17,15 @@
       "risk_tier": "critical",
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-17"
+    },
+    {
+      "name": "wordpress",
+      "domain": "wordpress",
+      "version": "0.1.0",
+      "execution_mode": "staging-autonomous",
+      "risk_tier": "standard",
+      "install_policy": "do-not-install-directly",
+      "last_reviewed": "2026-07-17"
     }
   ]
 }

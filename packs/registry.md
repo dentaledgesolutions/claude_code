@@ -6,3 +6,4 @@ _Generated from registry.json — do not hand-edit._
 |---|---|---|---|---|---|---|
 | google-analytics | google-analytics | 0.1.0 | read-only | standard | do-not-install-directly | 2026-07-17 |
 | google-ads | google-ads | 0.1.0 | hitl | critical | do-not-install-directly | 2026-07-17 |
+| wordpress | wordpress | 0.1.0 | staging-autonomous | standard | do-not-install-directly | 2026-07-17 |

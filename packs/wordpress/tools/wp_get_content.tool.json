@@ -1,0 +1,17 @@
+{
+  "name": "wp_get_content",
+  "description": "Fetch a single post/page/CPT item (content, meta, status) so an agent can review before editing. Read-only.",
+  "effect": "read",
+  "risk_tier": "standard",
+  "api": "WordPress REST API (GET /wp/v2/{type}/{id})",
+  "requires_approval": false,
+  "inputSchema": {
+    "type": "object",
+    "required": ["site_ref", "type", "id"],
+    "properties": {
+      "site_ref": { "type": "string", "description": "per-client site handle from clients/<client>/binding" },
+      "type": { "type": "string", "description": "posts | pages | <custom post type>" },
+      "id": { "type": "integer" }
+    }
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "name": "wp_list_content",
+  "description": "List posts, pages, or a custom post type on the site (with filters). Read-only.",
+  "effect": "read",
+  "risk_tier": "standard",
+  "api": "WordPress REST API (GET /wp/v2/{posts|pages|<cpt>})",
+  "requires_approval": false,
+  "inputSchema": {
+    "type": "object",
+    "required": ["site_ref", "type"],
+    "properties": {
+      "site_ref": { "type": "string", "description": "per-client site handle resolved from clients/<client>/binding — never a raw credential" },
+      "type": { "type": "string", "description": "posts | pages | <custom post type>" },
+      "filter": { "type": "object", "description": "optional REST query params (status, search, per_page, etc.)" }
+    }
+  }
+}

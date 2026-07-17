@@ -1,0 +1,14 @@
+{
+  "execution_mode": "staging-autonomous",
+  "allow_effects": ["read", "write"],
+  "approval": {
+    "required_for": [],
+    "note": "Writes run autonomously against staging — no per-action approval. Promoting staging → production is a separate approval-gated operation, not part of this pack."
+  },
+  "staging_target": "clients.<client>.staging_site_url",
+  "production_guard": {
+    "note": "The future Hermes runtime must refuse any write whose resolved target is not the client's staging_site_url. There is no production write path in this pack."
+  },
+  "budget_caps": {},
+  "notes": "Staging-only autonomy: every write tool operates against the resolved staging_target. pack-audit requires a non-null staging_target for this tier so autonomous writes can never default to production."
+}

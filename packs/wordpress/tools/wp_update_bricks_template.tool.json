@@ -1,0 +1,18 @@
+{
+  "name": "wp_update_bricks_template",
+  "description": "Update a Bricks builder template or a page's Bricks layout on the client's STAGING site. Staging-autonomous write — runtime resolves and enforces the staging target; global-class/variable edits should be made cautiously as they cascade site-wide.",
+  "effect": "write",
+  "risk_tier": "standard",
+  "target": "staging",
+  "api": "WordPress REST API + Bricks meta (_bricks_page_content_2 et al.)",
+  "requires_approval": false,
+  "inputSchema": {
+    "type": "object",
+    "required": ["site_ref", "template_ref", "bricks_data"],
+    "properties": {
+      "site_ref": { "type": "string", "description": "per-client STAGING site handle from clients/<client>/binding" },
+      "template_ref": { "type": "string", "description": "Bricks template id or the page id whose Bricks layout is edited" },
+      "bricks_data": { "type": "object", "description": "the Bricks element/content structure to write" }
+    }
+  }
+}

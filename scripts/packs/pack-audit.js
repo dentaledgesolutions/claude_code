@@ -122,6 +122,9 @@ if (!fs.existsSync(guardFile)) {
   if (policy && manifest && policy.execution_mode !== manifest.execution_mode) {
     security.push(`${name}: guardrails execution_mode '${policy.execution_mode}' != pack.json '${manifest.execution_mode}'`);
   }
+  if (policy && manifest && manifest.execution_mode === 'staging-autonomous' && !policy.staging_target) {
+    security.push(`${name}: staging-autonomous pack must declare a non-null staging_target in guardrails/policy.json (else autonomous writes could hit production)`);
+  }
 }
 
 // ── Tool defs (declarative) ──────────────────────────────────────────────────
