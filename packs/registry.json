@@ -8,6 +8,15 @@
       "risk_tier": "standard",
       "install_policy": "do-not-install-directly",
       "last_reviewed": "2026-07-17"
+    },
+    {
+      "name": "google-ads",
+      "domain": "google-ads",
+      "version": "0.1.0",
+      "execution_mode": "hitl",
+      "risk_tier": "critical",
+      "install_policy": "do-not-install-directly",
+      "last_reviewed": "2026-07-17"
     }
   ]
 }

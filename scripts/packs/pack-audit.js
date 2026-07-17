@@ -145,6 +145,9 @@ if (fs.existsSync(toolsDir)) {
     if (tool.effect === 'write' && manifest && manifest.execution_mode === 'read-only') {
       security.push(`${rel(p)}: write-effect tool in a read-only pack — policy violation`);
     }
+    if (tool.effect === 'write' && manifest && manifest.execution_mode === 'hitl' && tool.requires_approval !== true) {
+      security.push(`${rel(p)}: write-effect tool in a hitl pack must set requires_approval: true`);
+    }
   }
 }
 

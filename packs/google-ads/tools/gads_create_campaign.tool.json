@@ -1,0 +1,26 @@
+{
+  "name": "gads_create_campaign",
+  "description": "Create a new campaign from a spec. MUTATING and money-affecting — must pause for explicit human approval; the new campaign should be created PAUSED by default and its budget capped to the client's limit.",
+  "effect": "write",
+  "risk_tier": "critical",
+  "api": "Google Ads API (CampaignService.MutateCampaigns + CampaignBudgetService)",
+  "requires_approval": true,
+  "inputSchema": {
+    "type": "object",
+    "required": ["customer_ref", "campaign_spec"],
+    "properties": {
+      "customer_ref": { "type": "string", "description": "per-client customer handle from clients/<client>/binding" },
+      "campaign_spec": {
+        "type": "object",
+        "description": "name, channel type, daily budget, bid strategy, targeting; runtime creates it PAUSED and within the client budget cap",
+        "required": ["name", "channel_type", "daily_budget_usd"],
+        "properties": {
+          "name": { "type": "string" },
+          "channel_type": { "type": "string", "description": "e.g. SEARCH, PERFORMANCE_MAX, DISPLAY" },
+          "daily_budget_usd": { "type": "number" },
+          "bid_strategy": { "type": "string" }
+        }
+      }
+    }
+  }
+}

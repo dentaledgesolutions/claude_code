@@ -1,0 +1,16 @@
+{
+  "name": "gads_get_campaign",
+  "description": "Fetch a campaign's current settings (status, budget, bid strategy, type) so an agent can review before proposing any change. Read-only.",
+  "effect": "read",
+  "risk_tier": "standard",
+  "api": "Google Ads API (GoogleAdsService.Search / GAQL)",
+  "requires_approval": false,
+  "inputSchema": {
+    "type": "object",
+    "required": ["customer_ref", "campaign_ref"],
+    "properties": {
+      "customer_ref": { "type": "string", "description": "per-client customer handle from clients/<client>/binding" },
+      "campaign_ref": { "type": "string", "description": "campaign resource name / id" }
+    }
+  }
+}

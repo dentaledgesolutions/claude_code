@@ -1,0 +1,17 @@
+{
+  "name": "gads_set_campaign_status",
+  "description": "Enable or pause a campaign. MUTATING and money-affecting (pausing stops spend; enabling starts it) — must pause for explicit human approval before executing.",
+  "effect": "write",
+  "risk_tier": "critical",
+  "api": "Google Ads API (CampaignService.MutateCampaigns)",
+  "requires_approval": true,
+  "inputSchema": {
+    "type": "object",
+    "required": ["customer_ref", "campaign_ref", "status"],
+    "properties": {
+      "customer_ref": { "type": "string", "description": "per-client customer handle from clients/<client>/binding" },
+      "campaign_ref": { "type": "string" },
+      "status": { "type": "string", "enum": ["ENABLED", "PAUSED"] }
+    }
+  }
+}

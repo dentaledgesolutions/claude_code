@@ -1,0 +1,14 @@
+{
+  "execution_mode": "hitl",
+  "allow_effects": ["read", "write"],
+  "approval": {
+    "required_for": ["write"],
+    "note": "Every mutating action pauses for explicit human approval before execution. Enforced by the future Hermes runtime; declarative here. pack-audit requires every write tool to set requires_approval: true."
+  },
+  "budget_caps": {
+    "note": "Per-client caps resolved from clients/<client>/binding. The runtime must refuse (or re-prompt for approval on) any budget change that exceeds the client's cap.",
+    "max_daily_budget_field": "clients.<client>.max_daily_budget_usd"
+  },
+  "staging_target": null,
+  "notes": "Money-spending domain (risk_tier: critical). Read tools run without approval; write tools (budget/status/create) require human approval and are declared with requires_approval: true."
+}

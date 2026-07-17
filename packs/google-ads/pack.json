@@ -1,0 +1,17 @@
+{
+  "name": "google-ads",
+  "version": "0.1.0",
+  "domain": "google-ads",
+  "description": "Human-in-the-loop Google Ads pack: read reporting plus approval-gated campaign mutations (budgets, status, creation). Second pilot, exercising the hitl execution tier over a money-spending platform. Declarative in this phase; runtime deferred to Hermes.",
+  "install_policy": "do-not-install-directly",
+  "execution_mode": "hitl",
+  "risk_tier": "critical",
+  "last_reviewed": "2026-07-17",
+  "review_owner": "erick",
+  "review_cadence_days": 90,
+  "sources": [
+    "https://developers.google.com/google-ads/api/docs/start",
+    "https://support.google.com/google-ads/answer/6146252"
+  ],
+  "tags": ["ads", "google-ads", "ppc", "marketing", "hitl"]
+}

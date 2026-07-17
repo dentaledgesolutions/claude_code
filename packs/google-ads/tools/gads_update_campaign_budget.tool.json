@@ -1,0 +1,17 @@
+{
+  "name": "gads_update_campaign_budget",
+  "description": "Change a campaign's daily budget. MUTATING and money-affecting — must pause for explicit human approval, and the runtime must reject amounts above the client's max_daily_budget cap.",
+  "effect": "write",
+  "risk_tier": "critical",
+  "api": "Google Ads API (CampaignBudgetService.MutateCampaignBudgets)",
+  "requires_approval": true,
+  "inputSchema": {
+    "type": "object",
+    "required": ["customer_ref", "campaign_ref", "new_daily_budget_usd"],
+    "properties": {
+      "customer_ref": { "type": "string", "description": "per-client customer handle from clients/<client>/binding" },
+      "campaign_ref": { "type": "string" },
+      "new_daily_budget_usd": { "type": "number", "description": "proposed new daily budget; runtime enforces the per-client cap and re-prompts on exceed" }
+    }
+  }
+}

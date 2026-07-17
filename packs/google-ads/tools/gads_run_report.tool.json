@@ -1,0 +1,25 @@
+{
+  "name": "gads_run_report",
+  "description": "Run a Google Ads report via GAQL: given a customer, date range, metrics and segments, return the rows. Read-only — observes performance data, never mutates campaigns.",
+  "effect": "read",
+  "risk_tier": "standard",
+  "api": "Google Ads API (GoogleAdsService.SearchStream / GAQL)",
+  "requires_approval": false,
+  "inputSchema": {
+    "type": "object",
+    "required": ["customer_ref", "date_range", "metrics"],
+    "properties": {
+      "customer_ref": { "type": "string", "description": "per-client customer handle resolved from clients/<client>/binding — never a raw credential or developer token" },
+      "date_range": {
+        "type": "object",
+        "required": ["start_date", "end_date"],
+        "properties": {
+          "start_date": { "type": "string", "description": "YYYY-MM-DD or a GAQL literal like LAST_30_DAYS" },
+          "end_date": { "type": "string" }
+        }
+      },
+      "metrics": { "type": "array", "items": { "type": "string" }, "description": "e.g. metrics.clicks, metrics.cost_micros, metrics.conversions" },
+      "segments": { "type": "array", "items": { "type": "string" }, "description": "e.g. segments.date, campaign.name" }
+    }
+  }
+}

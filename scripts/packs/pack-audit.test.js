@@ -92,6 +92,18 @@ try {
   assert.strictEqual(stale.status, 0, 'stale review is a warning, not a failure');
   assert.ok(/warn .*last_reviewed/.test(stale.stderr), 'stale review should warn');
 
+  // 9. hitl pack with a properly-gated write tool → exit 0
+  base = seedClean();
+  { const m = JSON.parse(fs.readFileSync(path.join(base, 'pack.json'))); m.execution_mode = 'hitl'; writeJson(path.join(base, 'pack.json'), m);
+    const rj = JSON.parse(fs.readFileSync(path.join(TMP, 'packs', 'registry.json'))); rj.packs[0].execution_mode = 'hitl'; writeJson(path.join(TMP, 'packs', 'registry.json'), rj);
+    writeJson(path.join(base, 'guardrails', 'policy.json'), { execution_mode: 'hitl', approval: { required_for: ['write'] } });
+    writeJson(path.join(base, 'tools', 't_write.tool.json'), { name: 't_write', description: 'mutates', effect: 'write', requires_approval: true }); }
+  assert.strictEqual(audit('test-pack').status, 0, 'hitl pack with an approved write tool should pass');
+
+  // 10. hitl pack with an ungated write tool → exit 3
+  writeJson(path.join(base, 'tools', 't_write.tool.json'), { name: 't_write', description: 'mutates', effect: 'write' });
+  assert.strictEqual(audit('test-pack').status, 3, 'hitl write tool without requires_approval must fail');
+
   fs.rmSync(TMP, { recursive: true, force: true });
   console.log('pack-audit.test.js: all assertions passed');
 } catch (e) {
