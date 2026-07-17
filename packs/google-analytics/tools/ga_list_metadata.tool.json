@@ -1,0 +1,15 @@
+{
+  "name": "ga_list_metadata",
+  "description": "List the metrics and dimensions available for a GA4 property (custom + standard), so an agent can validate a report request before running it. Read-only.",
+  "effect": "read",
+  "risk_tier": "standard",
+  "api": "GA4 Data API (properties.getMetadata)",
+  "requires_approval": false,
+  "inputSchema": {
+    "type": "object",
+    "required": ["property_ref"],
+    "properties": {
+      "property_ref": { "type": "string", "description": "per-client property handle resolved from clients/<client>/binding" }
+    }
+  }
+}

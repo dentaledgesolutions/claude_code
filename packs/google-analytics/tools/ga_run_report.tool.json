@@ -1,0 +1,25 @@
+{
+  "name": "ga_run_report",
+  "description": "Run a GA4 report: given a property, date range, metrics and dimensions, return the aggregated rows. Read-only — observes analytics data, never mutates configuration.",
+  "effect": "read",
+  "risk_tier": "standard",
+  "api": "GA4 Data API (properties.runReport)",
+  "requires_approval": false,
+  "inputSchema": {
+    "type": "object",
+    "required": ["property_ref", "date_range", "metrics"],
+    "properties": {
+      "property_ref": { "type": "string", "description": "per-client property handle resolved from clients/<client>/binding — never a raw credential" },
+      "date_range": {
+        "type": "object",
+        "required": ["start_date", "end_date"],
+        "properties": {
+          "start_date": { "type": "string", "description": "YYYY-MM-DD or relative like 28daysAgo" },
+          "end_date": { "type": "string", "description": "YYYY-MM-DD or relative like today" }
+        }
+      },
+      "metrics": { "type": "array", "items": { "type": "string" }, "description": "e.g. sessions, activeUsers, conversions" },
+      "dimensions": { "type": "array", "items": { "type": "string" }, "description": "e.g. date, sessionDefaultChannelGroup" }
+    }
+  }
+}

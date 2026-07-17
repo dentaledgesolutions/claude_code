@@ -1,0 +1,18 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code/schemas/packs/tool-def.schema.json",
+  "title": "Domain Pack Tool Definition (*.tool.json)",
+  "description": "DECLARATIVE tool spec for a domain pack. Contract-first phase: describes a tool the future Hermes runtime will execute — there is NO executor here. The 'effect' must be consistent with the pack's execution_mode (a write-effect tool is a policy violation in a read-only pack).",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["name", "description", "effect"],
+  "properties": {
+    "name": { "type": "string", "description": "snake_case tool name, e.g. ga_run_report" },
+    "description": { "type": "string" },
+    "effect": { "type": "string", "enum": ["read", "write"], "description": "read = observes; write = mutates a live system (requires hitl/staging tier)" },
+    "risk_tier": { "type": "string", "enum": ["standard", "critical"], "default": "standard" },
+    "api": { "type": "string", "description": "the official API this tool will call at runtime, e.g. GA4 Data API" },
+    "requires_approval": { "type": "boolean", "description": "runtime hint: pause for human approval before executing (HITL packs)" },
+    "inputSchema": { "type": "object", "description": "JSON Schema for the tool's inputs" }
+  }
+}

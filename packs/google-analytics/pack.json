@@ -1,0 +1,17 @@
+{
+  "name": "google-analytics",
+  "version": "0.1.0",
+  "domain": "google-analytics",
+  "description": "Read-only Google Analytics 4 (GA4) domain pack: knowledge + declarative read tools + guardrails for reporting and analysis. Pilot pack proving the domain-pack contract; no live execution in this phase.",
+  "install_policy": "do-not-install-directly",
+  "execution_mode": "read-only",
+  "risk_tier": "standard",
+  "last_reviewed": "2026-07-17",
+  "review_owner": "erick",
+  "review_cadence_days": 180,
+  "sources": [
+    "https://developers.google.com/analytics/devguides/reporting/data/v1",
+    "https://support.google.com/analytics/answer/9143382"
+  ],
+  "tags": ["analytics", "ga4", "reporting", "marketing"]
+}

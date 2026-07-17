@@ -1,0 +1,9 @@
+{
+  "execution_mode": "read-only",
+  "allow_effects": ["read"],
+  "deny_effects": ["write"],
+  "approval": { "required_for": [] },
+  "budget_caps": {},
+  "staging_target": null,
+  "notes": "Read-only pack: every tool must declare effect: read. No mutating GA operations are permitted. Per-client bindings live under clients/<client>/ (credential REFERENCES only, never secrets). The future Hermes runtime enforces this policy at execution time; in this contract-first phase it is declarative and validated by pack-audit."
+}

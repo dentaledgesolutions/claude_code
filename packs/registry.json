@@ -1,0 +1,13 @@
+{
+  "packs": [
+    {
+      "name": "google-analytics",
+      "domain": "google-analytics",
+      "version": "0.1.0",
+      "execution_mode": "read-only",
+      "risk_tier": "standard",
+      "install_policy": "do-not-install-directly",
+      "last_reviewed": "2026-07-17"
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code/schemas/packs/pack-manifest.schema.json",
+  "title": "Domain Pack Manifest (pack.json)",
+  "description": "Metadata + governance for one mountable domain pack (knowledge + tools + guardrails). Contract-first phase: declarative only, no runtime.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["name", "version", "domain", "description", "install_policy", "execution_mode", "last_reviewed"],
+  "properties": {
+    "name": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$", "description": "kebab-case pack id; equals the folder name" },
+    "version": { "type": "string", "description": "semver, e.g. 0.1.0" },
+    "domain": { "type": "string", "description": "expertise area, e.g. google-analytics" },
+    "description": { "type": "string" },
+    "install_policy": { "type": "string", "const": "do-not-install-directly" },
+    "execution_mode": { "type": "string", "enum": ["read-only", "hitl", "staging-autonomous", "mixed"], "description": "the pack-wide guardrail tier" },
+    "risk_tier": { "type": "string", "enum": ["standard", "critical"], "default": "standard" },
+    "last_reviewed": { "type": "string", "description": "YYYY-MM-DD" },
+    "review_owner": { "type": "string" },
+    "review_cadence_days": { "type": "integer", "description": "staleness window; shorter for fast-moving domains (Ads/Meta)" },
+    "sources": { "type": "array", "items": { "type": "string" }, "description": "authoritative provenance (official docs/APIs)" },
+    "tags": { "type": "array", "items": { "type": "string" } }
+  }
+}
