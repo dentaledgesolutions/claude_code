@@ -1,0 +1,16 @@
+# Hermes Agent control plane — local development compose.
+# Safe defaults (confirmed): read-only project mount, API server OFF, dashboard
+# on loopback only, secrets in the gitignored .env. Write access + more surface
+# are added later, gated (see plan P5).
+services:
+  hermes-agent:
+    build: .
+    image: hermes-agent-claude          # derived: official base + claude CLI
+    command: ["gateway", "run"]         # persistent backend (there is no `hermes serve`)
+    env_file: .env                      # ANTHROPIC_API_KEY + Hermes provider key (gitignored)
+    volumes:
+      - ./data:/opt/data                # Hermes state (gitignored)
+      - ../..:/projects/claude_code:ro  # THIS repo, READ-ONLY for the first smoke
+    ports:
+      - "127.0.0.1:9119:9119"           # dashboard, loopback only (optional)
+    restart: unless-stopped

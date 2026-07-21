@@ -1,0 +1,21 @@
+# Derived Hermes Agent image.
+#
+# Purpose: the official Nous Hermes Agent image + the Claude Code CLI, so Hermes
+# can run `claude -p` inside mounted project directories (terminal.backend: local).
+# The official base image's install tree (/opt/hermes) is immutable at runtime,
+# so tools like `claude` must be added in a derived image (documented pattern).
+#
+# Pinned to v2026.7.20 (Hermes Agent v0.19.0 "Quicksilver") — digest verified by the
+# P0 security audit on 2026-07-21 (see infra/hermes-agent/SECURITY-AUDIT.md).
+# Re-pin AND re-run the audit on every upgrade (Hermes ships ~weekly; :latest is a
+# moving target retagged on every push to main — never build against :latest).
+FROM nousresearch/hermes-agent@sha256:f7b35053268f532f98955195c909f15a230470fbcbdacaa9fdecb95707dad04a
+
+USER root
+
+# Claude Code CLI — Node 22 is present in the base image.
+RUN npm install -g @anthropic-ai/claude-code && claude --version
+
+# Drop back to the non-root runtime user shipped by the base image (UID 10000).
+# NOTE: verify the username (`hermes`) against the base image before building.
+USER hermes
