@@ -1,5 +1,10 @@
 # Hermes H2 — Staging Enforcement + Budget Caps Implementation Plan
 
+> **⚠ DEFERRED — Operate track.** Part of the credential-bearing **Hermes Operate track** (built
+> just-in-time with the first operator project), not the kernel v1. Authoritative:
+> `~/.claude/plans/iterative-squishing-church.md` and
+> `.project-brain/decisions/candidates/2026-07-21-hermes-definitive-roadmap.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Enforce that staging-autonomous packs write only to their declared staging target, and that money packs never exceed per-client cumulative daily budget caps.

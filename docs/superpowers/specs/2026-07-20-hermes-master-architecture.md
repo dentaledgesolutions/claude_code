@@ -1,5 +1,10 @@
 # Hermes — Master Architecture & Roadmap
 
+> **⚠ REVISED by the definitive roadmap.** This cross-cutting design is reframed into a credential-free
+> **kernel** (build now: K0–K3) and a deferred, multi-tenant **Operate track**; decisions **D12–D15**
+> were added and **D1/D9** revised. Authoritative now: `~/.claude/plans/iterative-squishing-church.md`
+> and the brain candidate `.project-brain/decisions/candidates/2026-07-21-hermes-definitive-roadmap.md`.
+
 > **Date:** 2026-07-20 · **Status:** design (planning only — nothing is built) · **Scope:** the full Hermes runtime, H0 → H3.
 
 This is the umbrella document for the Hermes orchestrator. It locks the **cross-cutting

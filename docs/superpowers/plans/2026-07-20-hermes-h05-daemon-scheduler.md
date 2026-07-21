@@ -6,14 +6,21 @@
 
 **Architecture:** Introduce `lib/db.js` (`node:sqlite` + migrations) and `lib/queue.js` (durable queue over a `runs` table). Extract the H0 resolve→run→gate flow into `lib/core.js`, reused by both `bin/hermes.js` and the new `bin/hermesd.js` daemon loop. `lib/scheduler.js` reads `schedules.json` and enqueues due jobs.
 
-**Tech Stack:** Node ≥22 (for stable `node:sqlite`), CommonJS, `node:test`. No new runtime dependencies.
+**Tech Stack:** Node ≥22 minimum (built-in `node:sqlite`); the Docker base image is `node:24-slim`,
+where `node:sqlite` is stable rather than experimental. CommonJS, house-style tests (plain `assert`,
+standalone `node <file>` runner — see `scripts/run-calibration.test.js`). No new runtime
+dependencies.
 
 **Spec:** `docs/superpowers/specs/2026-07-20-hermes-h05-daemon-scheduler-design.md` · **Master:** `docs/superpowers/specs/2026-07-20-hermes-master-architecture.md`
 
 ## Global Constraints
 
-- Node ≥22 (built-in `node:sqlite`); update the Docker base image to `node:22-slim`.
-- CommonJS, `'use strict'`, no new runtime deps; tests via `node:test`.
+- Node ≥22 (built-in `node:sqlite`) minimum to run Hermes DB-dependent code locally; the Docker base
+  image is `node:24-slim`, where `node:sqlite` is stable. `scripts/run-all-tests.js` must skip the
+  `hermes/` DB-dependent suites (`db`, `queue`, `core`, `scheduler`, `hermesd`) when the host Node
+  version is <22 — see Task 1, Step 6.
+- CommonJS, `'use strict'`, no new runtime deps; tests via house-style plain `assert` + a manual
+  runner (no `node:test`), matching `scripts/run-calibration.test.js`.
 - SQLite file at `hermes/state/hermes.db`; `hermes/state/` is gitignored.
 - H0's `loader`/`runner`/`result-gate` are **unchanged** — only wrapped.
 - Single worker: exactly one run executes at a time.
@@ -26,8 +33,9 @@
 **Files:**
 - Create: `hermes/lib/db.js`
 - Create: `hermes/migrations/001-runs.sql`
-- Modify: `hermes/Dockerfile` (base image → `node:22-slim`)
+- Modify: `hermes/Dockerfile` (base image → `node:24-slim`)
 - Modify: `.gitignore` (add `hermes/state/`)
+- Modify: `scripts/run-all-tests.js` (skip Hermes DB-dependent suites when host Node <22)
 - Test: `hermes/test/db.test.js`
 
 **Interfaces:**
@@ -55,12 +63,12 @@ CREATE TABLE IF NOT EXISTS runs (
 
 - [ ] **Step 2: Write the failing test**
 
-Create `hermes/test/db.test.js`:
+Create `hermes/test/db.test.js`. House test style (plain `assert`, standalone runner — see
+`scripts/run-calibration.test.js`), not `node:test`:
 
 ```js
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -69,6 +77,10 @@ const { openDb } = require('../lib/db');
 function tmpDbPath() {
   return path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-db-')), 'hermes.db');
 }
+
+// Minimal manual runner (house style — no node:test dependency).
+const tests = [];
+function test(name, fn) { tests.push([name, fn]); }
 
 test('openDb creates the runs table and is idempotent on re-open', () => {
   const p = tmpDbPath();
@@ -83,6 +95,14 @@ test('openDb creates the runs table and is idempotent on re-open', () => {
   assert.ok(applied >= 1);
   db2.close();
 });
+
+let failed = 0;
+for (const [name, fn] of tests) {
+  try { fn(); console.log(`✓ ${name}`); }
+  catch (e) { failed++; console.error(`✗ ${name}`); console.error(e); }
+}
+if (failed > 0) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
+console.log(`\n✅ All ${tests.length} tests passed`);
 ```
 
 - [ ] **Step 3: Run test to verify it fails**
@@ -130,9 +150,10 @@ module.exports = { openDb, migrate };
 Run: `node hermes/test/db.test.js`
 Expected: PASS. (If Node < 22, `node:sqlite` errors — install/switch to Node ≥22.)
 
-- [ ] **Step 6: Bump Docker base + gitignore state**
+- [ ] **Step 6: Bump Docker base, gitignore state, and skip DB suites on an older host Node**
 
-In `hermes/Dockerfile`, change `FROM node:20-slim` → `FROM node:22-slim`.
+In `hermes/Dockerfile`, change `FROM node:20-slim` → `FROM node:24-slim` (where `node:sqlite` is
+stable, not experimental).
 Append to `.gitignore`:
 
 ```
@@ -140,11 +161,34 @@ Append to `.gitignore`:
 hermes/state/
 ```
 
+In `scripts/run-all-tests.js`, guard the `hermes/` DB-dependent suites so a host Node <22 (no
+`node:sqlite`) skips them instead of erroring out the whole run:
+
+```js
+const NODE_MAJOR = Number(process.versions.node.split('.')[0]);
+const HERMES_DB_SUITES = ['db.test.js', 'queue.test.js', 'core.test.js', 'scheduler.test.js', 'hermesd.test.js'];
+
+const hermesDir = path.join(REPO, 'hermes');
+const hermesTests = fs.existsSync(hermesDir)
+  ? discoverTestFiles(hermesDir, []).filter((p) => {
+      if (NODE_MAJOR >= 22) return true;
+      const needsDb = HERMES_DB_SUITES.some((name) => p.endsWith(name));
+      if (needsDb) {
+        console.log(`SKIP  ${path.relative(REPO, p)} (needs Node >=22 for node:sqlite; host is Node ${NODE_MAJOR})`);
+      }
+      return !needsDb;
+    })
+  : [];
+```
+
+The H0 suites (`loader`, `runner`, `result-gate`, `hermes.test.js`) have no `node:sqlite` dependency
+and always run, on any host Node ≥18.
+
 - [ ] **Step 7: Commit**
 
 ```bash
-git add hermes/lib/db.js hermes/migrations/001-runs.sql hermes/Dockerfile .gitignore hermes/test/db.test.js
-git commit -m "feat(hermes): SQLite bootstrap (node:sqlite) + runs migration + node22"
+git add hermes/lib/db.js hermes/migrations/001-runs.sql hermes/Dockerfile .gitignore scripts/run-all-tests.js hermes/test/db.test.js
+git commit -m "feat(hermes): SQLite bootstrap (node:sqlite) + runs migration + node24"
 ```
 
 ---
@@ -159,23 +203,30 @@ git commit -m "feat(hermes): SQLite bootstrap (node:sqlite) + runs migration + n
 - Consumes: `db` from `openDb` (Task 1); a `target` (`{id,kind,tier,prompt}`) from the loader.
 - Produces:
   - `enqueue(db, target, now) → runId` — inserts a `queued` row.
-  - `claimNext(db, now) → { runId, target } | null` — atomically flips the oldest `queued` row to `running`.
+  - `claimNext(db, now) → { runId, target } | null` — atomically flips the oldest `queued` row to
+    `running`. `target` here is the **partial** shape stored in the `runs` table
+    (`{ id, kind, tier }` — no `prompt`, since the table doesn't persist it). Callers must re-resolve
+    the full target (including `prompt`) by id before running it; `core.execute` (Task 3) does this
+    automatically when given a target id string, so this is consistent, not an oversight.
   - `finish(db, runId, { status, exitCode, gitSha }, now)` — sets terminal status.
   - `reapStale(db, olderThanMs, now) → count` — marks `running` rows older than the threshold as `failed`.
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `hermes/test/queue.test.js`:
+Create `hermes/test/queue.test.js`. House test style (plain `assert`, standalone runner):
 
 ```js
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { openDb } = require('../lib/db');
 const { enqueue, claimNext, finish, reapStale } = require('../lib/queue');
+
+// Minimal manual runner (house style — no node:test dependency).
+const tests = [];
+function test(name, fn) { tests.push([name, fn]); }
 
 function db() {
   const p = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-q-')), 'hermes.db');
@@ -215,6 +266,14 @@ test('reapStale marks old running rows as failed', () => {
   assert.equal(n, 1);
   assert.equal(d.prepare('SELECT status FROM runs WHERE run_id = ?').get(runId).status, 'failed');
 });
+
+let failed = 0;
+for (const [name, fn] of tests) {
+  try { fn(); console.log(`✓ ${name}`); }
+  catch (e) { failed++; console.error(`✗ ${name}`); console.error(e); }
+}
+if (failed > 0) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
+console.log(`\n✅ All ${tests.length} tests passed`);
 ```
 
 - [ ] **Step 2: Run to verify it fails** — `node hermes/test/queue.test.js` → `Cannot find module '../lib/queue'`.
@@ -243,6 +302,9 @@ function claimNext(db, now = new Date()) {
   if (!row) return null;
   db.prepare(`UPDATE runs SET status = 'running', updated_at = ? WHERE run_id = ?`)
     .run(now.toISOString(), row.run_id);
+  // `target` is intentionally partial — the `runs` table doesn't persist `prompt`. Callers
+  // re-resolve the full target (with `prompt`) by `target.id` before executing it; see
+  // core.execute's string-argument path (Task 3).
   return {
     runId: row.run_id,
     target: { id: row.target_id, kind: row.kind, tier: row.tier },
@@ -288,21 +350,30 @@ Refactor H0's `bin/hermes.js` flow into a reusable function that both the CLI an
 **Interfaces:**
 - Consumes: `loader.resolveTarget`, `runner.run`, `result-gate.gate` (H0); `openDb`, `finish` (Tasks 1-2).
 - Produces:
-  - `execute(targetIdOrTarget, opts) → { status, exitCode, runId, artifactDir }`. `opts = { repoRoot, claudeBin, config, db, preResolvedRunId }`. If `db` is passed, updates the matching `runs` row to `running`/terminal; if a `runs` row does not exist (direct `hermes run`), it upserts one.
+  - `execute(targetIdOrTarget, opts) → { status, exitCode, runId, artifactDir }`. `opts = { repoRoot, claudeBin, config, db, runId }`. If `db` is passed, updates the matching `runs` row to
+    `running`/terminal; if a `runs` row does not exist (direct `hermes run`), it upserts one. If
+    `opts.runId` is supplied (the daemon's already-claimed queue row id), it is used in preference to
+    re-deriving a fresh id via `runner`'s internal `makeRunId` — this is what lets the daemon's drain
+    loop (Task 5) update the row it already claimed instead of creating a duplicate/orphan `runs`
+    row. (Earlier drafts of this plan called this option `preResolvedRunId`; standardized on `runId`
+    to match the field name everywhere else — `queue.claimNext`, `runner.run`, `result-gate.gate`.)
 
 - [ ] **Step 1: Write the failing test**
 
-Create `hermes/test/core.test.js`:
+Create `hermes/test/core.test.js`. House test style (plain `assert`, standalone runner):
 
 ```js
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { openDb } = require('../lib/db');
 const { execute } = require('../lib/core');
+
+// Minimal manual runner (house style — no node:test dependency).
+const tests = [];
+function test(name, fn) { tests.push([name, fn]); }
 
 function fixtureRepo() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-core-'));
@@ -331,6 +402,31 @@ test('execute runs a target, writes a manifest, and records a runs row', () => {
   const row = d.prepare('SELECT status FROM runs WHERE run_id = ?').get(out.runId);
   assert.equal(row.status, 'done');
 });
+
+test('execute prefers opts.runId over a freshly derived id, updating the claimed row (no duplicate)', () => {
+  const root = fixtureRepo();
+  const d = openDb(path.join(root, 'hermes', 'state', 'hermes.db'));
+  const bin = stub('process.stdout.write(JSON.stringify({ok:true}));');
+  const claimedRunId = 'pre-claimed-run-id';
+  const now = new Date().toISOString();
+  d.prepare(
+    `INSERT INTO runs (run_id, target_id, kind, tier, status, created_at, updated_at)
+     VALUES (?, 'demo-agent', 'agent', 'read-only', 'queued', ?, ?)`
+  ).run(claimedRunId, now, now);
+  const out = execute('demo-agent', { repoRoot: root, claudeBin: bin, db: d, runId: claimedRunId });
+  assert.equal(out.runId, claimedRunId);
+  const rows = d.prepare('SELECT run_id, status FROM runs').all();
+  assert.equal(rows.length, 1, 'no duplicate/orphan runs row should be created');
+  assert.equal(rows[0].status, 'done');
+});
+
+let failed = 0;
+for (const [name, fn] of tests) {
+  try { fn(); console.log(`✓ ${name}`); }
+  catch (e) { failed++; console.error(`✗ ${name}`); console.error(e); }
+}
+if (failed > 0) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
+console.log(`\n✅ All ${tests.length} tests passed`);
 ```
 
 - [ ] **Step 2: Run to verify it fails** — `node hermes/test/core.test.js` → `Cannot find module '../lib/core'`.
@@ -367,7 +463,10 @@ function execute(targetArg, opts = {}) {
       })()
     : targetArg;
 
-  const runResult = runner.run(target, { cwd: repoRoot, claudeBin: opts.claudeBin, now });
+  const rawResult = runner.run(target, { cwd: repoRoot, claudeBin: opts.claudeBin, now });
+  // Prefer the caller-supplied (already-claimed) runId over runner's freshly derived one, so a
+  // queue-drained execution updates its existing `runs` row instead of creating a duplicate/orphan.
+  const runResult = opts.runId ? { ...rawResult, runId: opts.runId } : rawResult;
   const gitSha = getGitSha(repoRoot);
 
   if (opts.db) upsertRunning(opts.db, runResult.runId, target, now);
@@ -391,7 +490,8 @@ module.exports = { execute };
 
 Replace the body of `main` after target resolution so it calls `core.execute(targetId, { repoRoot, claudeBin: opts.claudeBin })` and maps its result to the existing `EXIT` codes (ENOENT→3, TIMEOUT→4, pass→0, else→5). Keep the pre-spawn `resolveTarget` validation (exit 2) exactly as in H0 so the fail-closed test still passes. Re-run `node hermes/test/hermes.test.js` → all H0 CLI tests still PASS.
 
-- [ ] **Step 5: Run to verify it passes** — `node hermes/test/core.test.js` and `node hermes/test/hermes.test.js` → PASS.
+- [ ] **Step 5: Run to verify it passes** — `node hermes/test/core.test.js` (both tests, including the
+  runId-threading/no-duplicate-row assertion) and `node hermes/test/hermes.test.js` → PASS.
 
 - [ ] **Step 6: Commit**
 
@@ -426,13 +526,16 @@ git commit -m "refactor(hermes): extract run core, record lifecycle to runs tabl
 
 - [ ] **Step 2: Write the failing tests**
 
-Create `hermes/test/scheduler.test.js`:
+Create `hermes/test/scheduler.test.js`. House test style (plain `assert`, standalone runner):
 
 ```js
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+const assert = require('assert');
 const { cronMatches, dueJobs } = require('../lib/scheduler');
+
+// Minimal manual runner (house style — no node:test dependency).
+const tests = [];
+function test(name, fn) { tests.push([name, fn]); }
 
 test('cron * * * * * always matches', () => {
   assert.equal(cronMatches('* * * * *', new Date('2026-07-20T03:00:00')), true);
@@ -459,6 +562,14 @@ test('dueJobs returns enabled matching targets not already run this minute', () 
   const suppressed = dueJobs(schedules, new Date('2026-07-20T03:00:00'), () => true);
   assert.equal(suppressed.length, 0);
 });
+
+let failed = 0;
+for (const [name, fn] of tests) {
+  try { fn(); console.log(`✓ ${name}`); }
+  catch (e) { failed++; console.error(`✗ ${name}`); console.error(e); }
+}
+if (failed > 0) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
+console.log(`\n✅ All ${tests.length} tests passed`);
 ```
 
 - [ ] **Step 3: Run to verify it fails** — `node hermes/test/scheduler.test.js` → `Cannot find module '../lib/scheduler'`.
@@ -534,17 +645,20 @@ git commit -m "feat(hermes): declarative scheduler with dependency-free cron mat
 
 - [ ] **Step 1: Write the failing test**
 
-Create `hermes/test/hermesd.test.js`:
+Create `hermes/test/hermesd.test.js`. House test style (plain `assert`, standalone runner):
 
 ```js
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { openDb } = require('../lib/db');
 const { tick } = require('../bin/hermesd');
+
+// Minimal manual runner (house style — no node:test dependency).
+const tests = [];
+function test(name, fn) { tests.push([name, fn]); }
 
 function fixtureRepo() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-d-'));
@@ -573,9 +687,18 @@ test('a tick enqueues a due schedule and drains it to done', () => {
   const r = tick({ db, repoRoot: root, config, schedules, claudeBin: bin, now: new Date() });
   assert.equal(r.enqueued, 1);
   assert.equal(r.ran, 1);
-  const row = db.prepare("SELECT status FROM runs WHERE target_id = 'demo-agent'").get();
-  assert.equal(row.status, 'done');
+  const rows = db.prepare("SELECT run_id, status FROM runs WHERE target_id = 'demo-agent'").all();
+  assert.equal(rows.length, 1, 'the claimed run_id must be reused — no duplicate/orphan runs row');
+  assert.equal(rows[0].status, 'done');
 });
+
+let failed = 0;
+for (const [name, fn] of tests) {
+  try { fn(); console.log(`✓ ${name}`); }
+  catch (e) { failed++; console.error(`✗ ${name}`); console.error(e); }
+}
+if (failed > 0) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
+console.log(`\n✅ All ${tests.length} tests passed`);
 ```
 
 - [ ] **Step 2: Run to verify it fails** — `node hermes/test/hermesd.test.js` → `Cannot find module '../bin/hermesd'`.
@@ -616,8 +739,12 @@ function tick(ctx) {
   let ran = 0;
   let claimed;
   while ((claimed = queue.claimNext(db, new Date()))) {
-    execute(claimed.runId ? claimed.target.id : claimed.target.id, {
-      repoRoot, config, claudeBin, db, now: new Date(),
+    // Pass the id (not the partial queue-table target — see queue.js's claimNext note) so
+    // core.execute re-resolves the full target, including prompt. Pass the already-claimed
+    // runId through so execute updates this row instead of creating a duplicate/orphan one
+    // (see core.js Task 3).
+    execute(claimed.target.id, {
+      repoRoot, config, claudeBin, db, runId: claimed.runId, now: new Date(),
     });
     ran++;
   }
@@ -646,7 +773,10 @@ if (require.main === module) main();
 module.exports = { tick };
 ```
 
-Note: `execute` re-resolves the target by id and reuses the already-enqueued `runs` row via the run_id upsert (same `makeRunId` clock family). Because `claimNext` returns the enqueued `runId`, pass it through so `core.execute` updates that row rather than creating a second — refine `execute` to accept `opts.runId` and prefer it over `makeRunId` when supplied. Add that parameter and a unit assertion that no duplicate `runs` row is created.
+Note: `execute` re-resolves the target by id (Task 3) and reuses the already-claimed `runs` row via
+the `runId` passed through above, rather than deriving a fresh one — this is what keeps the drain
+loop from creating a duplicate/orphan `runs` row. Verified by the row-count assertion in
+`hermesd.test.js` (Step 1) and the equivalent assertion in `core.test.js` (Task 3).
 
 - [ ] **Step 4: Add the `enqueue` subcommand to `bin/hermes.js`**
 

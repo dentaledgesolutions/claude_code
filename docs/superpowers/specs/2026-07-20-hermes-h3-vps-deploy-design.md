@@ -1,5 +1,10 @@
 # Hermes H3 — VPS Deploy + Real Credentials (design spec)
 
+> **⚠ SPLIT by the definitive roadmap.** The VPS provision/deploy mechanics are the **kernel phase K3**
+> (dummy creds, `ANTHROPIC_API_KEY` only); real credentials + staged rollout + the security-review gate
+> are the deferred **Operate track**. See `~/.claude/plans/iterative-squishing-church.md` and
+> `.project-brain/decisions/candidates/2026-07-21-hermes-definitive-roadmap.md`.
+
 > **Date:** 2026-07-20 · **Status:** design (planning only) · **Depends on:** H1, H2 (and H0.5 for scheduled runs)
 > **Master:** `specs/2026-07-20-hermes-master-architecture.md`
 

@@ -20,7 +20,10 @@ scheduler and by a local `hermes enqueue` command.
 
 - **D3 Persistence:** introduce `hermes/lib/db.js` — a `node:sqlite` wrapper + migration runner —
   and the `runs` table. This is the first phase to need durable state.
-- **D2 Runtime:** bump the Docker base to `node:22-slim` for stable `node:sqlite`.
+- **D2 Runtime:** bump the Docker base to `node:24-slim`, where `node:sqlite` is stable (not merely
+  experimental as in 22/23). `scripts/run-all-tests.js` must skip the Hermes DB-dependent suites
+  when the host Node version is <22, so contributors on an older host aren't blocked on unrelated
+  suites.
 - **D7 Daemon:** the daemon is a supervisor loop; the actual execution is the *unchanged* H0
   `loader → runner → result-gate` core, wrapped so it also records lifecycle to the `runs` table.
 
@@ -108,7 +111,8 @@ the loader's fail-closed check from H0 is unchanged, so H0.5 cannot run anything
   manifest and a `runs` row.
 - **hermesd** — one tick with a fake clock + stub engine drains one queued job to `done`; integration
   test asserts the `runs` row and the run-dir artifact both exist.
-- All offline, `node:test`, wired into `run-all-tests.js` (already discovers `hermes/`).
+- All offline, house style (plain `assert` + manual runner, standalone `node <file>`), wired into
+  `run-all-tests.js` (already discovers `hermes/`).
 
 ## Definition of done
 

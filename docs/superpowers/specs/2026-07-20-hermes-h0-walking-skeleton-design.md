@@ -49,13 +49,13 @@ closed on anything it is not explicitly allowed to run.**
 |---|---|---|
 | Spec scope | H0 walking skeleton only | Fastest runnable Hermes; hard parts get focused specs |
 | Execution engine | Claude Code **headless** (`claude -p`) | Reuses `.claude/agents`, skills, hooks, permission modes verbatim; near-zero new agent-loop code; same precedent as the Codex external-eval layer |
-| Loader runtime | **Node** | Matches repo stack (`run-all-tests.js`, scripts-only), CLI ecosystem |
+| Loader runtime | **Node ≥18** | Matches repo stack (`run-all-tests.js`, scripts-only), CLI ecosystem. H0 has no database dependency, so the standard `run-all-tests.js` floor of Node ≥18 is sufficient — no need for the higher `node:sqlite`-driven floor that H0.5 introduces |
 | Packaging | **Docker from day one** | Dev/prod parity; "deploy" = run the same container on the VPS |
-| First target | **Credential-free internal agent** (e.g. `repo-audit`) | Proves the loop with zero credential exposure |
+| First target | **Credential-free internal agent** (e.g. `repo-audit-testing`) | Proves the loop with zero credential exposure |
 | Lifecycle | **One-shot CLI** `hermes run <target>` | Fewest moving parts; daemon becomes a thin H0.5 wrapper |
 | Structure | **Approach A** — thin core + minimal Eve-vocabulary `hermes/` dir | Honors the Eve pattern minimally; gives H1 a foundation, not a rewrite |
 | Target input | **Fixed prompt per target in `hermes.config.json`** | Deterministic skeleton, no interactive input |
-| Test framework | Node built-in `node:test`, wired into `run-all-tests.js` | No new dependency; consistent with scripts-only stack |
+| Test framework | House style — plain `require('assert')` + a minimal manual runner, standalone `node <file>` (see `scripts/run-calibration.test.js`), wired into `run-all-tests.js` | No new dependency; matches the repo's existing test idiom (not `node:test`) |
 | `hermes.config.json` | **Committed to git** (allow-list, not a secret) | Reviewability; only `evals/hermes/runs/` is gitignored |
 
 ## Architecture
@@ -114,7 +114,7 @@ hermes/
 │   ├── loader.js               # discover + validate → registry
 │   ├── runner.js               # build argv + spawn claude -p
 │   └── result-gate.js          # parse + verify + write artifacts
-├── test/                       # node:test unit + stub-integration tests
+├── test/                       # house-style (plain assert) unit + stub-integration tests
 ├── Dockerfile
 └── docker-compose.yml
 evals/hermes/runs/<run-id>/     # result.json + manifest.json (generated, gitignored)
@@ -126,7 +126,7 @@ evals/hermes/runs/<run-id>/     # result.json + manifest.json (generated, gitign
 {
   "runnable_targets": [
     {
-      "id": "repo-audit",
+      "id": "repo-audit-testing",
       "kind": "agent",
       "tier": "read-only",
       "prompt": "Audit the current repository"
@@ -149,13 +149,17 @@ the file H1 extends (not rewrites) when the vault arrives.
 - **Fails closed:** a configured target missing on disk, or any tier ∉ `allowed_tiers`, is a hard
   error — no partial run. Pure function.
 
-**`runner.js`** — `run(target, opts) → { stdout, stderr, code, argv, durationMs, runId }`
+**`runner.js`** — `run(target, opts) → { stdout, stderr, code, argv, durationMs, runId, error }`
 - Builds argv: `["-p", "--output-format", "json", "--agent", target.id, target.prompt]` plus a
-  read-only permission mode; agent runs non-interactively.
-- Spawns via `child_process.spawn` with an **argv array** (never shell-interpolated —
+  read-only permission mode; agent runs non-interactively. The exact `--permission-mode` flag name
+  is to be confirmed against `claude --help` at build time — the CLI's headless flags are not
+  assumed to be stable across versions.
+- Spawns via `child_process.spawnSync` with an **argv array** (never shell-interpolated —
   injection-safe), applies a timeout, captures streams. `runId` (timestamp+slug) generated here.
+  `error` is `null` on a normal exit, or `{ type: 'ENOENT'|'TIMEOUT'|'SPAWN', message }` otherwise.
 
-**`result-gate.js`** — `gate(target, runResult, config) → { status, manifest, artifactDir }`
+**`result-gate.js`** — `gate(target, runResult, config, ctx) → { status, manifest, artifactDir }`.
+`ctx = { repoRoot, gitSha }`.
 - Parses stdout as JSON; on parse failure → `status: "error"` with raw stderr preserved.
 - Verifies manifest invariants: expected target ran, `code === 0`, tier respected, no unexpected
   write paths reported.
@@ -165,13 +169,13 @@ the file H1 extends (not rewrites) when the vault arrives.
 **`bin/hermes.js`** — thin orchestrator: parse argv → loader → runner → result-gate → print
 summary + exit code. No business logic; wiring only.
 
-## Data flow (one `hermes run repo-audit`)
+## Data flow (one `hermes run repo-audit-testing`)
 
 ```
 1. INVOKE     bin/hermes.js parses argv, reads hermes.config.json
 2. DISCOVER   loader walks .claude/agents + packs; cross-checks allow-list
               ├─ not on disk / not allow-listed / bad tier → HARD ERROR (exit 2), nothing spawned
-              └─ resolve → { id: repo-audit, kind: agent, tier: read-only, prompt: ... }
+              └─ resolve → { id: repo-audit-testing, kind: agent, tier: read-only, prompt: ... }
 3. RUN        runner: runId + argv (array) + spawn claude -p; capture streams
               ├─ ENOENT (claude missing) → exit 3
               ├─ timeout → kill child → exit 4
@@ -212,7 +216,7 @@ H0 is safe by having a **small surface** and **failing closed**, not by adding m
    on any higher tier. No vault because nothing that needs one can run — aligned with the
    local-first "harden before real creds" sequencing and the brain's no-secrets hard rule.
 2. **No network-exposed surface.** One-shot CLI, no daemon, no HTTP. Nothing to attack remotely.
-3. **Injection-safe subprocess.** `spawn` with an argv array; target ids/prompts are never
+3. **Injection-safe subprocess.** `spawnSync` with an argv array; target ids/prompts are never
    concatenated into a shell string. The loader constrains `target` to the allow-list before use,
    so it cannot be a path-traversal or flag-injection vector.
 4. **Contained writes.** Hermes writes only under `evals/hermes/runs/`. The spawned agent inherits
@@ -226,7 +230,9 @@ check is the hook they plug into.
 
 ## Testing strategy
 
-Testing mirrors the module boundaries. All via `node:test`, wired into `run-all-tests.js`.
+Testing mirrors the module boundaries. All via the repo's house style (plain `require('assert')` + a
+minimal manual runner, standalone `node <file>` — see `scripts/run-calibration.test.js`), wired into
+`run-all-tests.js`.
 
 **Layer 1 — Unit (pure, fast):**
 - **loader.js** (security-critical, heaviest coverage): resolves a valid allow-listed target;

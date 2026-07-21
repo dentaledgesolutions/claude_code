@@ -6,19 +6,30 @@
 
 **Architecture:** Three focused Node modules — `loader` (discover + fail-closed validation, pure), `runner` (build argv + spawn `claude -p`, the only subprocess module), `result-gate` (parse + verify + write artifacts) — wired by a thin `bin/hermes.js`. The only new registry artifact is `hermes/hermes.config.json`, an allow-list. Agents/packs are discovered in place; nothing is duplicated or hardcoded.
 
-**Tech Stack:** Node ≥18 (CommonJS, `'use strict'`), built-in `node:test`, `child_process.spawnSync`, Docker. No new runtime dependencies.
+**Tech Stack:** Node ≥18 (CommonJS, `'use strict'`), house-style tests (plain `assert`, standalone `node <file>` runner — see `scripts/run-calibration.test.js`), `child_process.spawnSync`, Docker. No new runtime dependencies.
 
 **Spec:** `docs/superpowers/specs/2026-07-20-hermes-h0-walking-skeleton-design.md`
 
 ## Global Constraints
 
 - **Runtime:** Node ≥18, CommonJS modules (`require`/`module.exports`, `'use strict'`) — match the existing `scripts/` style.
-- **No new runtime dependencies** — tests use built-in `node:test`; subprocess via built-in `child_process`.
+- **No new runtime dependencies** — tests use house-style plain `assert` + a manual runner (no `node:test`), runnable directly as `node hermes/test/<name>.test.js`, matching `scripts/run-calibration.test.js`; subprocess via built-in `child_process`.
 - **Never hardcode target names** — agents/packs are discovered dynamically by walking the filesystem (existing repo rule).
 - **Fail closed** — any target not explicitly allow-listed, missing on disk, or above the allowed tier is a hard error *before* any subprocess is spawned.
 - **Artifacts only under `evals/hermes/runs/`** — this path is gitignored; never commit run artifacts.
 - **Every run writes a `manifest.json`** — including failures; no exception is ever swallowed.
 - **Distinct exit codes:** `0` success · `1` internal error · `2` validation · `3` engine-missing · `4` timeout · `5` bad-output/fail.
+
+### Engine seam (D14)
+
+`runner.js` builds its argv and picks a binary through a small **named adapter map**
+(`ENGINE_ADAPTERS`), not a hardcoded `claude` call. Each target carries an optional `engine` field
+(default `'claude'`); the H0 build ships exactly one adapter — `claude` → `claude -p` — so `codex`
+or other open-model CLIs can be added later as new adapter entries without touching `loader.js` or
+`result-gate.js`'s gate logic. The run manifest records which `engine` ran alongside the existing
+`target`/`argv`/`gitSha` fields. `runner.test.js` (Task 2) gets one added assertion proving a stub
+engine is injected *through* the adapter seam (via `opts.engineAdapters`), not hardcoded — see Task
+2, Step 3.
 
 ---
 
@@ -37,7 +48,7 @@ The security-critical core. Pure functions, no subprocess — so it gets the hea
   - `loadConfig(repoRoot) → config` — reads/parses `hermes/hermes.config.json`.
   - `discoverAgents(repoRoot) → Set<string>` — basenames of `.claude/agents/*.md` without `.md`.
   - `discoverPacks(repoRoot) → Map<string, packObj>` — keyed by pack `name`, from `packs/registry.json`.
-  - `resolveTarget(config, repoRoot, targetId) → { ok: true, target } | { ok: false, error }` where `target = { id, kind, tier, prompt }`.
+  - `resolveTarget(config, repoRoot, targetId) → { ok: true, target } | { ok: false, error }` where `target = { id, kind, tier, prompt, engine }` (`engine` defaults to `'claude'` when omitted from config — see "Engine seam (D14)" above).
   - `loadRegistry(config, repoRoot) → { targets: Map<string,target>, errors: string[] }`.
 
 - [ ] **Step 1: Write the config allow-list**
@@ -61,16 +72,20 @@ Create `hermes/hermes.config.json`. The example target is a real credential-free
 
 - [ ] **Step 2: Write the failing tests**
 
-Create `hermes/test/loader.test.js`:
+Create `hermes/test/loader.test.js`. House test style (plain `assert`, standalone runner — see
+`scripts/run-calibration.test.js`), not `node:test`:
 
 ```js
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { resolveTarget, loadRegistry, discoverAgents } = require('../lib/loader');
+
+// Minimal manual runner (house style — no node:test dependency).
+const tests = [];
+function test(name, fn) { tests.push([name, fn]); }
 
 function makeFixtureRepo() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-fx-'));
@@ -151,6 +166,14 @@ test('loadRegistry collects valid targets and reports errors', () => {
   assert.equal(targets.size, 1);
   assert.equal(errors.length, 1);
 });
+
+let failed = 0;
+for (const [name, fn] of tests) {
+  try { fn(); console.log(`✓ ${name}`); }
+  catch (e) { failed++; console.error(`✗ ${name}`); console.error(e); }
+}
+if (failed > 0) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
+console.log(`\n✅ All ${tests.length} tests passed`);
 ```
 
 - [ ] **Step 3: Run tests to verify they fail**
@@ -214,7 +237,8 @@ function resolveTarget(config, repoRoot, targetId) {
   if (typeof entry.prompt !== 'string' || entry.prompt.trim() === '') {
     return { ok: false, error: `target "${entry.id}" has no prompt` };
   }
-  return { ok: true, target: { id: entry.id, kind: entry.kind, tier: entry.tier, prompt: entry.prompt } };
+  // `engine` names the runner adapter (see "Engine seam (D14)"); defaults to the sole H0 adapter.
+  return { ok: true, target: { id: entry.id, kind: entry.kind, tier: entry.tier, prompt: entry.prompt, engine: entry.engine || 'claude' } };
 }
 
 function loadRegistry(config, repoRoot) {
@@ -254,11 +278,11 @@ The only module that touches a subprocess. Tested deterministically and offline 
 - Test: `hermes/test/runner.test.js`
 
 **Interfaces:**
-- Consumes: a resolved `target = { id, kind, tier, prompt }` (from Task 1).
+- Consumes: a resolved `target = { id, kind, tier, prompt, engine }` (from Task 1).
 - Produces:
   - `makeRunId(target, now) → "YYYYMMDD-HHMMSS-<id>"`.
   - `buildArgv(target) → string[]`.
-  - `run(target, opts) → { runId, argv, stdout, stderr, code, durationMs, error }` where `error` is `null` or `{ type: 'ENOENT'|'TIMEOUT'|'SPAWN', message }`. `opts = { timeoutMs, cwd, claudeBin, now }`.
+  - `run(target, opts) → { runId, argv, stdout, stderr, code, durationMs, error, engine }` where `error` is `null` or `{ type: 'ENOENT'|'TIMEOUT'|'SPAWN', message }`. `opts = { timeoutMs, cwd, claudeBin, now, engineAdapters }`. `engineAdapters` is the named-adapter map (default `ENGINE_ADAPTERS`, the sole `claude` adapter) — the seam through which `codex`/other engines plug in later (Engine seam D14).
 
 - [ ] **Step 0: Confirm the real CLI flags**
 
@@ -267,16 +291,19 @@ Confirm the headless flags for (a) selecting a specific project agent and (b) a 
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `hermes/test/runner.test.js`:
+Create `hermes/test/runner.test.js`. House test style (plain `assert`, standalone runner):
 
 ```js
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { makeRunId, buildArgv, run } = require('../lib/runner');
+
+// Minimal manual runner (house style — no node:test dependency).
+const tests = [];
+function test(name, fn) { tests.push([name, fn]); }
 
 const target = { id: 'demo-agent', kind: 'agent', tier: 'read-only', prompt: 'audit this' };
 
@@ -326,6 +353,21 @@ test('run propagates a non-zero exit code without an error object', () => {
   assert.equal(r.code, 7);
   assert.equal(r.error, null);
 });
+
+test('the engine is resolved through the adapter seam, not hardcoded (Engine seam D14)', () => {
+  const stub = writeStub('process.stdout.write(JSON.stringify({ok:true}));process.exit(0);');
+  const r = run(target, { engineAdapters: { claude: () => stub } });
+  assert.equal(r.code, 0);
+  assert.equal(r.engine, 'claude');
+});
+
+let failed = 0;
+for (const [name, fn] of tests) {
+  try { fn(); console.log(`✓ ${name}`); }
+  catch (e) { failed++; console.error(`✗ ${name}`); console.error(e); }
+}
+if (failed > 0) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
+console.log(`\n✅ All ${tests.length} tests passed`);
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -340,6 +382,13 @@ Create `hermes/lib/runner.js`:
 ```js
 'use strict';
 const { spawnSync } = require('child_process');
+
+// Engine seam (D14): each entry resolves an engine name to the binary to spawn. H0 ships one
+// adapter — `claude` — so later engines (e.g. `codex`) plug in here without touching loader.js
+// or result-gate.js.
+const ENGINE_ADAPTERS = {
+  claude: (opts) => opts.claudeBin || 'claude',
+};
 
 function makeRunId(target, now = new Date()) {
   const pad = (n) => String(n).padStart(2, '0');
@@ -366,12 +415,18 @@ function run(target, opts = {}) {
     cwd = process.cwd(),
     claudeBin = 'claude',
     now = new Date(),
+    engineAdapters = ENGINE_ADAPTERS,
   } = opts;
+
+  const engine = target.engine || 'claude';
+  const resolveBin = engineAdapters[engine];
+  if (!resolveBin) throw new Error(`unknown engine adapter "${engine}"`);
+  const bin = resolveBin({ claudeBin });
 
   const runId = makeRunId(target, now);
   const argv = buildArgv(target);
   const started = Date.now();
-  const r = spawnSync(claudeBin, argv, {
+  const r = spawnSync(bin, argv, {
     cwd,
     encoding: 'utf8',
     timeout: timeoutMs,
@@ -381,14 +436,14 @@ function run(target, opts = {}) {
 
   let error = null;
   if (r.error) {
-    if (r.error.code === 'ENOENT') error = { type: 'ENOENT', message: `engine not found: ${claudeBin}` };
+    if (r.error.code === 'ENOENT') error = { type: 'ENOENT', message: `engine not found: ${bin}` };
     else if (r.error.code === 'ETIMEDOUT') error = { type: 'TIMEOUT', message: `run exceeded ${timeoutMs}ms` };
     else error = { type: 'SPAWN', message: r.error.message };
   } else if (r.signal === 'SIGTERM') {
     error = { type: 'TIMEOUT', message: `run exceeded ${timeoutMs}ms` };
   }
 
-  return { runId, argv, stdout: r.stdout || '', stderr: r.stderr || '', code: r.status, durationMs, error };
+  return { runId, argv, stdout: r.stdout || '', stderr: r.stderr || '', code: r.status, durationMs, error, engine };
 }
 
 module.exports = { makeRunId, buildArgv, run };
@@ -397,7 +452,7 @@ module.exports = { makeRunId, buildArgv, run };
 - [ ] **Step 4: Run tests to verify they pass**
 
 Run: `node hermes/test/runner.test.js`
-Expected: PASS — all 6 tests.
+Expected: PASS — all 7 tests.
 
 - [ ] **Step 5: Commit**
 
@@ -424,16 +479,19 @@ Turns a raw run into a durable, reviewable verdict. Every path writes a `manifes
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `hermes/test/result-gate.test.js`:
+Create `hermes/test/result-gate.test.js`. House test style (plain `assert`, standalone runner):
 
 ```js
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { gate } = require('../lib/result-gate');
+
+// Minimal manual runner (house style — no node:test dependency).
+const tests = [];
+function test(name, fn) { tests.push([name, fn]); }
 
 const target = { id: 'demo-agent', kind: 'agent', tier: 'read-only', prompt: 'x' };
 const config = { runs_dir: 'evals/hermes/runs' };
@@ -476,6 +534,14 @@ test('an engine error yields an error verdict and still writes a manifest', () =
   assert.equal(out.status, 'error');
   assert.ok(fs.existsSync(path.join(out.artifactDir, 'manifest.json')));
 });
+
+let failed = 0;
+for (const [name, fn] of tests) {
+  try { fn(); console.log(`✓ ${name}`); }
+  catch (e) { failed++; console.error(`✗ ${name}`); console.error(e); }
+}
+if (failed > 0) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
+console.log(`\n✅ All ${tests.length} tests passed`);
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**
@@ -526,6 +592,7 @@ function gate(target, runResult, config, ctx = {}) {
     runId: runResult.runId,
     timestamp: new Date().toISOString(),
     target: { id: target.id, kind: target.kind, tier: target.tier },
+    engine: runResult.engine || target.engine || 'claude', // which engine adapter ran (D14)
     argv: runResult.argv,
     exitCode: runResult.code,
     durationMs: runResult.durationMs,
@@ -577,16 +644,19 @@ Thin wiring: loader → runner → gate, mapping outcomes to the distinct exit c
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `hermes/test/hermes.test.js`:
+Create `hermes/test/hermes.test.js`. House test style (plain `assert`, standalone runner):
 
 ```js
 'use strict';
-const { test } = require('node:test');
-const assert = require('node:assert');
+const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { main, EXIT } = require('../bin/hermes');
+
+// Minimal manual runner (house style — no node:test dependency).
+const tests = [];
+function test(name, fn) { tests.push([name, fn]); }
 
 function fixtureRepo() {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'hermes-bin-'));
@@ -642,6 +712,14 @@ test('usage error (no target) exits 2', () => {
   const code = main(['run'], { repoRoot: root });
   assert.equal(code, EXIT.VALIDATION);
 });
+
+let failed = 0;
+for (const [name, fn] of tests) {
+  try { fn(); console.log(`✓ ${name}`); }
+  catch (e) { failed++; console.error(`✗ ${name}`); console.error(e); }
+}
+if (failed > 0) { console.error(`\n${failed} test(s) failed`); process.exit(1); }
+console.log(`\n✅ All ${tests.length} tests passed`);
 ```
 
 - [ ] **Step 2: Run tests to verify they fail**

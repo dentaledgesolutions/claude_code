@@ -1,5 +1,10 @@
 # Hermes H3 — VPS Deploy + Real Credentials Implementation Plan
 
+> **⚠ SPLIT by the definitive roadmap.** VPS provision/deploy = **kernel K3** (dummy creds only); real
+> credentials + staged rollout + security-review gate = deferred **Operate track**. Authoritative:
+> `~/.claude/plans/iterative-squishing-church.md` and
+> `.project-brain/decisions/candidates/2026-07-21-hermes-definitive-roadmap.md`.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to work through this plan. H3 is infrastructure/ops, so tasks are script-authoring + command-verified checkpoints rather than unit-test TDD. Steps use checkbox (`- [ ]`) syntax. **Do not introduce any real credential until Task 5's security-review gate is fully signed.**
 
 **Goal:** Run the locally-hardened Hermes on the Hostinger VPS with real credentials, safely — provision + harden the box, deploy via git+compose, gate real creds behind a security review, and roll out smallest-blast-radius-first.
